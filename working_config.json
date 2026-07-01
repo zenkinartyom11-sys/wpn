@@ -1,55 +1,32 @@
 {
-  "log": {
-    "loglevel": "warning"
-  },
-  "inbounds": [
-    {
-      "port": 10808,
-      "listen": "127.0.0.1",
-      "protocol": "socks",
-      "settings": {
-        "auth": "noauth",
-        "udp": true
-      }
-    }
-  ],
-  "outbounds": [
-    {
-      "tag": "proxy",
-      "protocol": "vless",
-      "settings": {
-        "vnext": [
+  "tag": "proxy",
+  "protocol": "vless",
+  "settings": {
+    "vnext": [
+      {
+        "address": "84.201.141.192",
+        "port": 443,
+        "users": [
           {
-            "address": "84.201.141.192",
-            "port": 443,
-            "users": [
-              {
-                "id": "b11090d2-28e9-41d7-98e9-1cc3f519067d",
-                "encryption": "none",
-                "flow": "xtls-rprx-vision"
-              }
-            ]
+            "id": "b11090d2-28e9-41d7-98e9-1cc3f519067d",
+            "encryption": "none",
+            "flow": "xtls-rprx-vision"
           }
         ]
-      },
-      "streamSettings": {
-        "network": "tcp",
-        "security": "reality",
-        "realitySettings": {
-          "show": false,
-          "fingerprint": "chrome",
-          "serverName": "ozon.ru",
-          "publicKey": "iOwit3jlURtk1Vl6ju7L4lFc5Zwfpv9OtZk5vbKoXGA",
-          "shortId": "",
-          "spiderX": ""
-        },
-        "tcpSettings": {}
       }
+    ]
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "security": "reality",
+    "realitySettings": {
+      "show": false,
+      "fingerprint": "chrome",
+      "serverName": "ozon.ru",
+      "publicKey": "iOwit3jlURtk1Vl6ju7L4lFc5Zwfpv9OtZk5vbKoXGA",
+      "shortId": "",
+      "spiderX": ""
     },
-    {
-      "tag": "direct",
-      "protocol": "freedom",
-      "settings": {}
-    }
-  ]
+    "tcpSettings": {}
+  }
 }
