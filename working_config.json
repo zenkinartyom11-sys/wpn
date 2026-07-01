@@ -32,18 +32,17 @@
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "tlsSettings": {
+        "network": "grpc",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "fingerprint": "chrome",
           "serverName": "cdn.jsdelivr.net",
-          "allowInsecure": false
+          "publicKey": "ugTbTcS4MurvJHkOsb2sGdVhUdhfyuJwv6yvJldeCXA",
+          "shortId": "",
+          "spiderX": ""
         },
-        "wsSettings": {
-          "path": "/",
-          "headers": {
-            "Host": "cdn.jsdelivr.net"
-          }
-        }
+        "tcpSettings": {}
       }
     },
     {
