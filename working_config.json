@@ -37,7 +37,7 @@
         "realitySettings": {
           "show": false,
           "fingerprint": "chrome",
-          "serverName": "speedtest.net",
+          "serverName": "cdn.jsdelivr.net",
           "publicKey": "ugTbTcS4MurvJHkOsb2sGdVhUdhfyuJwv6yvJldeCXA",
           "shortId": "",
           "spiderX": ""
