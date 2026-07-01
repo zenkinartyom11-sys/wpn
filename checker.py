@@ -38,69 +38,67 @@ def parse_vless_link(link):
     return None
 
 def modify_config(json_data, new_data):
-    """Полностью перестраивает streamSettings во избежание конфликтов grpc/tcp"""
-    data = json.loads(json_data)
-    
-    proxy_outbound = next((o for o in data.get("outbounds", []) if o.get("tag") == "proxy"), None)
-    if not proxy_outbound:
-        print("❌ Ошибка: В файле не найден блок с тегом 'proxy'")
-        return None
-
-    # 1. Меняем IP, порт и UUID
-    vnext_list = proxy_outbound.get("settings", {}).get("vnext", [])
-    if vnext_list and len(vnext_list) > 0:
-        vnext = vnext_list[0]
-        vnext["address"] = new_data["ip"]
-        vnext["port"] = int(new_data["port"])
-        
-        # Настройка XTLS Flow (только для TCP Reality, для grpc/ws удаляем)
-        if new_data["security"] == "reality" and new_data["type"] == "tcp" and new_data["flow"]:
-            vnext["users"][0]["flow"] = new_data["flow"]
-        elif "flow" in vnext["users"][0]:
-            del vnext["users"][0]["flow"]
-            
-        vnext["users"][0]["id"] = new_data["uuid"]
-
-    # 2. Перестраиваем сетевой слой (streamSettings) с нуля
-    stream_settings = {
-        "network": new_data["type"],
-        "security": new_data["security"]
+    """Оставляет в файле чистый, рабочий outbound для импорта в любой клиент"""
+    # Создаем с нуля структуру чистого подключения без лишних системных портов
+    proxy_outbound = {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+            "vnext": [
+                {
+                    "address": new_data["ip"],
+                    "port": int(new_data["port"]),
+                    "users": [
+                        {
+                            "id": new_data["uuid"],
+                            "encryption": "none"
+                        }
+                    ]
+                }
+            ]
+        },
+        "streamSettings": {
+            "network": new_data["type"],
+            "security": new_data["security"]
+        }
     }
 
-    server_name_value = new_data["sni"] if new_data["sni"] else ""
-    
+    # Настройки Reality / TLS
     if new_data["security"] == "reality":
-        stream_settings["realitySettings"] = {
+        proxy_outbound["streamSettings"]["realitySettings"] = {
             "show": False,
             "fingerprint": "chrome",
-            "serverName": server_name_value,
+            "serverName": new_data["sni"] if new_data["sni"] else "",
             "publicKey": new_data["pbk"] if new_data["pbk"] else "",
             "shortId": "",
             "spiderX": ""
         }
+        # Добавляем flow только если сеть TCP
+        if new_data["type"] == "tcp" and new_data["flow"]:
+            proxy_outbound["settings"]["vnext"][0]["users"][0]["flow"] = new_data["flow"]
+            
     elif new_data["security"] == "tls":
-        stream_settings["tlsSettings"] = {
-            "serverName": server_name_value,
+        proxy_outbound["streamSettings"]["tlsSettings"] = {
+            "serverName": new_data["sni"] if new_data["sni"] else "",
             "allowInsecure": False
         }
 
     # Настройки транспорта
     if new_data["type"] == "grpc":
-        stream_settings["grpcSettings"] = {
+        proxy_outbound["streamSettings"]["grpcSettings"] = {
             "serviceName": new_data["serviceName"] if new_data["serviceName"] else "grpc"
         }
     elif new_data["type"] == "ws":
-        stream_settings["wsSettings"] = {
+        proxy_outbound["streamSettings"]["wsSettings"] = {
             "path": new_data["path"],
             "headers": {
-                "Host": new_data["host"] if new_data["host"] else server_name_value
+                "Host": new_data["host"] if new_data["host"] else (new_data["sni"] if new_data["sni"] else "")
             }
         }
     elif new_data["type"] == "tcp":
-        stream_settings["tcpSettings"] = {}
+        proxy_outbound["streamSettings"]["tcpSettings"] = {}
 
-    proxy_outbound["streamSettings"] = stream_settings
-    return json.dumps(data, indent=2, ensure_ascii=False)
+    return json.dumps(proxy_outbound, indent=2, ensure_ascii=False)
 
 def main():
     print("1. Скачиваем свежие ключи от igareck...")
