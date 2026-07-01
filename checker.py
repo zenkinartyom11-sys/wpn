@@ -1,16 +1,17 @@
-import json
 import socket
 import requests
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
 
 FILE_PATH = "subscription.txt"  
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
-# Список запрещенных в РФ подсетей хостингов, куда часто пихают "поддельные" зарубежные сервера
-BAN_ISP_KEYWORDS = ["yandex", "selectel", "vdsina", "ru-center", "gcore", "mironet", "serverspace", "as208222"]
+# На этот домен робот будет заменять проблемные SNI для обхода ТСПУ
+GOOD_SNI = "speedtest.net"
+
+# Если в ссылке есть эти слова, домен гарантированно заблокируют вместе с VPN
+BAD_SNI_KEYWORDS = ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]
 
 def is_server_alive(ip, port, timeout=3):
-    """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
     try:
         with socket.create_connection((ip, int(port)), timeout=timeout):
             return True
@@ -18,19 +19,12 @@ def is_server_alive(ip, port, timeout=3):
         return False
 
 def check_hosting_provider(ip):
-    """
-    Резервный метод: Проверяет имя провайдера через альтернативный 
-    бесплатный сервис ip-api.com (у него лимит поштучный, а не на весь Гитхаб)
-    """
     try:
-        # Этот сервис выдает лимит на конкретную минуту, на гитхабе работает стабильнее
-        response = requests.get(f"http://ip-api.com{ip}?fields=status,countryCode,org,as", timeout=3)
+        # Используем резервный сервис для проверки страны
+        response = requests.get(f"https://ipapi.co{ip}/json/", timeout=3)
         if response.status_code == 200:
-            res_data = response.json()
-            if res_data.get("status") == "success":
-                country = res_data.get("countryCode", "UNKNOWN")
-                provider = str(res_data.get("org", "")).lower() + " " + str(res_data.get("as", "")).lower()
-                return country, provider
+            data = response.json()
+            return data.get("country_code", "UNKNOWN"), str(data.get("org", "")).lower()
     except:
         pass
     return "UNKNOWN", "UNKNOWN"
@@ -43,12 +37,10 @@ def main():
         return
 
     chosen_link = None
-    lines = res_keys.text.splitlines()
     
-    print("2. Начинаем жесткую фильтрацию серверов...")
-    for line in lines:
+    print("2. Фильтруем и чиним ссылки...")
+    for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
-            # Пропускаем grpc и ws
             if "type=grpc" in line or "type=ws" in line:
                 continue
             
@@ -61,49 +53,53 @@ def main():
                 if not ip or not port:
                     continue
                 
-                # КРИТИЧЕСКАЯ ФИЛЬТРАЦИЯ ПО ИЗВЕСТНЫМ IP ЯНДЕКСА
-                # Адреса вида 84.201.х.х — это ВСЕГДА Москва (Яндекс.Облако)
+                # Жёсткий бан русских подсетей
                 if ip.startswith("84.201.") or ip.startswith("51.250.") or ip.startswith("178.154."):
-                    print(f"   ⚠️ Жесткий бан: {ip} гарантированно является сервером Яндекс.Облака (РФ). Пропуск.")
-                    continue
-                    
-                print(f"🔎 Тестируем сервер: {ip}...")
-                
-                # Запрашиваем информацию о стране и провайдере
-                country, provider = check_hosting_provider(ip)
-                
-                # Проверка 1: Запрет по коду страны
-                if country == "RU":
-                    print(f"   ❌ Бан: Сервер определен как Российский (RU).")
                     continue
                 
-                # Проверка 2: Запрет по имени провайдера (Если базы определили его криво как Польшу, но это Яндекс)
-                is_banned_isp = any(keyword in provider for keyword in BAN_ISP_KEYWORDS)
-                if is_banned_isp:
-                    print(f"   ❌ Бан: Обнаружен русский хостинг-провайдер в логах ({provider}).")
-                    continue
+                # Извлекаем параметры запроса
+                query_params = parse_qs(parsed.query)
+                original_sni = query_params.get("sni", [""])[0].lower()
                 
-                # Проверка 3: Живой ли порт
+                # ПРОВЕРКА И ПОДМЕНА SNI ДЛЯ ОБХОДА ТСПУ
+                has_bad_sni = any(kw in original_sni for kw in BAD_SNI_KEYWORDS)
+                if has_bad_sni or not original_sni:
+                    print(f"⚙️ Нашли заблокированный SNI ({original_sni}) на сервере {ip}. Меняем на {GOOD_SNI}...")
+                    query_params["sni"] = [GOOD_SNI]
+                
+                # Пересобираем query-строку обратно
+                # Выпрямляем параметры из списков parse_qs
+                flat_params = {k: v[0] for k, v in query_params.items()}
+                new_query = urlencode(flat_params)
+                
+                # Собираем модифицированную VLESS ссылку
+                new_parsed = parsed._replace(query=new_query)
+                modified_link = urlunparse(new_parsed)
+                
+                print(f"🔎 Тестируем доступность IP: {ip}...")
                 if not is_server_alive(ip, port):
-                    print(f"   ❌ Пропуск: Сервер не отвечает на порту {port}.")
+                    print("   ❌ Порт закрыт.")
                     continue
                 
-                # Если все три сита пройдены:
-                print(f"   🚀 НАЙДЕН НАСТОЯЩИЙ ЗАГРАНИЧНЫЙ СЕРВЕР! Страна: {country}, Провайдер: {provider}")
-                chosen_link = clean_line
+                country, org = check_hosting_provider(ip)
+                if country == "RU" or "yandex" in org or "selectel" in org:
+                    print("   ❌ Это российский хостинг.")
+                    continue
+                
+                print(f"   🚀 НАЙДЕН РАБОЧИЙ СЕРВЕР! Страна: {country}. Ссылка успешно модифицирована!")
+                chosen_link = modified_link
                 break
                 
-            except:
+            except Exception as e:
                 continue
 
     if not chosen_link:
-        print("❌ Не удалось найти чистый зарубежный сервер без блокировок.")
+        print("❌ Не удалось найти подходящий сервер.")
         return
 
-    # 3. Записываем результат
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(chosen_link)
-    print(f"✅ Истинный зарубежный сервер сохранен в {FILE_PATH}.")
+    print(f"✅ Исправленная ссылка сохранена в {FILE_PATH}.")
 
 if __name__ == "__main__":
     main()
