@@ -20,11 +20,11 @@
       "settings": {
         "vnext": [
           {
-            "address": "217.144.184.251",
-            "port": 2053,
+            "address": "news.microsoft.com",
+            "port": 443,
             "users": [
               {
-                "id": "8ebbdd3b-703c-47df-8bc9-bc9cf6606bc1",
+                "id": "14b59caf-a196-4ec2-8c70-c7b388062f5b",
                 "encryption": "none"
               }
             ]
@@ -32,18 +32,17 @@
         ]
       },
       "streamSettings": {
-        "network": "grpc",
-        "security": "reality",
-        "realitySettings": {
-          "show": false,
-          "fingerprint": "chrome",
-          "serverName": "cdn.jsdelivr.net",
-          "publicKey": "ugTbTcS4MurvJHkOsb2sGdVhUdhfyuJwv6yvJldeCXA",
-          "shortId": "",
-          "spiderX": ""
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "serverName": "JoinProxyVPN11.vangoghhh.info",
+          "allowInsecure": false
         },
-        "grpcSettings": {
-          "serviceName": "grpc"
+        "wsSettings": {
+          "path": "/rdfgtws",
+          "headers": {
+            "Host": "vangoghhh.info"
+          }
         }
       }
     },
