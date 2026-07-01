@@ -42,7 +42,9 @@
           "shortId": "",
           "spiderX": ""
         },
-        "tcpSettings": {}
+        "grpcSettings": {
+          "serviceName": "grpc"
+        }
       }
     },
     {
