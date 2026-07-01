@@ -2,21 +2,21 @@ name: Auto Update VLESS Config
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # Авто-запуск каждые 6 часов
-  workflow_dispatch: # Кнопка для ручного запуска
+    - cron: '*/15 * * * *' # Автоматический запуск каждые 15 минут
+  workflow_dispatch: # Кнопка для ручного запуска в гитхабе
 
 jobs:
   run-parser:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write # Дает право GitHub Actions делать пуш изменений
+      contents: write # Дублируем права на запись прямо в сценарии
       
     steps:
-    - name: 1. Клонируем ваш репозиторий (скачиваем checker.py и working_config.json)
+    - name: 1. Клонируем репозиторий
       uses: actions/checkout@v4
 
-    - name: 2. Включаем Python на виртуальной машине
+    - name: 2. Включаем Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
@@ -24,13 +24,13 @@ jobs:
     - name: 3. Устанавливаем библиотеку requests
       run: pip install requests
 
-    - name: 4. Запускаем наш скрипт checker.py (он изменит файл на диске)
-      run: python checker.py
+    - name: 4. Запускаем скрипт
+      run: python robot.py
 
-    - name: 5. Сохраняем изменения и отправляем обратно в ваш GitHub
+    - name: 5. Сохраняем изменения и пушим в репозиторий
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@://github.com"
         git add subscription.txt
-        git commit -m "🤖 Авто-обновление параметров VLESS через GitHub Actions" || echo "Изменений нет"
+        git commit -m "🤖 Авто-обновление 5 серверов VLESS" || echo "Изменений нет"
         git push
