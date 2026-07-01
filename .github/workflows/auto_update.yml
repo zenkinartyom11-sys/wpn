@@ -1,6 +1,9 @@
 name: Auto Update VLESS Config
 
 on:
+  push:
+    branches:
+      - main       # Запуск сразу после сохранения файла
   schedule:
     - cron: '7,22,37,52 * * * *' # Запуск каждые 15 минут в разгруженные секунды серверов
   workflow_dispatch: # Кнопка для ручного запуска
