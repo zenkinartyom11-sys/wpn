@@ -2,7 +2,7 @@ name: Auto Update VLESS Config
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Авто-запуск каждые 6 часов
+    - cron: '0 */1 * * *' # Авто-запуск каждые 6 часов
   workflow_dispatch: # Кнопка для ручного запуска
 
 jobs:
@@ -31,6 +31,6 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@://github.com"
-        git add working_config.json
+        git add subscription.txt
         git commit -m "🤖 Авто-обновление параметров VLESS через GitHub Actions" || echo "Изменений нет"
         git push
