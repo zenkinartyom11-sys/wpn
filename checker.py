@@ -1,4 +1,5 @@
 import json
+import random
 import requests
 from urllib.parse import urlparse, parse_qs
 
@@ -6,7 +7,7 @@ FILE_PATH = "working_config.json"
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
 def parse_vless_link(link):
-    """Разбирает vless:// ссылку на запчасти"""
+    """Разбирает vless:// строку на запчасти"""
     try:
         link = link.strip()
         if not link.startswith("vless://"): 
@@ -24,8 +25,6 @@ def parse_vless_link(link):
         path = query_params.get("path", ["/"])[0]
         sni = query_params.get("sni", [None])[0]
         host = query_params.get("host", [None])[0]
-        
-        # Для gRPC извлекаем serviceName
         service_name = query_params.get("serviceName", [""])[0]
         
         if uuid and ip and port:
@@ -54,7 +53,7 @@ def modify_config(json_data, new_data):
         vnext["address"] = new_data["ip"]
         vnext["port"] = int(new_data["port"])
         
-        # Настройка XTLS Flow (только для TCP Reality, для grpc удаляем)
+        # Настройка XTLS Flow (только для TCP Reality, для grpc/ws удаляем)
         if new_data["security"] == "reality" and new_data["type"] == "tcp" and new_data["flow"]:
             vnext["users"][0]["flow"] = new_data["flow"]
         elif "flow" in vnext["users"][0]:
@@ -62,15 +61,12 @@ def modify_config(json_data, new_data):
             
         vnext["users"][0]["id"] = new_data["uuid"]
 
-    # 2. СБРАСЫВАЕМ И СТРОИМ СНУЛЯ СЕТЕВОЙ СЛОЙ (streamSettings)
-    # Это уберет застрявший "tcpSettings" при работе с grpc
+    # 2. Перестраиваем сетевой слой (streamSettings) с нуля
     stream_settings = {
         "network": new_data["type"],
         "security": new_data["security"]
     }
 
-    # Настройки безопасности (Reality или обычный TLS)
-    # Берем оригинальный SNI из ссылки, иначе Reality не пропустит трафик!
     server_name_value = new_data["sni"] if new_data["sni"] else ""
     
     if new_data["security"] == "reality":
@@ -88,7 +84,7 @@ def modify_config(json_data, new_data):
             "allowInsecure": False
         }
 
-    # Настройки транспорта (gRPC, WS или TCP)
+    # Настройки транспорта
     if new_data["type"] == "grpc":
         stream_settings["grpcSettings"] = {
             "serviceName": new_data["serviceName"] if new_data["serviceName"] else "grpc"
@@ -103,7 +99,6 @@ def modify_config(json_data, new_data):
     elif new_data["type"] == "tcp":
         stream_settings["tcpSettings"] = {}
 
-    # Заменяем старый блок на новый чистый
     proxy_outbound["streamSettings"] = stream_settings
     return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -114,18 +109,30 @@ def main():
         print("❌ Ошибка скачивания базы ключей.")
         return
 
-    parsed_server = None
+    # Собираем ВСЕ доступные VLESS ссылки без gRPC
+    valid_links = []
     for line in res_keys.text.splitlines():
-        if "type=grpc" in line:
-            continue
-        parsed_server = parse_vless_link(line)
-        if parsed_server:
-            print(f"-> Успешно нашли VLESS. Тип сети: {parsed_server['type']}, SNI: {parsed_server['sni']}")
-            break
+        if line.startswith("vless://") and "type=grpc" not in line:
+            parsed = parse_vless_link(line)
+            if parsed:
+                valid_links.append(parsed)
 
-    if not parsed_server:
-        print("❌ В списке от igareck не найдено VLESS ссылок.")
+    if not valid_links:
+        print("ℹ️ Предупреждение: TCP/WS ссылки не найдены. Берем любую доступную рабочую ссылку...")
+        # Если без gRPC вообще ничего нет, берем всё подряд
+        for line in res_keys.text.splitlines():
+            if line.startswith("vless://"):
+                parsed = parse_vless_link(line)
+                if parsed:
+                    valid_links.append(parsed)
+
+    if not valid_links:
+        print("❌ В файле вообще не найдено VLESS конфигураций.")
         return
+
+    # Случайным образом берем один из серверов, чтобы не перегружать один и тот же IP
+    parsed_server = random.choice(valid_links)
+    print(f"-> Выбран сервер. Тип сети: {parsed_server['type']}, IP: {parsed_server['ip']}, SNI: {parsed_server['sni']}")
 
     print(f"2. Читаем локальный файл {FILE_PATH}...")
     try:
@@ -143,7 +150,7 @@ def main():
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(updated_json)
-    print("✅ Файл успешно перезаписан без конфликтов grpc/tcp.")
+    print("✅ Файл успешно перезаписан новыми рабочими параметрами.")
 
 if __name__ == "__main__":
     main()
