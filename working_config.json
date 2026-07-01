@@ -40,7 +40,9 @@
         },
         "wsSettings": {
           "path": "/",
-          "headers": {}
+          "headers": {
+            "Host": "cdn.jsdelivr.net"
+          }
         }
       }
     },
