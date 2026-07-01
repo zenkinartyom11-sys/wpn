@@ -20,11 +20,11 @@
       "settings": {
         "vnext": [
           {
-            "address": "85.155.98.34",
-            "port": 443,
+            "address": "217.144.184.251",
+            "port": 2053,
             "users": [
               {
-                "id": "0970324b-8c61-4ae7-8c3f-385a6f1e17e4",
+                "id": "8ebbdd3b-703c-47df-8bc9-bc9cf6606bc1",
                 "encryption": "none"
               }
             ]
@@ -35,14 +35,12 @@
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
-          "serverName": "vpn47.cc.cd",
+          "serverName": "cdn.jsdelivr.net",
           "allowInsecure": false
         },
         "wsSettings": {
           "path": "/",
-          "headers": {
-            "Host": "vpn47.cc.cd"
-          }
+          "headers": {}
         }
       }
     },
