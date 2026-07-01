@@ -116,6 +116,8 @@ def main():
 
     parsed_server = None
     for line in res_keys.text.splitlines():
+        if "type=grpc" in line:
+            continue
         parsed_server = parse_vless_link(line)
         if parsed_server:
             print(f"-> Успешно нашли VLESS. Тип сети: {parsed_server['type']}, SNI: {parsed_server['sni']}")
