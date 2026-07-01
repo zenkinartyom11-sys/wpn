@@ -20,30 +20,30 @@
       "settings": {
         "vnext": [
           {
-            "address": "news.microsoft.com",
+            "address": "84.201.141.192",
             "port": 443,
             "users": [
               {
-                "id": "14b59caf-a196-4ec2-8c70-c7b388062f5b",
-                "encryption": "none"
+                "id": "b11090d2-28e9-41d7-98e9-1cc3f519067d",
+                "encryption": "none",
+                "flow": "xtls-rprx-vision"
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "JoinProxyVPN11.vangoghhh.info",
-          "allowInsecure": false
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "fingerprint": "chrome",
+          "serverName": "ozon.ru",
+          "publicKey": "iOwit3jlURtk1Vl6ju7L4lFc5Zwfpv9OtZk5vbKoXGA",
+          "shortId": "",
+          "spiderX": ""
         },
-        "wsSettings": {
-          "path": "/rdfgtws",
-          "headers": {
-            "Host": "vangoghhh.info"
-          }
-        }
+        "tcpSettings": {}
       }
     },
     {
