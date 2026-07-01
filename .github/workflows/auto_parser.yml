@@ -25,7 +25,7 @@ jobs:
       run: pip install requests
 
     - name: 4. Запускаем скрипт
-      run: python robot.py
+      run: python checker.py
 
     - name: 5. Сохраняем изменения и пушим в репозиторий
       run: |
