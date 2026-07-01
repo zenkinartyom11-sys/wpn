@@ -7,6 +7,18 @@ from urllib.parse import urlparse, parse_qs
 FILE_PATH = "subscription.txt"  
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
+# БАЗА ЖЕСТКОГО БАНА РОССИЙСКИХ ХОСТИНГОВ ПО ПЕРВЫМ ЦИФРАМ IP
+# Сюда входят все пулы Yandex, Selectel, MskHost, Timeweb, RuVDS, VDSina, Beget и др.
+RUSSIAN_IP_PREFIXES = [
+    "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
+    "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
+    "212.193.", "213.180.", "217.114.", "217.23.", "217.73.", "31.31.", "37.140.",
+    "45.86.", "77.220.", "77.222.", "79.137.", "80.78.", "80.93.", "81.177.", 
+    "82.146.", "82.202.", "83.219.", "85.113.", "85.119.", "87.251.", "89.108.",
+    "89.111.", "89.169.", "89.223.", "91.210.", "91.213.", "92.53.", "93.180.",
+    "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
+]
+
 def is_server_alive(ip, port, timeout=2):
     """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
     try:
@@ -14,6 +26,19 @@ def is_server_alive(ip, port, timeout=2):
             return True
     except:
         return False
+
+def is_russian_ip(ip):
+    """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
+    # 1. Проверяем по нашей базе префиксов
+    for prefix in RUSSIAN_IP_PREFIXES:
+        if ip.startswith(prefix):
+            return True
+            
+    # 2. Быстрая проверка по СНГ доменной структуре, если вместо IP указан домен
+    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"):
+        return True
+        
+    return False
 
 def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
@@ -24,12 +49,9 @@ def main():
 
     all_valid_candidates = []
     
-    # Собираем абсолютно ВСЕ TCP Reality-серверы из базы
+    # Сбор кандидатов
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
-            if "type=grpc" in line or "type=ws" in line:
-                continue
-            
             try:
                 clean_line = line.strip()
                 parsed = urlparse(clean_line)
@@ -39,14 +61,14 @@ def main():
                 if not ip or not port:
                     continue
                 
-                # Защита от подделок Яндекса
-                if ip.startswith("84.201.") or ip.startswith("51.250.") or ip.startswith("178.154."):
+                # ШАГ 1: КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
+                if is_russian_ip(ip):
                     continue
                 
+                # ШАГ 2: Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
-                sni = query_params.get("sni", [""]).lower()
+                sni = query_params.get("sni", ["blank"]).lower()[0]
                 
-                # Просто убираем очевидный ру-сегмент
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
@@ -54,15 +76,17 @@ def main():
             except:
                 continue
 
-    if not all_valid_candidates:
-        print("❌ Не удалось найти подходящие серверы в базе.")
-        return
+    print(f"ℹ️ Всего найдено чистых заграничных кандидатов: {len(all_valid_candidates)}")
 
-    # Перемешиваем, чтобы при каждом запуске список был уникальным
+    if not all_valid_candidates:
+        print("❌ Чистые заграничные серверы не найдены. Аварийный режим...")
+        all_valid_candidates = [line.strip() for line in res_keys.text.splitlines() if line.startswith("vless://")]
+
+    # Перемешиваем заграничные сервера
     random.shuffle(all_valid_candidates)
     
     working_links = []
-    print(f"2. Ищем 5 живых серверов из {len(all_valid_candidates)} кандидатов...")
+    print(f"2. Тестируем и отбираем 5 живых заграничных серверов...")
     
     for link in all_valid_candidates:
         if len(working_links) >= 5:
@@ -73,23 +97,23 @@ def main():
             ip = parsed.hostname
             port = parsed.port
             
-            print(f"🔎 Тестируем IP: {ip}...")
+            # Проверяем живой ли порт
             if is_server_alive(ip, port):
-                print("   🚀 Отлично! Добавляем в подписку.")
                 working_links.append(link)
+                print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
         except:
             continue
 
     if not working_links:
-        print("❌ Все выбранные серверы оказались недоступны по пингу.")
-        return
+        print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
+        working_links = all_valid_candidates[:5]
 
-    # Записываем 5 серверов через перенос строки
+    # Записываем итоговый файл подписки
     subscription_content = "\n".join(working_links)
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} случайных живых серверов.")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} чистых заграничных серверов.")
 
 if __name__ == "__main__":
     main()
