@@ -1,1 +1,1 @@
-vless://05a01432-0302-439f-a88d-8442cd27b7d5@45.197.134.51:8443?flow=xtls-rprx-vision&fp=firefox&pbk=8qHRGcCezzSu4S-Cz9l19BNRLWm4MkaSwZV3dNrLEwc&security=reality&sid=445ab326fc7c90ac&sni=speedtest.net&type=tcp#%F0%9F%87%A8%F0%9F%87%AD%20Switzerland%20%5B%2ACIDR%5D
+vless://a2415a12-3f92-4636-9823-9828d3ceb818@104.167.197.97:443?type=tcp&security=reality&pbk=7kOgSBnHMeClMoLD0PdTQGflVNiYl47pT94TBsTXh1Y&fp=firefox&sni=www.nvidia.com&sid=8166#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
