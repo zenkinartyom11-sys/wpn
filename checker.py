@@ -1,18 +1,9 @@
 import json
-import base64
-import os
 import requests
 from urllib.parse import urlparse, parse_qs
 
-# --- НАСТРОЙКИ ---
-# Робот будет автоматически брать секретный токен из настроек самого GitHub Actions
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-
-REPO_OWNER = "zenkinartyom11-sys"
-REPO_NAME = "wpn"
+# Имя файла, который лежит в вашем репозитории рядом со скриптом
 FILE_PATH = "working_config.json"  
-BRANCH = "main"
-
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
 def parse_vless_link(link):
@@ -27,7 +18,7 @@ def parse_vless_link(link):
         port = parsed.port
         query_params = parse_qs(parsed.query)
         
-        # Безопасно достаем SNI и Host
+        # Безопасно достаем SNI и Host (берём первый элемент из списка или None)
         sni = query_params.get("sni", [None])[0]
         host = query_params.get("host", [None])[0]
         
@@ -38,12 +29,12 @@ def parse_vless_link(link):
     return None
 
 def modify_config(json_data, new_data):
-    """Обновляет ваш JSON из репозитория, сохраняя структуру vless/ws/tls"""
+    """Обновляет ваш JSON, сохраняя структуру vless/ws/tls"""
     data = json.loads(json_data)
     
     proxy_outbound = next((o for o in data.get("outbounds", []) if o.get("tag") == "proxy"), None)
     if not proxy_outbound:
-        print("❌ Ошибка: В вашем файле не найден блок с тегом 'proxy'")
+        print("❌ Ошибка: В файле не найден блок с тегом 'proxy'")
         return None
 
     # Меняем IP, порт и UUID
@@ -76,15 +67,6 @@ def modify_config(json_data, new_data):
     return json.dumps(data, indent=2, ensure_ascii=False)
 
 def main():
-    if not GITHUB_TOKEN:
-        print("❌ Ошибка: Не найден GITHUB_TOKEN. Скрипт должен запускаться внутри GitHub Actions.")
-        return
-
-    api_headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-
     # 1. Скачиваем ключи от igareck
     print("1. Скачиваем свежие ключи от igareck...")
     res_keys = requests.get(KEYS_LIST_URL)
@@ -103,20 +85,14 @@ def main():
         print("❌ В списке от igareck не найдено VLESS ссылок.")
         return
 
-    # 2. Скачиваем существующий рабочий файл из вашего репозитория через API
-    print(f"2. Читаем существующий {FILE_PATH} из репозитория...")
-    # ИСПРАВЛЕНО: Правильный адрес GitHub API
-    url = f"https://github.com{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}?ref={BRANCH}"
-    res_file = requests.get(url, headers=api_headers)
-    
-    if res_file.status_code != 200:
-        print(f"❌ GitHub API вернул ошибку {res_file.status_code}.")
-        print("Проверьте, правильно ли указано имя репозитория.")
+    # 2. Читаем ваш локальный файл конфигурации, который GitHub Actions уже скачал для нас
+    print(f"2. Читаем локальный файл {FILE_PATH}...")
+    try:
+        with open(FILE_PATH, "r", encoding="utf-8") as f:
+            current_config = f.read()
+    except FileNotFoundError:
+        print(f"❌ Ошибка: Файл {FILE_PATH} не найден в репозитории.")
         return
-        
-    file_data = res_file.json()
-    current_config = base64.b64decode(file_data["content"]).decode("utf-8")
-    file_sha = file_data["sha"]  
 
     # 3. Вживляем новые данные
     print("3. Изменяем параметры внутри вашего JSON...")
@@ -125,26 +101,10 @@ def main():
     if not updated_json:
         return
 
-    # 4. Отправляем обновленный JSON обратно
-    print("4. Отправляем обновленную конфигурацию назад на GitHub...")
-    # ИСПРАВЛЕНО: Правильный адрес GitHub API
-    put_url = f"https://github.com{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
-    encoded_content = base64.b64encode(updated_json.encode("utf-8")).decode("utf-8")
-    
-    payload = {
-        "message": "🤖 Авто-обновление параметров VLESS",
-        "content": encoded_content,
-        "sha": file_sha,  
-        "branch": BRANCH
-    }
-    
-    res_put = requests.put(put_url, headers=api_headers, json=payload)
-    
-    if res_put.status_code == 200:
-        print("🚀 [УСПЕХ] Робот обновил ваш файл прямо в репозитории!")
-    else:
-        print(f"❌ Ошибка отправки: {res_put.status_code}")
-        print(res_put.text)
+    # 4. Перезаписываем локальный файл на диске
+    with open(FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(updated_json)
+    print("✅ Файл успешно изменен локально виртуальной машиной.")
 
 if __name__ == "__main__":
     main()
