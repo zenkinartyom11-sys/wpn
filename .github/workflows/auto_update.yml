@@ -9,13 +9,13 @@ on:
   workflow_dispatch: # Кнопка для ручного запуска
 
 jobs:
-  run-parser:
+  keepalive-job:
+    name: Keepalive Workflow
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      actions: write
     steps:
-      - name: 1. Клонируем репозиторий
-        uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v1
 
       - name: 2. Включаем Python
         uses: actions/setup-python@v5
