@@ -5,7 +5,13 @@ import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
-KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+
+# ТРИ РАЗНЫХ НЕЗАВИСИМЫХ ИСТОЧНИКА КОНФИГУРАЦИЙ VLESS REALITY
+SOURCES = [
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt"
+]
 
 # База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
@@ -33,69 +39,85 @@ def is_russian_ip(ip):
     if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
     return False
 
-def main():
-    print("1. Скачиваем свежую базу Reality-ключей...")
-    res_keys = requests.get(KEYS_LIST_URL)
-    if res_keys.status_code != 200:
-        print(f"❌ Ошибка скачивания базы ключей. Код: {res_keys.status_code}")
-        return
-
+def download_and_parse_sources():
+    """Последовательно скачивает данные из 3 ссылок и сортирует кандидатов"""
     tcp_candidates = []
     other_candidates = []
     
-    # Сортируем базу: отделяем TCP от остальных транспортов (WS, gRPC)
-    for line in res_keys.text.splitlines():
-        if line.startswith("vless://"):
-            try:
-                clean_line = line.strip()
-                parsed = urlparse(clean_line)
-                ip = parsed.hostname
-                port = parsed.port
-                
-                if not ip or not port or is_russian_ip(ip):
-                    continue
-                
-                query_params = parse_qs(parsed.query)
-                sni = query_params.get("sni", ["blank"]).lower()
-                net_type = query_params.get("type", ["tcp"]).lower()
-                security = query_params.get("security", ["none"]).lower()
-                
-                # Фильтруем русский SNI
-                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
-                    continue
-                
-                # Нам нужны только Reality конфигурации
-                if security == "reality":
-                    if net_type == "tcp":
-                        tcp_candidates.append(clean_line)
-                    else:
-                        other_candidates.append(clean_line)
-            except:
+    print("1. Начинаем каскадное скачивание баз...")
+    for idx, url in enumerate(SOURCES, 1):
+        try:
+            print(f"   📥 Скачиваем Источник №{idx}...")
+            res = requests.get(url, timeout=5)
+            if res.status_code != 200:
+                print(f"   ⚠️ Ошибка скачивания источника №{idx} (Код: {res.status_code}). Переходим к следующему.")
                 continue
+                
+            # Парсим строки из текущего источника
+            for line in res.text.splitlines():
+                if line.startswith("vless://"):
+                    try:
+                        clean_line = line.strip()
+                        parsed = urlparse(clean_line)
+                        ip = parsed.hostname
+                        port = parsed.port
+                        
+                        if not ip or not port or is_russian_ip(ip):
+                            continue
+                        
+                        query_params = parse_qs(parsed.query)
+                        sni = query_params.get("sni", ["blank"])[0].lower()
+                        net_type = query_params.get("type", ["tcp"])[0].lower()
+                        security = query_params.get("security", ["none"])[0].lower()
+                        
+                        # Фильтр русского цензурного SNI
+                        if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
+                            continue
+                        
+                        # Собираем только Reality-конфигурации
+                        if security == "reality":
+                            if net_type == "tcp" and clean_line not in tcp_candidates:
+                                tcp_candidates.append(clean_line)
+                            elif net_type != "tcp" and clean_line not in other_candidates:
+                                other_candidates.append(clean_line)
+                    except:
+                        continue
+        except Exception as e:
+            print(f"   ⚠️ Ошибка при обработке источника №{idx}: {e}")
+            continue
+            
+    return tcp_candidates, other_candidates
 
-    print(f"ℹ️ Найдено кандидатов: Чистый TCP: {len(tcp_candidates)} | Другие (WS/gRPC): {len(other_candidates)}")
+def main():
+    # Получаем объединенный список кандидатов изо всех 3 ссылок
+    tcp_candidates, other_candidates = download_and_parse_sources()
 
-    # Перемешиваем списки для случайного выбора при каждом запуске
+    print(f"\nℹ️ Всего успешно собрано: Чистый TCP: {len(tcp_candidates)} | Другие (WS/gRPC): {len(other_candidates)}")
+
+    if not tcp_candidates and not other_candidates:
+        print("❌ Во всех 3 базах вообще не нашлось подходящих ссылок.")
+        return
+
+    # Перемешиваем массивы для случайного выбора
     random.shuffle(tcp_candidates)
     random.shuffle(other_candidates)
     
     final_servers = []
 
     # ШАГ 1: ОБЯЗАТЕЛЬНО ИЩЕМ ХОТЯ БЫ ОДИН ЖИВОЙ TCP СЕРВЕР
-    print("2. Ищем обязательный живой TCP сервер...")
+    print("\n2. Ищем обязательный живой заграничный TCP сервер...")
     for link in tcp_candidates:
         try:
             parsed = urlparse(link)
             if is_server_alive(parsed.hostname, parsed.port):
                 final_servers.append(link)
-                print(f"   🏆 Обязательный TCP сервер найден и добавлен: {parsed.hostname}")
-                tcp_candidates.remove(link) # Убираем из кандидатов, чтобы не дублировать
+                print(f"   🏆 Обязательный TCP сервер закреплен на 1 месте: {parsed.hostname}")
+                tcp_candidates.remove(link)
                 break
         except: continue
 
-    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами)
-    print("3. Добираем остальные 4 сервера из всех доступных транспортов...")
-    # Объединяем остатки TCP и другие транспорты в один общий котел для добора
+    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами из общего котла)
+    print("\n3. Набираем остальные 4 сервера из объединенного пула всех 3 источников...")
     combined_pool = tcp_candidates + other_candidates
     random.shuffle(combined_pool)
 
@@ -106,23 +128,24 @@ def main():
             parsed = urlparse(link)
             if is_server_alive(parsed.hostname, parsed.port):
                 final_servers.append(link)
-                print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {parsed.hostname} ({parse_qs(parsed.query).get('type', ['tcp'])[0]})")
+                net_type_label = parse_qs(parsed.query).get('type', ['tcp'])[0]
+                print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {parsed.hostname} ({net_type_label})")
         except: continue
 
-    # Аварийный режим "вслепую": если по пингу никто не ответил, добираем из остатков без проверки
+    # Аварийный режим "вслепую"
     if len(final_servers) < 5:
-        print("⚠️ Не все порты ответили по пингу. Добираем сервера вслепую до 5 штук...")
+        print("\n⚠️ Не все порты ответили по пингу. Добираем сервера вслепую до 5 штук...")
         for link in combined_pool:
             if len(final_servers) >= 5: break
             if link not in final_servers:
                 final_servers.append(link)
 
-    # Записываем результат (ровно 5 ссылок через перенос строки)
+    # Записываем ровно 5 лучших ссылок
     subscription_content = "\n".join(final_servers[:5])
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} успешно записано ровно {len(final_servers[:5])} серверов (Минимум 1 TCP на первом месте).")
+    print(f"\n✅ КОМБИНИРОВАНИЕ ЗАВЕРШЕНО! В файл {FILE_PATH} успешно записано ровно {len(final_servers[:5])} серверов.")
 
 if __name__ == "__main__":
     main()
