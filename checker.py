@@ -47,7 +47,7 @@ def main():
 
     tcp_candidates = []
     other_candidates = []
-    used_uuids = set()  # Защита от дубликатов UUID
+    used_uuids = set()  # Защита от дубликатов на этапе первичного сбора
     
     # Сбор и сортировка кандидатов
     for line in res_keys.text.splitlines():
@@ -86,6 +86,7 @@ def main():
                         tcp_candidates.append((clean_line, uuid))
                     else:
                         other_candidates.append((clean_line, uuid))
+                    used_uuids.add(uuid)
             except:
                 continue
 
@@ -111,14 +112,12 @@ def main():
                 final_servers.append(link)
                 final_uuids.add(uuid)
                 print(f"   🏆 Обязательный живой TCP найден и закреплен: {parsed.hostname}")
-                tcp_candidates.remove((link, uuid))  # Убираем, чтобы не дублировать
                 break
         except:
             continue
 
     # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами)
     print("3. Добираем остальные 4 сервера из общего котла...")
-    # Объединяем остатки TCP и другие транспорты (WS/gRPC) в общий пул
     combined_pool = tcp_candidates + other_candidates
     random.shuffle(combined_pool)
 
@@ -126,7 +125,7 @@ def main():
         if len(final_servers) >= 5:
             break
             
-        # Проверяем, чтобы UUID случайно не повторился
+        # БЕЗОПАСНАЯ ПРОВЕРКА: Пропускаем, если этот UUID уже задействован (включая первый закрепленный TCP)
         if uuid in final_uuids:
             continue
             
@@ -141,7 +140,7 @@ def main():
 
     # Аварийный режим "вслепую" (если Гитхаб забанен по пингу, добираем без проверки)
     if len(final_servers) < 5:
-        print("⚠️ Часть портов не ответила по пингу. Добираем уникальные сервера вслепую...")
+        print("⚠️ Часть портов не ответили по пингу. Добираем уникальные сервера вслепую...")
         for link, uuid in combined_pool:
             if len(final_servers) >= 5:
                 break
