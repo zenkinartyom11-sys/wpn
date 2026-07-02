@@ -6,14 +6,14 @@ from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 
-# ТРИ РАЗНЫХ НЕЗАВИСИМЫХ ИСТОЧНИКА КОНФИГУРАЦИЙ VLESS REALITY
+# ТРИ КРУПНЕЙШИХ МИРОВЫХ ИСТОЧНИКА REALITY-КОНФИГОВ
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt"
 ]
 
-# База жесткого бана российских хостингов по первым цифрам IP
+# Жесткий бан российских подсетей и хостингов
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -39,21 +39,15 @@ def is_russian_ip(ip):
     if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
     return False
 
-def download_and_parse_sources():
-    """Последовательно скачивает данные из 3 ссылок и сортирует кандидатов"""
-    tcp_candidates = []
-    other_candidates = []
+def main():
+    all_candidates = []
     
-    print("1. Начинаем каскадное скачивание баз...")
+    print("1. Скачиваем базы данных со всех источников...")
     for idx, url in enumerate(SOURCES, 1):
         try:
-            print(f"   📥 Скачиваем Источник №{idx}...")
             res = requests.get(url, timeout=5)
-            if res.status_code != 200:
-                print(f"   ⚠️ Ошибка скачивания источника №{idx} (Код: {res.status_code}). Переходим к следующему.")
-                continue
+            if res.status_code != 200: continue
                 
-            # Парсим строки из текущего источника
             for line in res.text.splitlines():
                 if line.startswith("vless://"):
                     try:
@@ -66,86 +60,54 @@ def download_and_parse_sources():
                             continue
                         
                         query_params = parse_qs(parsed.query)
-                        sni = query_params.get("sni", ["blank"])[0].lower()
-                        net_type = query_params.get("type", ["tcp"])[0].lower()
-                        security = query_params.get("security", ["none"])[0].lower()
+                        sni = query_params.get("sni", ["blank"]).lower()
+                        security = query_params.get("security", ["none"]).lower()
                         
-                        # Фильтр русского цензурного SNI
+                        # Фильтр русских доменов
                         if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                             continue
                         
-                        # Собираем только Reality-конфигурации
-                        if security == "reality":
-                            if net_type == "tcp" and clean_line not in tcp_candidates:
-                                tcp_candidates.append(clean_line)
-                            elif net_type != "tcp" and clean_line not in other_candidates:
-                                other_candidates.append(clean_line)
+                        # Оставляем только Reality и защищаем от дубликатов
+                        if security == "reality" and clean_line not in all_candidates:
+                            all_candidates.append(clean_line)
                     except:
                         continue
-        except Exception as e:
-            print(f"   ⚠️ Ошибка при обработке источника №{idx}: {e}")
+        except:
             continue
             
-    return tcp_candidates, other_candidates
+    print(f"ℹ️ Всего уникальных заграничных кандидатов собрано: {len(all_candidates)}")
 
-def main():
-    # Получаем объединенный список кандидатов изо всех 3 ссылок
-    tcp_candidates, other_candidates = download_and_parse_sources()
-
-    print(f"\nℹ️ Всего успешно собрано: Чистый TCP: {len(tcp_candidates)} | Другие (WS/gRPC): {len(other_candidates)}")
-
-    if not tcp_candidates and not other_candidates:
-        print("❌ Во всех 3 базах вообще не нашлось подходящих ссылок.")
+    if not all_candidates:
+        print("❌ Серверы не найдены.")
         return
 
-    # Перемешиваем массивы для случайного выбора
-    random.shuffle(tcp_candidates)
-    random.shuffle(other_candidates)
+    # Перемешиваем, чтобы список не был одинаковым при каждом запуске
+    random.shuffle(all_candidates)
     
-    final_servers = []
-
-    # ШАГ 1: ОБЯЗАТЕЛЬНО ИЩЕМ ХОТЯ БЫ ОДИН ЖИВОЙ TCP СЕРВЕР
-    print("\n2. Ищем обязательный живой заграничный TCP сервер...")
-    for link in tcp_candidates:
+    working_links = []
+    print("2. Запускаем массовое экспресс-тестирование портов...")
+    
+    # Пингуем ВСЕ собранные серверы без остановки
+    for link in all_candidates:
         try:
             parsed = urlparse(link)
             if is_server_alive(parsed.hostname, parsed.port):
-                final_servers.append(link)
-                print(f"   🏆 Обязательный TCP сервер закреплен на 1 месте: {parsed.hostname}")
-                tcp_candidates.remove(link)
-                break
-        except: continue
+                working_links.append(link)
+                print(f"   🚀 [ЖИВОЙ] {parsed.hostname}")
+        except:
+            continue
 
-    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами из общего котла)
-    print("\n3. Набираем остальные 4 сервера из объединенного пула всех 3 источников...")
-    combined_pool = tcp_candidates + other_candidates
-    random.shuffle(combined_pool)
+    # Аварийный режим на случай, если Гитхаб заблокировал исходящий пинг
+    if not working_links:
+        print("⚠️ Ни один порт не ответил по пингу. Сохраняем топ-30 серверов вслепую...")
+        working_links = all_candidates[:30]
 
-    for link in combined_pool:
-        if len(final_servers) >= 5: 
-            break
-        try:
-            parsed = urlparse(link)
-            if is_server_alive(parsed.hostname, parsed.port):
-                final_servers.append(link)
-                net_type_label = parse_qs(parsed.query).get('type', ['tcp'])[0]
-                print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {parsed.hostname} ({net_type_label})")
-        except: continue
-
-    # Аварийный режим "вслепую"
-    if len(final_servers) < 5:
-        print("\n⚠️ Не все порты ответили по пингу. Добираем сервера вслепую до 5 штук...")
-        for link in combined_pool:
-            if len(final_servers) >= 5: break
-            if link not in final_servers:
-                final_servers.append(link)
-
-    # Записываем ровно 5 лучших ссылок
-    subscription_content = "\n".join(final_servers[:5])
+    # Записываем абсолютно ВСЕ найденные живые ссылки
+    subscription_content = "\n".join(working_links)
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"\n✅ КОМБИНИРОВАНИЕ ЗАВЕРШЕНО! В файл {FILE_PATH} успешно записано ровно {len(final_servers[:5])} серверов.")
+    print(f"\n✅ БЕЗЛИМИТНЫЙ СБОР ЗАВЕРШЕН! В файл {FILE_PATH} сохранено {len(working_links)} рабочих заграничных серверов.")
 
 if __name__ == "__main__":
     main()
