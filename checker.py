@@ -6,7 +6,7 @@ from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 # ИСПРАВЛЕНО: Новый актуальный путь к базе Reality-серверов barry-far
-KEYS_LIST_URL = "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Splitted-By-Protocol/vless.txt"
+KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
 # База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
