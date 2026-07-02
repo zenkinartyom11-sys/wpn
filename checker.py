@@ -1,12 +1,12 @@
 import random
 import socket
+import time
 import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
-# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -18,7 +18,6 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_server_alive(ip, port, timeout=2):
-    """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
     try:
         with socket.create_connection((ip, int(port)), timeout=timeout):
             return True
@@ -26,7 +25,6 @@ def is_server_alive(ip, port, timeout=2):
         return False
 
 def is_russian_ip(ip):
-    """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip: return False
     for prefix in RUSSIAN_IP_PREFIXES:
         if ip.startswith(prefix): return True
@@ -34,16 +32,12 @@ def is_russian_ip(ip):
     return False
 
 def main():
-    print("1. Скачиваем проверенную базу Reality-ключей...")
     res_keys = requests.get(KEYS_LIST_URL)
-    if res_keys.status_code != 200:
-        print("❌ Ошибка скачивания базы ключей.")
-        return
+    if res_keys.status_code != 200: return
 
     all_servers = []
     used_uuids = set()
     
-    # Сбор и первичная фильтрация (Анти-РФ и Анти-Дубликат UUID)
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -57,15 +51,14 @@ def main():
                     continue
                 
                 query_params = parse_qs(parsed.query)
-                sni = str(query_params.get("sni", ["blank"])[0]).lower()
-                net_type = str(query_params.get("type", ["tcp"])[0]).lower()
-                security = str(query_params.get("security", ["none"])[0]).lower()
+                sni = str(query_params.get("sni", ["blank"])).lower()
+                net_type = str(query_params.get("type", ["tcp"])).lower()
+                security = str(query_params.get("security", ["none"])).lower()
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
                 if security == "reality":
-                    # Сохраняем в список словарь с понятной структурой
                     all_servers.append({
                         "link": clean_line, "ip": ip, "port": port, "type": net_type, "uuid": uuid
                     })
@@ -73,50 +66,39 @@ def main():
             except:
                 continue
 
-    print(f"ℹ️ Собрано уникальных заграничных кандидатов: {len(all_servers)}")
-    if not all_servers:
-        print("❌ Заграничные уникальные серверы не найдены.")
-        return
+    if not all_servers: return
 
-    # Перемешиваем весь пул
     random.shuffle(all_servers)
-    
     final_servers = []
 
-    # ШАГ 1: НАХОДИМ 1 ЖИВОЙ TCP СЕРВЕР НА ПЕРВОЕ МЕСТО
-    print("2. Ищем обязательный живой TCP сервер на 1-е место...")
+    # Ищем TCP
     for server in all_servers:
         if server["type"] == "tcp":
             if is_server_alive(server["ip"], server["port"]):
                 final_servers.append(server["link"])
-                print(f"   🏆 Закреплен TCP сервер на 1 месте: {server['ip']}")
-                all_servers.remove(server) # Убираем из общего пула, чтобы не дублировать
+                all_servers.remove(server)
                 break
 
-    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ 4 МЕСТА ЛЮБЫМИ ЖИВЫМИ СЕРВЕРАМИ
-    print("3. Добираем остальные 4 сервера из общего котла...")
+    # Добираем остальные 4
     for server in all_servers:
-        if len(final_servers) >= 5:
-            break
+        if len(final_servers) >= 5: break
         if is_server_alive(server["ip"], server["port"]):
             final_servers.append(server["link"])
-            print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {server['ip']} ({server['type']})")
 
-    # Аварийный режим "вслепую" (если Гитхаб забанен по пингу, добираем из остатков без проверки)
+    # Аварийный добор
     if len(final_servers) < 5:
-        print("⚠️ Не все порты ответили по пингу. Добираем сервера вслепую до 5 штук...")
         for server in all_servers:
-            if len(final_servers) >= 5:
-                break
+            if len(final_servers) >= 5: break
             if server["link"] not in final_servers:
                 final_servers.append(server["link"])
 
-    # Записываем итоговый файл подписки (ровно 5 строк)
-    subscription_content = "\n".join(final_servers[:5])
+    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем в конец файла невидимый комментарий с точным временем.
+    # Для Git файл ТЕПЕРЬ ВСЕГДА НОВЫЙ! Коммит сработает на 100%.
+    subscription_content = "\n".join(final_servers[:5]) + f"\n# updated_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(final_servers[:5])} уникальных серверов.")
+    print("✅ Файл изменен.")
 
 if __name__ == "__main__":
     main()
