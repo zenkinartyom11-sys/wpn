@@ -1,11 +1,9 @@
-import json
 import random
 import socket
 import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
-# Актуальная заграничная база без Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
 # База жесткого бана российских хостингов по первым цифрам IP
@@ -29,13 +27,10 @@ def is_server_alive(ip, port, timeout=2):
 
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
-    if not ip:
-        return False
+    if not ip: return False
     for prefix in RUSSIAN_IP_PREFIXES:
-        if ip.startswith(prefix):
-            return True
-    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"):
-        return True
+        if ip.startswith(prefix): return True
+    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
     return False
 
 def main():
@@ -45,11 +40,10 @@ def main():
         print("❌ Ошибка скачивания базы ключей.")
         return
 
-    tcp_candidates = []
-    other_candidates = []
-    used_uuids = set()  # Защита от дубликатов на этапе первичного сбора
+    all_servers = []
+    used_uuids = set()
     
-    # Сбор и сортировка кандидатов
+    # Сбор и первичная фильтрация (Анти-РФ и Анти-Дубликат UUID)
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -57,96 +51,65 @@ def main():
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
                 port = parsed.port
-                uuid = parsed.username  # Извлекаем UUID
+                uuid = parsed.username
                 
-                if not ip or not port or not uuid:
+                if not ip or not port or not uuid or uuid in used_uuids or is_russian_ip(ip):
                     continue
                 
-                # 1. Защита от дубликатов UUID
-                if uuid in used_uuids:
-                    continue
-                
-                # 2. КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
-                if is_russian_ip(ip):
-                    continue
-                
-                # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
-                sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list.lower() if sni_list else "blank"
-                net_type = query_params.get("type", ["tcp"]).lower()
-                security = query_params.get("security", ["none"]).lower()
+                sni = str(query_params.get("sni", ["blank"])[0]).lower()
+                net_type = str(query_params.get("type", ["tcp"])[0]).lower()
+                security = str(query_params.get("security", ["none"])[0]).lower()
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
-                # Отбираем только заграничный Reality
                 if security == "reality":
-                    if net_type == "tcp":
-                        tcp_candidates.append((clean_line, uuid))
-                    else:
-                        other_candidates.append((clean_line, uuid))
+                    # Сохраняем в список словарь с понятной структурой
+                    all_servers.append({
+                        "link": clean_line, "ip": ip, "port": port, "type": net_type, "uuid": uuid
+                    })
                     used_uuids.add(uuid)
             except:
                 continue
 
-    print(f"ℹ️ Собрано уникальных кандидатов: Чистый TCP: {len(tcp_candidates)} | Другие транспорты: {len(other_candidates)}")
-
-    if not tcp_candidates and not other_candidates:
+    print(f"ℹ️ Собрано уникальных заграничных кандидатов: {len(all_servers)}")
+    if not all_servers:
         print("❌ Заграничные уникальные серверы не найдены.")
         return
 
-    # Перемешиваем оба списка для случайного выбора
-    random.shuffle(tcp_candidates)
-    random.shuffle(other_candidates)
+    # Перемешиваем весь пул
+    random.shuffle(all_servers)
     
     final_servers = []
-    final_uuids = set()
 
-    # ШАГ 1: ОБЯЗАТЕЛЬНО ИЩЕМ ХОТЯ БЫ ОДИН ЖИВОЙ TCP СЕРВЕР НА ПЕРВОЕ МЕСТО
+    # ШАГ 1: НАХОДИМ 1 ЖИВОЙ TCP СЕРВЕР НА ПЕРВОЕ МЕСТО
     print("2. Ищем обязательный живой TCP сервер на 1-е место...")
-    for link, uuid in tcp_candidates:
-        try:
-            parsed = urlparse(link)
-            if is_server_alive(parsed.hostname, parsed.port):
-                final_servers.append(link)
-                final_uuids.add(uuid)
-                print(f"   🏆 Обязательный живой TCP найден и закреплен: {parsed.hostname}")
+    for server in all_servers:
+        if server["type"] == "tcp":
+            if is_server_alive(server["ip"], server["port"]):
+                final_servers.append(server["link"])
+                print(f"   🏆 Закреплен TCP сервер на 1 месте: {server['ip']}")
+                all_servers.remove(server) # Убираем из общего пула, чтобы не дублировать
                 break
-        except:
-            continue
 
-    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами)
+    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ 4 МЕСТА ЛЮБЫМИ ЖИВЫМИ СЕРВЕРАМИ
     print("3. Добираем остальные 4 сервера из общего котла...")
-    combined_pool = tcp_candidates + other_candidates
-    random.shuffle(combined_pool)
-
-    for link, uuid in combined_pool:
+    for server in all_servers:
         if len(final_servers) >= 5:
             break
-            
-        # БЕЗОПАСНАЯ ПРОВЕРКА: Пропускаем, если этот UUID уже задействован (включая первый закрепленный TCP)
-        if uuid in final_uuids:
-            continue
-            
-        try:
-            parsed = urlparse(link)
-            if is_server_alive(parsed.hostname, parsed.port):
-                final_servers.append(link)
-                final_uuids.add(uuid)
-                print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {parsed.hostname}")
-        except:
-            continue
+        if is_server_alive(server["ip"], server["port"]):
+            final_servers.append(server["link"])
+            print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {server['ip']} ({server['type']})")
 
-    # Аварийный режим "вслепую" (если Гитхаб забанен по пингу, добираем без проверки)
+    # Аварийный режим "вслепую" (если Гитхаб забанен по пингу, добираем из остатков без проверки)
     if len(final_servers) < 5:
-        print("⚠️ Часть портов не ответили по пингу. Добираем уникальные сервера вслепую...")
-        for link, uuid in combined_pool:
+        print("⚠️ Не все порты ответили по пингу. Добираем сервера вслепую до 5 штук...")
+        for server in all_servers:
             if len(final_servers) >= 5:
                 break
-            if uuid not in final_uuids:
-                final_servers.append(link)
-                final_uuids.add(uuid)
+            if server["link"] not in final_servers:
+                final_servers.append(server["link"])
 
     # Записываем итоговый файл подписки (ровно 5 строк)
     subscription_content = "\n".join(final_servers[:5])
