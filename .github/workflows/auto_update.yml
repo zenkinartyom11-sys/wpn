@@ -9,16 +9,6 @@ on:
   workflow_dispatch: # Кнопка для ручного запуска
 
 jobs:
-  # ЗАДАЧА 1: Защита автоматики от отключения через 60 дней
-  keepalive-job:
-    name: Keepalive Workflow
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: gautamkrishnar/keepalive-workflow@v1
-
-  # ЗАДАЧА 2: Запуск вашего парсера и обновление подписки
   run-parser:
     name: Run VLESS Parser
     runs-on: ubuntu-latest
@@ -40,7 +30,7 @@ jobs:
         run: |
           python checker.py || (
             echo "⚠️ Основной источник недоступен. Переключаемся на резервный..." && \
-            sed -i "s|https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt|https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt|g" checker.py && \
+            sed -i "s|https://githubusercontent.com|https://githubusercontent.com|g" checker.py && \
             python checker.py
           )
 
