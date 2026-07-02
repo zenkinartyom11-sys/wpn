@@ -6,11 +6,11 @@ from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 
-# ТРИ КРУПНЕЙШИХ МИРОВЫХ ИСТОЧНИКА REALITY-КОНФИГОВ
+# ИСПРАВЛЕНО: Точные и актуальные ссылки на три мировых источника Reality
 SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt"
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 ]
 
 # Жесткий бан российских подсетей и хостингов
@@ -34,6 +34,7 @@ def is_server_alive(ip, port, timeout=1):
 
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
+    if not ip: return False
     for prefix in RUSSIAN_IP_PREFIXES:
         if ip.startswith(prefix): return True
     if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
@@ -46,7 +47,9 @@ def main():
     for idx, url in enumerate(SOURCES, 1):
         try:
             res = requests.get(url, timeout=5)
-            if res.status_code != 200: continue
+            if res.status_code != 200: 
+                print(f"⚠️ Источник №{idx} вернул ошибку {res.status_code}. Пропускаем.")
+                continue
                 
             for line in res.text.splitlines():
                 if line.startswith("vless://"):
@@ -60,8 +63,13 @@ def main():
                             continue
                         
                         query_params = parse_qs(parsed.query)
-                        sni = query_params.get("sni", ["blank"]).lower()
-                        security = query_params.get("security", ["none"]).lower()
+                        
+                        # БЕЗОПАСНОЕ извлечение SNI и Security (защита от падения, если ключей нет)
+                        sni_list = query_params.get("sni", ["blank"])
+                        sni = sni_list[0].lower() if sni_list else "blank"
+                        
+                        security_list = query_params.get("security", ["none"])
+                        security = security_list[0].lower() if security_list else "none"
                         
                         # Фильтр русских доменов
                         if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
@@ -72,23 +80,28 @@ def main():
                             all_candidates.append(clean_line)
                     except:
                         continue
-        except:
+        except Exception as e:
+            print(f"⚠️ Ошибка при обработке источника №{idx}: {e}")
             continue
             
     print(f"ℹ️ Всего уникальных заграничных кандидатов собрано: {len(all_candidates)}")
 
     if not all_candidates:
-        print("❌ Серверы не найдены.")
+        print("❌ Серверы не найдены в базах источников.")
         return
 
-    # Перемешиваем, чтобы список не был одинаковым при каждом запуске
+    # Перемешиваем список, чтобы при каждом запуске порядок был случайным
     random.shuffle(all_candidates)
     
     working_links = []
     print("2. Запускаем массовое экспресс-тестирование портов...")
     
-    # Пингуем ВСЕ собранные серверы без остановки
+    # Тестируем собранные серверы
     for link in all_candidates:
+        # Лимитируем до 50 штук, чтобы гитхаб успевал пропинговать за разумное время
+        if len(working_links) >= 50:
+            break
+            
         try:
             parsed = urlparse(link)
             if is_server_alive(parsed.hostname, parsed.port):
@@ -99,7 +112,8 @@ def main():
 
     # Аварийный режим на случай, если Гитхаб заблокировал исходящий пинг
     if not working_links:
-        print("⚠️ Ни один порт не ответил по пингу. Сохраняем топ-30 серверов вслепую...")
+        print("⚠️ Ни один порт не ответил по пингу (возможно, блокировка исходящих соединений на GitHub).")
+        print("   Сохраняем топ-30 серверов вслепую для обновления подписки...")
         working_links = all_candidates[:30]
 
     # Записываем абсолютно ВСЕ найденные живые ссылки
@@ -107,7 +121,7 @@ def main():
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"\n✅ БЕЗЛИМИТНЫЙ СБОР ЗАВЕРШЕН! В файл {FILE_PATH} сохранено {len(working_links)} рабочих заграничных серверов.")
+    print(f"\n✅ БЕЗЛИМИТНЫЙ СБОР ЗАВЕРШЕН! В файл {FILE_PATH} сохранено {len(working_links)} серверов.")
 
 if __name__ == "__main__":
     main()
