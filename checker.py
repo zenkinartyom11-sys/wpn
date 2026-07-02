@@ -19,7 +19,7 @@ RUSSIAN_IP_PREFIXES = [
     "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
 ]
 
-def is_server_alive(ip, port, timeout=2):
+def is_server_alive(ip, port, timeout=1):
     """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
     try:
         with socket.create_connection((ip, int(port)), timeout=timeout):
