@@ -45,10 +45,11 @@ def main():
         print("❌ Ошибка скачивания базы ключей.")
         return
 
-    all_valid_candidates = []
-    used_uuids = set()  # Сюда робот будет запоминать ключи, чтобы избежать дубликатов в v2rayTun
+    tcp_candidates = []
+    other_candidates = []
+    used_uuids = set()  # Защита от дубликатов UUID
     
-    # Сбор кандидатов
+    # Сбор и сортировка кандидатов
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -56,12 +57,12 @@ def main():
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
                 port = parsed.port
-                uuid = parsed.username  # Извлекаем UUID (ключ) сервера
+                uuid = parsed.username  # Извлекаем UUID
                 
                 if not ip or not port or not uuid:
                     continue
                 
-                # 1. Защита от дубликатов UUID (чтобы v2rayTun не склеивал сервера)
+                # 1. Защита от дубликатов UUID
                 if uuid in used_uuids:
                     continue
                 
@@ -72,55 +73,88 @@ def main():
                 # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
                 sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
+                sni = sni_list.lower() if sni_list else "blank"
+                net_type = query_params.get("type", ["tcp"]).lower()
+                security = query_params.get("security", ["none"]).lower()
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
-                # Если все проверки пройдены, запоминаем UUID и добавляем в список
-                used_uuids.add(uuid)
-                all_valid_candidates.append(clean_line)
+                # Отбираем только заграничный Reality
+                if security == "reality":
+                    if net_type == "tcp":
+                        tcp_candidates.append((clean_line, uuid))
+                    else:
+                        other_candidates.append((clean_line, uuid))
             except:
                 continue
 
-    print(f"ℹ️ Всего найдено УНИКАЛЬНЫХ заграничных кандидатов: {len(all_valid_candidates)}")
+    print(f"ℹ️ Собрано уникальных кандидатов: Чистый TCP: {len(tcp_candidates)} | Другие транспорты: {len(other_candidates)}")
 
-    if not all_valid_candidates:
-        print("❌ Заграничные уникальные серверы не найдены. Выключаем запись во избежание попадания РФ.")
+    if not tcp_candidates and not other_candidates:
+        print("❌ Заграничные уникальные серверы не найдены.")
         return
 
-    # Перемешиваем заграничные сервера, чтобы список обновлялся
-    random.shuffle(all_valid_candidates)
+    # Перемешиваем оба списка для случайного выбора
+    random.shuffle(tcp_candidates)
+    random.shuffle(other_candidates)
     
-    working_links = []
-    print(f"2. Тестируем и отбираем 5 живых заграничных серверов...")
-    
-    for link in all_valid_candidates:
-        if len(working_links) >= 5:
-            break
-            
+    final_servers = []
+    final_uuids = set()
+
+    # ШАГ 1: ОБЯЗАТЕЛЬНО ИЩЕМ ХОТЯ БЫ ОДИН ЖИВОЙ TCP СЕРВЕР НА ПЕРВОЕ МЕСТО
+    print("2. Ищем обязательный живой TCP сервер на 1-е место...")
+    for link, uuid in tcp_candidates:
         try:
             parsed = urlparse(link)
-            ip = parsed.hostname
-            port = parsed.port
-            
-            # Проверяем живой ли порт
-            if is_server_alive(ip, port):
-                working_links.append(link)
-                print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
+            if is_server_alive(parsed.hostname, parsed.port):
+                final_servers.append(link)
+                final_uuids.add(uuid)
+                print(f"   🏆 Обязательный живой TCP найден и закреплен: {parsed.hostname}")
+                tcp_candidates.remove((link, uuid))  # Убираем, чтобы не дублировать
+                break
         except:
             continue
 
-    if not working_links:
-        print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
-        working_links = all_valid_candidates[:5]
+    # ШАГ 2: НАБИРАЕМ ОСТАВШИЕСЯ МЕСТА (Добиваем до 5 штук любыми живыми серверами)
+    print("3. Добираем остальные 4 сервера из общего котла...")
+    # Объединяем остатки TCP и другие транспорты (WS/gRPC) в общий пул
+    combined_pool = tcp_candidates + other_candidates
+    random.shuffle(combined_pool)
 
-    # Записываем итоговый файл подписки
-    subscription_content = "\n".join(working_links)
+    for link, uuid in combined_pool:
+        if len(final_servers) >= 5:
+            break
+            
+        # Проверяем, чтобы UUID случайно не повторился
+        if uuid in final_uuids:
+            continue
+            
+        try:
+            parsed = urlparse(link)
+            if is_server_alive(parsed.hostname, parsed.port):
+                final_servers.append(link)
+                final_uuids.add(uuid)
+                print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {parsed.hostname}")
+        except:
+            continue
+
+    # Аварийный режим "вслепую" (если Гитхаб забанен по пингу, добираем без проверки)
+    if len(final_servers) < 5:
+        print("⚠️ Часть портов не ответила по пингу. Добираем уникальные сервера вслепую...")
+        for link, uuid in combined_pool:
+            if len(final_servers) >= 5:
+                break
+            if uuid not in final_uuids:
+                final_servers.append(link)
+                final_uuids.add(uuid)
+
+    # Записываем итоговый файл подписки (ровно 5 строк)
+    subscription_content = "\n".join(final_servers[:5])
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(final_servers[:5])} уникальных серверов.")
 
 if __name__ == "__main__":
     main()
