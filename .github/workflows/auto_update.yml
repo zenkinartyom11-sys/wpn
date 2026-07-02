@@ -5,10 +5,11 @@ on:
     branches:
       - main       # Запуск сразу после сохранения файла
   schedule:
-    - cron: '7,22,37,52 * * * *' # Запуск каждые 15 минут в разгруженные секунды серверов
+    - cron: '7,22,37,52 * * * *' # Запуск каждые 15 минут в разгруженные минуты серверов
   workflow_dispatch: # Кнопка для ручного запуска
 
 jobs:
+  # ЗАДАЧА 1: Защита автоматики от отключения через 60 дней
   keepalive-job:
     name: Keepalive Workflow
     runs-on: ubuntu-latest
@@ -16,6 +17,16 @@ jobs:
       actions: write
     steps:
       - uses: gautamkrishnar/keepalive-workflow@v1
+
+  # ЗАДАЧА 2: Запуск вашего парсера и обновление подписки
+  run-parser:
+    name: Run VLESS Parser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Даем права на запись файлов в репозиторий
+    steps:
+      - name: 1. Клонируем ваш репозиторий
+        uses: actions/checkout@v4
 
       - name: 2. Включаем Python
         uses: actions/setup-python@v5
@@ -25,13 +36,19 @@ jobs:
       - name: 3. Устанавливаем библиотеку requests
         run: pip install requests
 
-      - name: 4. Запускаем скрипт
-        run: python checker.py
+      - name: 4. Запускаем скрипт (с авто-переключателем на резервный источник)
+        # Если ваш checker.py упадет из-за ссылки, команда ниже подменит её на резервную и запустит заново
+        run: |
+          python checker.py || (
+            echo "⚠️ Основной источник недоступен. Переключаемся на резервный..." && \
+            sed -i "s|https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt|https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt|g" checker.py && \
+            python checker.py
+          )
 
       - name: 5. Сохраняем изменения и пушим в репозиторий
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add subscription.txt
-          git commit -m "🤖 Авто-обновление 5 серверов VLESS" || echo "Изменений нет"
+          git commit -m "🤖 Авто-обновление серверов VLESS в subscription.txt" || echo "Изменений нет"
           git push
