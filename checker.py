@@ -5,7 +5,7 @@ import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
-# ИСПРАВЛЕНО: Меняем источник на глобальную заграничную базу, где нет Яндекса
+# Актуальная заграничная база без Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
 # База жесткого бана российских хостингов по первым цифрам IP
@@ -29,6 +29,8 @@ def is_server_alive(ip, port, timeout=2):
 
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
+    if not ip:
+        return False
     for prefix in RUSSIAN_IP_PREFIXES:
         if ip.startswith(prefix):
             return True
@@ -44,6 +46,7 @@ def main():
         return
 
     all_valid_candidates = []
+    used_uuids = set()  # Сюда робот будет запоминать ключи, чтобы избежать дубликатов в v2rayTun
     
     # Сбор кандидатов
     for line in res_keys.text.splitlines():
@@ -53,35 +56,40 @@ def main():
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
                 port = parsed.port
+                uuid = parsed.username  # Извлекаем UUID (ключ) сервера
                 
-                if not ip or not port:
+                if not ip or not port or not uuid:
                     continue
                 
-                # ШАГ 1: КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
+                # 1. Защита от дубликатов UUID (чтобы v2rayTun не склеивал сервера)
+                if uuid in used_uuids:
+                    continue
+                
+                # 2. КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
                 if is_russian_ip(ip):
                     continue
                 
-                # ШАГ 2: Фильтр по маскировочному домену (SNI)
+                # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
-                
-                # ИСПРАВЛЕНО: Безопасно достаем домен как строку, а не первую букву
                 sni_list = query_params.get("sni", ["blank"])
                 sni = sni_list[0].lower() if sni_list else "blank"
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
+                # Если все проверки пройдены, запоминаем UUID и добавляем в список
+                used_uuids.add(uuid)
                 all_valid_candidates.append(clean_line)
             except:
                 continue
 
-    print(f"ℹ️ Всего найдено чистых заграничных кандидатов: {len(all_valid_candidates)}")
+    print(f"ℹ️ Всего найдено УНИКАЛЬНЫХ заграничных кандидатов: {len(all_valid_candidates)}")
 
     if not all_valid_candidates:
-        print("❌ Заграничные серверы не найдены. Выключаем запись во избежание попадания РФ-серверов.")
+        print("❌ Заграничные уникальные серверы не найдены. Выключаем запись во избежание попадания РФ.")
         return
 
-    # Перемешиваем заграничные сервера
+    # Перемешиваем заграничные сервера, чтобы список обновлялся
     random.shuffle(all_valid_candidates)
     
     working_links = []
@@ -112,7 +120,7 @@ def main():
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} чистых заграничных серверов.")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
 
 if __name__ == "__main__":
     main()
