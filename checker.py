@@ -5,10 +5,10 @@ import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
+# ИСПРАВЛЕНО: Меняем источник на глобальную заграничную базу, где нет Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
-# БАЗА ЖЕСТКОГО БАНА РОССИЙСКИХ ХОСТИНГОВ ПО ПЕРВЫМ ЦИФРАМ IP
-# Сюда входят все пулы Yandex, Selectel, MskHost, Timeweb, RuVDS, VDSina, Beget и др.
+# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -29,15 +29,11 @@ def is_server_alive(ip, port, timeout=2):
 
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
-    # 1. Проверяем по нашей базе префиксов
     for prefix in RUSSIAN_IP_PREFIXES:
         if ip.startswith(prefix):
             return True
-            
-    # 2. Быстрая проверка по СНГ доменной структуре, если вместо IP указан домен
     if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"):
         return True
-        
     return False
 
 def main():
@@ -67,7 +63,10 @@ def main():
                 
                 # ШАГ 2: Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
-                sni = query_params.get("sni", ["blank"]).lower()[0]
+                
+                # ИСПРАВЛЕНО: Безопасно достаем домен как строку, а не первую букву
+                sni_list = query_params.get("sni", ["blank"])
+                sni = sni_list[0].lower() if sni_list else "blank"
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
@@ -79,8 +78,8 @@ def main():
     print(f"ℹ️ Всего найдено чистых заграничных кандидатов: {len(all_valid_candidates)}")
 
     if not all_valid_candidates:
-        print("❌ Чистые заграничные серверы не найдены. Аварийный режим...")
-        all_valid_candidates = [line.strip() for line in res_keys.text.splitlines() if line.startswith("vless://")]
+        print("❌ Заграничные серверы не найдены. Выключаем запись во избежание попадания РФ-серверов.")
+        return
 
     # Перемешиваем заграничные сервера
     random.shuffle(all_valid_candidates)
