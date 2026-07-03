@@ -1,12 +1,14 @@
+import json
 import random
 import socket
-import time
 import requests
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
+# Актуальная заграничная база без Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
+# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -18,6 +20,7 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_server_alive(ip, port, timeout=2):
+    """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
     try:
         with socket.create_connection((ip, int(port)), timeout=timeout):
             return True
@@ -25,19 +28,27 @@ def is_server_alive(ip, port, timeout=2):
         return False
 
 def is_russian_ip(ip):
-    if not ip: return False
+    """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
+    if not ip:
+        return False
     for prefix in RUSSIAN_IP_PREFIXES:
-        if ip.startswith(prefix): return True
-    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
+        if ip.startswith(prefix):
+            return True
+    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"):
+        return True
     return False
 
 def main():
+    print("1. Скачиваем проверенную базу Reality-ключей...")
     res_keys = requests.get(KEYS_LIST_URL)
-    if res_keys.status_code != 200: return
+    if res_keys.status_code != 200:
+        print("❌ Ошибка скачивания базы ключей.")
+        return
 
-    all_servers = []
-    used_uuids = set()
+    all_valid_candidates = []
+    used_uuids = set()  # Сюда робот будет запоминать ключи, чтобы избежать дубликатов в v2rayTun
     
+    # Сбор кандидатов
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -45,60 +56,71 @@ def main():
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
                 port = parsed.port
-                uuid = parsed.username
+                uuid = parsed.username  # Извлекаем UUID (ключ) сервера
                 
-                if not ip or not port or not uuid or uuid in used_uuids or is_russian_ip(ip):
+                if not ip or not port or not uuid:
                     continue
                 
+                # 1. Защита от дубликатов UUID (чтобы v2rayTun не склеивал сервера)
+                if uuid in used_uuids:
+                    continue
+                
+                # 2. КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
+                if is_russian_ip(ip):
+                    continue
+                
+                # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
-                sni = str(query_params.get("sni", ["blank"])).lower()
-                net_type = str(query_params.get("type", ["tcp"])).lower()
-                security = str(query_params.get("security", ["none"])).lower()
+                sni_list = query_params.get("sni", ["blank"])
+                sni = sni_list[0].lower() if sni_list else "blank"
                 
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
-                if security == "reality":
-                    all_servers.append({
-                        "link": clean_line, "ip": ip, "port": port, "type": net_type, "uuid": uuid
-                    })
-                    used_uuids.add(uuid)
+                # Если все проверки пройдены, запоминаем UUID и добавляем в список
+                used_uuids.add(uuid)
+                all_valid_candidates.append(clean_line)
             except:
                 continue
 
-    if not all_servers: return
+    print(f"ℹ️ Всего найдено УНИКАЛЬНЫХ заграничных кандидатов: {len(all_valid_candidates)}")
 
-    random.shuffle(all_servers)
-    final_servers = []
+    if not all_valid_candidates:
+        print("❌ Заграничные уникальные серверы не найдены. Выключаем запись во избежание попадания РФ.")
+        return
 
-    # Ищем TCP
-    for server in all_servers:
-        if server["type"] == "tcp":
-            if is_server_alive(server["ip"], server["port"]):
-                final_servers.append(server["link"])
-                all_servers.remove(server)
-                break
+    # Перемешиваем заграничные сервера, чтобы список обновлялся
+    random.shuffle(all_valid_candidates)
+    
+    working_links = []
+    print(f"2. Тестируем и отбираем 5 живых заграничных серверов...")
+    
+    for link in all_valid_candidates:
+        if len(working_links) >= 5:
+            break
+            
+        try:
+            parsed = urlparse(link)
+            ip = parsed.hostname
+            port = parsed.port
+            
+            # Проверяем живой ли порт
+            if is_server_alive(ip, port):
+                working_links.append(link)
+                print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
+        except:
+            continue
 
-    # Добираем остальные 4
-    for server in all_servers:
-        if len(final_servers) >= 5: break
-        if is_server_alive(server["ip"], server["port"]):
-            final_servers.append(server["link"])
+    if not working_links:
+        print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
+        working_links = all_valid_candidates[:5]
 
-    # Аварийный добор
-    if len(final_servers) < 5:
-        for server in all_servers:
-            if len(final_servers) >= 5: break
-            if server["link"] not in final_servers:
-                final_servers.append(server["link"])
-
-    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем в конец файла невидимый комментарий с точным временем.
-    # Для Git файл ТЕПЕРЬ ВСЕГДА НОВЫЙ! Коммит сработает на 100%.
-    subscription_content = "\n".join(final_servers[:5]) + f"\n# updated_at: {int(time.time())}"
+    # Записываем итоговый файл подписки
+    subscription_content = "\n".join(working_links)
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print("✅ Файл изменен.")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
 
 if __name__ == "__main__":
     main()
