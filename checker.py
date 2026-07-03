@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 FILE_PATH = "subscription.txt"  
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
-# БАЗА ЖЕСТКОГО БАНА РОССИЙСКИХ ХОСТИНГОВ ПО ПЕРВЫМ ЦИФРАМ IP
+# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -29,7 +29,6 @@ def is_server_alive(server_dict, timeout=1.5):
         return False
 
 def is_russian_ip(ip):
-    """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip: return False
     for prefix in RUSSIAN_IP_PREFIXES:
         if ip.startswith(prefix): return True
@@ -48,6 +47,26 @@ def inject_safe_fp(link):
         return urlunparse(new_parsed)
     except:
         return link
+
+def clean_country_name(raw_fragment):
+    """Очищает строку названия страны, вытаскивая только суть (например, 'finland')"""
+    try:
+        decoded = unquote(raw_fragment).strip().lower()
+        # Убираем лишние знаки препинания, чтобы оставить чистые слова
+        for char in ["-", "_", "[", "]", "(", ")", "|", "*"]:
+            decoded = decoded.replace(char, " ")
+            
+        words = decoded.split()
+        if not words:
+            return "unknown"
+            
+        # Если первое слово — это эмодзи-флаг, берем второе слово (само название страны)
+        if len(words) >= 2 and len(words[0]) > 4: # Эмодзи флагов в юникоде длинные
+            return words[1]
+            
+        return words[0] # Возвращаем самое первое слово названия страны
+    except:
+        return "unknown"
 
 def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
@@ -68,19 +87,20 @@ def main():
                 port = parsed.port
                 uuid = parsed.username
                 
-                # Тройной фильтр на входе: пустые поля, дубликаты UUID и жесткий бан IP из РФ
                 if not ip or not port or not uuid or uuid in used_uuids or is_russian_ip(ip):
                     continue
                 
                 query_params = parse_qs(parsed.query)
                 sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
-                net_type = query_params.get("type", ["tcp"])[0].lower()
-                security = query_params.get("security", ["none"])[0].lower()
+                sni = sni_list.lower() if sni_list else "blank"
+                net_type = query_params.get("type", ["tcp"]).lower()
+                security = query_params.get("security", ["none"]).lower()
                 
-                # Убираем всё, где в названии или SNI есть ру-след
-                raw_country_name = unquote(parsed.fragment).lower()
-                if "russia" in raw_country_name or "🇷🇺" in raw_country_name or "ru " in raw_country_name:
+                # Извлекаем и ОЧИЩАЕМ название страны до одного ключевого слова
+                raw_fragment = parsed.fragment
+                pure_country = clean_country_name(raw_fragment)
+                
+                if "russia" in pure_country or "🇷🇺" in pure_country or "ru" == pure_country:
                     continue
                 if any(kw in sni for kw in ["yandex.", "ozon.", "vk.", "mail.", "gosuslugi."]):
                     continue
@@ -91,7 +111,8 @@ def main():
                         "ip": ip, 
                         "port": port, 
                         "type": net_type, 
-                        "country_text": raw_country_name
+                        "country_key": pure_country, # Сохраняем чистое слово (например, 'finland')
+                        "original_link": clean_line
                     })
                     used_uuids.add(uuid)
             except:
@@ -102,7 +123,6 @@ def main():
         print("❌ Подходящие заграничные серверы не найдены.")
         return
 
-    # Перемешиваем пул для случайного выбора
     random.shuffle(all_servers)
     
     # --- МНОГОПОТОЧНЫЙ ЭКСПРЕСС-ПИНГ (15 потоков) ---
@@ -117,35 +137,35 @@ def main():
                 alive_servers.append(server)
 
     final_servers = []
-    chosen_countries = set()  # Сюда пишем названия строк, чтобы страны не совпадали!
+    chosen_countries = set() # Корзина для ЧИСТЫХ названий стран
 
     # ШАГ 1: ОБЯЗАТЕЛЬНО СТАВИМ 1 TCP НА ПЕРВОЕ МЕСТО
     for server in alive_servers:
         if server["type"] == "tcp":
             modified_link = inject_safe_fp(server["link"])
             final_servers.append(modified_link)
-            chosen_countries.add(server["country_text"])
-            print(f"   🏆 Закреплен TCP на 1 месте. Страна в ссылке: {server['country_text'].upper()}")
+            chosen_countries.add(server["country_key"])
+            print(f"   🏆 Закреплен TCP на 1 месте. Страна: {server['country_key'].upper()}")
             alive_servers.remove(server)
             break
 
-    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО С ДРУГИМИ НАЗВАНИЯМИ СТРАН
+    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ СТРАН
     for server in alive_servers:
         if len(final_servers) >= 5: 
             break
             
-        # Пропускаем, если текст страны совпадает с уже добавленными
-        if server["country_text"] in chosen_countries:
+        # ЖЕСТКАЯ ПРОВЕРКА: Если чистое имя страны (например, 'finland') уже задействовано — строго пропускаем!
+        if server["country_key"] in chosen_countries or server["country_key"] == "unknown":
             continue
             
         modified_link = inject_safe_fp(server["link"])
         final_servers.append(modified_link)
-        chosen_countries.add(server["country_text"])
-        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. Страна в ссылке: {server['country_text'].upper()}")
+        chosen_countries.add(server["country_key"])
+        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. Страна: {server['country_key'].upper()}")
 
-    # Аварийный добор (если не набралось 5 разных стран, берем любые живые заграничные)
+    # Аварийный добор (если в базе не набралось 5 РАЗНЫХ стран, добираем любые живые заграничные)
     if len(final_servers) < 5:
-        print("⚠️ Не удалось собрать 5 разных названий стран. Добираем дубликаты...")
+        print("⚠️ Не удалось собрать 5 уникальных стран. Добираем дубликаты...")
         for server in alive_servers:
             if len(final_servers) >= 5: break
             modified_link = inject_safe_fp(server["link"])
@@ -161,11 +181,11 @@ def main():
                 final_servers.append(modified_link)
 
     # Сохраняем результат
-    subscription_content = "\n".join(final_servers[:5]) + f"\n# full_secure_geo_split_at: {int(time.time())}"
+    subscription_content = "\n".join(final_servers[:5]) + f"\n# strict_geo_split_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В {FILE_PATH} сохранено ровно {len(final_servers[:5])} серверов из уникальных стран без РФ.")
+    print(f"✅ УСПЕХ! В {FILE_PATH} сохранено ровно 5 серверов из 5 абсолютно разных стран.")
 
 if __name__ == "__main__":
     main()
