@@ -1,15 +1,12 @@
-import json
 import random
 import socket
 import time
 import requests
-from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
-from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
-# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
     "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
@@ -20,10 +17,9 @@ RUSSIAN_IP_PREFIXES = [
     "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
 ]
 
-def is_server_alive(server_dict, timeout=1.5):
-    """Проверяет, отвечает ли порт сервера (работает в потоке)"""
+def is_server_alive(ip, port, timeout=2):
     try:
-        with socket.create_connection((server_dict["ip"], int(server_dict["port"])), timeout=timeout):
+        with socket.create_connection((ip, int(port)), timeout=timeout):
             return True
     except:
         return False
@@ -35,29 +31,9 @@ def is_russian_ip(ip):
     if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"): return True
     return False
 
-def inject_safe_fp(link):
-    """Находит параметр fp в ссылке и принудительно ставит chrome или safari"""
-    try:
-        parsed = urlparse(link)
-        query_params = parse_qs(parsed.query)
-        
-        # Случайно выбираем один из двух лучших для РФ фингерпринтов
-        query_params["fp"] = [random.choice(["chrome", "safari"])]
-        
-        # Пересобираем ссылку обратно
-        flat_params = {k: v[0] for k, v in query_params.items()}
-        new_query = urlencode(flat_params)
-        new_parsed = parsed._replace(query=new_query)
-        return urlunparse(new_parsed)
-    except:
-        return link
-
 def main():
-    print("1. Скачиваем проверенную базу Reality-ключей...")
     res_keys = requests.get(KEYS_LIST_URL)
-    if res_keys.status_code != 200:
-        print("❌ Ошибка скачивания базы ключей.")
-        return
+    if res_keys.status_code != 200: return
 
     all_servers = []
     used_uuids = set()
@@ -90,62 +66,39 @@ def main():
             except:
                 continue
 
-    if not all_servers:
-        print("❌ Заграничные уникальные серверы не найдены.")
-        return
+    if not all_servers: return
 
-    print(f"ℹ️ Собрано уникальных заграничных кандидатов: {len(all_servers)}")
     random.shuffle(all_servers)
-    
-    # --- МНОГОПОТОЧНЫЙ ЭКСПРЕСС-ПИНГ ---
-    print("2. Запускаем параллельное тестирование портов...")
-    # Ограничиваем пул первыми 60 случайными серверами для экономии ресурсов
-    test_pool = all_servers[:60]
-    alive_servers = []
-    
-    with ThreadPoolExecutor(max_workers=15) as executor:
-        # Запускаем одновременный пинг 15 потоками
-        check_results = list(executor.map(is_server_alive, test_pool))
-        
-        for server, is_alive in zip(test_pool, check_results):
-            if is_alive:
-                alive_servers.append(server)
-
     final_servers = []
 
-    # ШАГ 1: ВЫТАСКИВАЕМ 1 ТСР НА ПЕРВОЕ МЕСТО
-    for server in alive_servers:
+    # Ищем TCP
+    for server in all_servers:
         if server["type"] == "tcp":
-            # Вживляем фингерпринт перед добавлением
-            modified_link = inject_safe_fp(server["link"])
-            final_servers.append(modified_link)
-            print(f"   🏆 Закреплен TCP на 1 месте с маскировкой браузера: {server['ip']}")
-            alive_servers.remove(server)
-            break
+            if is_server_alive(server["ip"], server["port"]):
+                final_servers.append(server["link"])
+                all_servers.remove(server)
+                break
 
-    # ШАГ 2: ДОБИРАЕМ ОСТАВШИЕСЯ 4 МЕСТА ЛЮБЫМИ ЖИВЫМИ СЕРВЕРАМИ
-    for server in alive_servers:
-        if len(final_servers) >= 5: 
-            break
-        modified_link = inject_safe_fp(server["link"])
-        final_servers.append(modified_link)
-        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {server['ip']} ({server['type']})")
+    # Добираем остальные 4
+    for server in all_servers:
+        if len(final_servers) >= 5: break
+        if is_server_alive(server["ip"], server["port"]):
+            final_servers.append(server["link"])
 
-    # Аварийный режим "вслепую"
+    # Аварийный добор
     if len(final_servers) < 5:
-        print("⚠️ Недостаточно живых портов. Добираем из кэша вслепую...")
         for server in all_servers:
             if len(final_servers) >= 5: break
-            modified_link = inject_safe_fp(server["link"])
-            if modified_link not in final_servers:
-                final_servers.append(modified_link)
+            if server["link"] not in final_servers:
+                final_servers.append(server["link"])
 
-    # Записываем результат с принудительной меткой обновления для Git
-    subscription_content = "\n".join(final_servers[:5]) + f"\n# utls_optimized_at: {int(time.time())}"
+    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем в конец файла невидимый комментарий с точным временем.
+    # Для Git файл ТЕПЕРЬ ВСЕГДА НОВЫЙ! Коммит сработает на 100%.
+    subscription_content = "\n".join(final_servers[:5]) + f"\n# updated_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В {FILE_PATH} записано 5 серверов со встроенным Fingerprint (Chrome/Safari).")
+    print("✅ Файл изменен.")
 
 if __name__ == "__main__":
     main()
