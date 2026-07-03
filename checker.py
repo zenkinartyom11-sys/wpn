@@ -48,21 +48,15 @@ def inject_safe_fp(link):
     except:
         return link
 
-def clean_country_name(raw_fragment):
-    """Вытаскивает только первое главное слово страны (например, 'finland')"""
+def extract_ip_subnet(ip):
+    """Вытаскивает подсеть IP адреса (первые две группы цифр, например '95.217.')"""
     try:
-        decoded = unquote(raw_fragment).strip().lower()
-        for char in ["-", "_", "[", "]", "(", ")", "|", "*"]:
-            decoded = decoded.replace(char, " ")
-            
-        words = decoded.split()
-        if not words:
-            return "unknown"
-            
-        # Защита от длинных строк: берем самое первое слово локации
-        return words[0]
+        parts = ip.split(".")
+        if len(parts) >= 2:
+            return f"{parts[0]}.{parts[1]}."
     except:
-        return "unknown"
+        pass
+    return ip
 
 def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
@@ -87,27 +81,28 @@ def main():
                     continue
                 
                 query_params = parse_qs(parsed.query)
-                
-                # ИСПРАВЛЕНО: Извлекаем именно текстовые значения из списков query параметров
                 sni = query_params.get("sni", ["blank"])[0].lower()
                 net_type = query_params.get("type", ["tcp"])[0].lower()
                 security = query_params.get("security", ["none"])[0].lower()
                 
-                # Извлекаем и очищаем название страны
-                pure_country = clean_country_name(parsed.fragment)
-                
-                if "russia" in pure_country or "🇷🇺" in pure_country or "ru" == pure_country:
-                    continue
                 if any(kw in sni for kw in ["yandex.", "ozon.", "vk.", "mail.", "gosuslugi."]):
                     continue
                 
+                raw_country_name = unquote(parsed.fragment).lower()
+                if "russia" in raw_country_name or "🇷🇺" in raw_country_name or "ru" in raw_country_name:
+                    continue
+                
                 if security == "reality":
+                    # Вычисляем подсеть IP для жесткого бана дубликатов локаций
+                    subnet = extract_ip_subnet(ip)
+                    
                     all_servers.append({
                         "link": clean_line, 
                         "ip": ip, 
                         "port": port, 
                         "type": net_type, 
-                        "country_key": pure_country
+                        "uuid": uuid,
+                        "subnet": subnet
                     })
                     used_uuids.add(uuid)
             except:
@@ -132,35 +127,35 @@ def main():
                 alive_servers.append(server)
 
     final_servers = []
-    chosen_countries = [] # Используем список, чтобы можно было применить метод count()
+    chosen_subnets = set() # Корзина для уникальных подсетей IP!
 
     # ШАГ 1: ОБЯЗАТЕЛЬНО СТАВИМ 1 TCP НА ПЕРВОЕ МЕСТО
     for server in alive_servers:
         if server["type"] == "tcp":
             modified_link = inject_safe_fp(server["link"])
             final_servers.append(modified_link)
-            chosen_countries.append(server["country_key"])
-            print(f"   🏆 Закреплен TCP на 1 месте. Страна: {server['country_key'].upper()}")
+            chosen_subnets.add(server["subnet"])
+            print(f"   🏆 Закреплен TCP на 1 месте. IP: {server['ip']} (Подсеть: {server['subnet']})")
             alive_servers.remove(server)
             break
 
-    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ СТРАН (Счетчик count должен быть равен 0)
+    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ ПОДСЕТЕЙ (РАЗНЫХ ХОСТИНГОВ И СТРАН)
     for server in alive_servers:
         if len(final_servers) >= 5: 
             break
             
-        # ОПТИМИЗАЦИЯ С COUNT: Если в нашем списке уже есть такая страна (count >= 1) — пропускаем!
-        if chosen_countries.count(server["country_key"]) >= 1 or server["country_key"] == "unknown":
+        # ЖЕСТКИЙ БАН: Если подсеть совпадает (сервера из одного дата-центра/страны) — строго пропускаем!
+        if server["subnet"] in chosen_subnets:
             continue
             
         modified_link = inject_safe_fp(server["link"])
         final_servers.append(modified_link)
-        chosen_countries.append(server["country_key"])
-        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. Страна: {server['country_key'].upper()}")
+        chosen_subnets.add(server["subnet"])
+        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. IP: {server['ip']} (Подсеть: {server['subnet']})")
 
     # Аварийный добор
     if len(final_servers) < 5:
-        print("⚠️ Не удалось собрать 5 уникальных стран. Добираем дубликаты стран...")
+        print("⚠️ Не удалось собрать 5 разных подсетей. Добираем дубликаты подсетей...")
         for server in alive_servers:
             if len(final_servers) >= 5: break
             modified_link = inject_safe_fp(server["link"])
@@ -175,12 +170,12 @@ def main():
             if modified_link not in final_servers:
                 final_servers.append(modified_link)
 
-    # Записываем результат с временной меткой
-    subscription_content = "\n".join(final_servers[:5]) + f"\n# strict_geo_split_at: {int(time.time())}"
+    # Сохраняем результат
+    subscription_content = "\n".join(final_servers[:5]) + f"\n# subnet_split_optimized_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В {FILE_PATH} сохранено ровно 5 серверов из 5 абсолютно разных стран.")
+    print(f"✅ УСПЕХ! В {FILE_PATH} сохранено ровно 5 серверов из разных подсетей.")
 
 if __name__ == "__main__":
     main()
