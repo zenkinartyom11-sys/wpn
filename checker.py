@@ -3,7 +3,7 @@ import random
 import socket
 import time
 import requests
-from urllib.parse import urlparse, parse_qs, urlunparse, urlencode, unquote
+from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
 from concurrent.futures import ThreadPoolExecutor
 
 FILE_PATH = "subscription.txt"  
@@ -21,7 +21,7 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_server_alive(server_dict, timeout=1.5):
-    """Проверяет, отвечает ли порт сервера"""
+    """Проверяет, отвечает ли порт сервера (работает в потоке)"""
     try:
         with socket.create_connection((server_dict["ip"], int(server_dict["port"])), timeout=timeout):
             return True
@@ -40,24 +40,17 @@ def inject_safe_fp(link):
     try:
         parsed = urlparse(link)
         query_params = parse_qs(parsed.query)
+        
+        # Случайно выбираем один из двух лучших для РФ фингерпринтов
         query_params["fp"] = [random.choice(["chrome", "safari"])]
-        flat_params = {k: v for k, v in query_params.items()}
+        
+        # Пересобираем ссылку обратно
+        flat_params = {k: v[0] for k, v in query_params.items()}
         new_query = urlencode(flat_params)
         new_parsed = parsed._replace(query=new_query)
         return urlunparse(new_parsed)
     except:
         return link
-
-def extract_country(fragment):
-    """Извлекает название страны из текстового фрагмента ссылки после знака #"""
-    try:
-        decoded = unquote(fragment).strip()
-        words = decoded.split()
-        if len(words) >= 2:
-            return words[1].lower()
-        return decoded.lower() if decoded else "unknown"
-    except:
-        return "unknown"
 
 def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
@@ -82,96 +75,77 @@ def main():
                     continue
                 
                 query_params = parse_qs(parsed.query)
+                sni = str(query_params.get("sni", ["blank"])).lower()
+                net_type = str(query_params.get("type", ["tcp"])).lower()
+                security = str(query_params.get("security", ["none"])).lower()
                 
-                # ИСПРАВЛЕНО: Безопасное извлечение SNI без превращения структуры в массив строк
-                sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
-                
-                net_type = query_params.get("type", ["tcp"])[0].lower()
-                security = query_params.get("security", ["none"])[0].lower()
-                
-                # Запрещаем только конкретные русские сервисы в самом названии домена
-                if any(kw in sni for kw in ["yandex.", "ozon.", "vk.", "mail.", "gosuslugi."]):
-                    continue
-                
-                country = extract_country(parsed.fragment)
-                if "russia" in country or "🇷🇺" in country:
+                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
                 if security == "reality":
                     all_servers.append({
-                        "link": clean_line, "ip": ip, "port": port, 
-                        "type": net_type, "uuid": uuid, "country": country
+                        "link": clean_line, "ip": ip, "port": port, "type": net_type, "uuid": uuid
                     })
                     used_uuids.add(uuid)
             except:
                 continue
 
-    print(f"ℹ️ Всего уникальных заграничных кандидатов собрано: {len(all_servers)}")
     if not all_servers:
-        print("❌ Серверы не найдены.")
+        print("❌ Заграничные уникальные серверы не найдены.")
         return
 
+    print(f"ℹ️ Собрано уникальных заграничных кандидатов: {len(all_servers)}")
     random.shuffle(all_servers)
     
     # --- МНОГОПОТОЧНЫЙ ЭКСПРЕСС-ПИНГ ---
     print("2. Запускаем параллельное тестирование портов...")
-    test_pool = all_servers[:80]
+    # Ограничиваем пул первыми 60 случайными серверами для экономии ресурсов
+    test_pool = all_servers[:60]
     alive_servers = []
     
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:
+        # Запускаем одновременный пинг 15 потоками
         check_results = list(executor.map(is_server_alive, test_pool))
+        
         for server, is_alive in zip(test_pool, check_results):
             if is_alive:
                 alive_servers.append(server)
 
     final_servers = []
-    used_countries = set()
 
     # ШАГ 1: ВЫТАСКИВАЕМ 1 ТСР НА ПЕРВОЕ МЕСТО
     for server in alive_servers:
         if server["type"] == "tcp":
+            # Вживляем фингерпринт перед добавлением
             modified_link = inject_safe_fp(server["link"])
             final_servers.append(modified_link)
-            used_countries.add(server["country"])
-            print(f"   🏆 Закреплен TCP на 1 месте. Страна: {server['country'].upper()}")
+            print(f"   🏆 Закреплен TCP на 1 месте с маскировкой браузера: {server['ip']}")
             alive_servers.remove(server)
             break
 
-    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ СТРАН
+    # ШАГ 2: ДОБИРАЕМ ОСТАВШИЕСЯ 4 МЕСТА ЛЮБЫМИ ЖИВЫМИ СЕРВЕРАМИ
     for server in alive_servers:
         if len(final_servers) >= 5: 
             break
-        if server["country"] in used_countries or server["country"] == "unknown":
-            continue
-            
         modified_link = inject_safe_fp(server["link"])
         final_servers.append(modified_link)
-        used_countries.add(server["country"])
-        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. Страна: {server['country'].upper()}")
-
-    # Аварийный режим добора (если не набралось 5 РАЗНЫХ стран, берем любые живые заграничные)
-    if len(final_servers) < 5:
-        print("⚠️ Не удалось собрать 5 разных стран. Добираем дубликаты стран...")
-        for server in alive_servers:
-            if len(final_servers) >= 5: break
-            modified_link = inject_safe_fp(server["link"])
-            if modified_link not in final_servers:
-                final_servers.append(modified_link)
+        print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]: {server['ip']} ({server['type']})")
 
     # Аварийный режим "вслепую"
     if len(final_servers) < 5:
+        print("⚠️ Недостаточно живых портов. Добираем из кэша вслепую...")
         for server in all_servers:
             if len(final_servers) >= 5: break
             modified_link = inject_safe_fp(server["link"])
             if modified_link not in final_servers:
                 final_servers.append(modified_link)
 
-    subscription_content = "\n".join(final_servers[:5]) + f"\n# geo_split_optimized_at: {int(time.time())}"
+    # Записываем результат с принудительной меткой обновления для Git
+    subscription_content = "\n".join(final_servers[:5]) + f"\n# utls_optimized_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ УСПЕХ! В {FILE_PATH} сохранено ровно {len(final_servers[:5])} серверов из разных стран.")
+    print(f"✅ УСПЕХ! В {FILE_PATH} записано 5 серверов со встроенным Fingerprint (Chrome/Safari).")
 
 if __name__ == "__main__":
     main()
