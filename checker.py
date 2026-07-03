@@ -59,10 +59,7 @@ def clean_country_name(raw_fragment):
         if not words:
             return "unknown"
             
-        # Если первое слово — эмодзи-флаг, возвращаем само название страны
-        if len(words) >= 2 and len(words[0]) > 4:
-            return words[1]
-            
+        # Защита от длинных строк: берем самое первое слово локации
         return words[0]
     except:
         return "unknown"
@@ -91,15 +88,10 @@ def main():
                 
                 query_params = parse_qs(parsed.query)
                 
-                # ИСПРАВЛЕНО: Безопасно достаем ПЕРВЫЙ элемент списка строк
-                sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
-                
-                net_type_list = query_params.get("type", ["tcp"])
-                net_type = net_type_list[0].lower() if net_type_list else "tcp"
-                
-                security_list = query_params.get("security", ["none"])
-                security = security_list[0].lower() if security_list else "none"
+                # ИСПРАВЛЕНО: Извлекаем именно текстовые значения из списков query параметров
+                sni = query_params.get("sni", ["blank"])[0].lower()
+                net_type = query_params.get("type", ["tcp"])[0].lower()
+                security = query_params.get("security", ["none"])[0].lower()
                 
                 # Извлекаем и очищаем название страны
                 pure_country = clean_country_name(parsed.fragment)
@@ -140,30 +132,30 @@ def main():
                 alive_servers.append(server)
 
     final_servers = []
-    chosen_countries = set()
+    chosen_countries = [] # Используем список, чтобы можно было применить метод count()
 
     # ШАГ 1: ОБЯЗАТЕЛЬНО СТАВИМ 1 TCP НА ПЕРВОЕ МЕСТО
     for server in alive_servers:
         if server["type"] == "tcp":
             modified_link = inject_safe_fp(server["link"])
             final_servers.append(modified_link)
-            chosen_countries.add(server["country_key"])
+            chosen_countries.append(server["country_key"])
             print(f"   🏆 Закреплен TCP на 1 месте. Страна: {server['country_key'].upper()}")
             alive_servers.remove(server)
             break
 
-    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ СТРАН
+    # ШАГ 2: ДОБИРАЕМ ЕЩЕ 4 СЕРВЕРА СТРОГО ИЗ ДРУГИХ СТРАН (Счетчик count должен быть равен 0)
     for server in alive_servers:
         if len(final_servers) >= 5: 
             break
             
-        # ЖЕСТКАЯ ПРОВЕРКА: Если имя страны (например, 'finland') уже добавлено — строго пропускаем!
-        if server["country_key"] in chosen_countries or server["country_key"] == "unknown":
+        # ОПТИМИЗАЦИЯ С COUNT: Если в нашем списке уже есть такая страна (count >= 1) — пропускаем!
+        if chosen_countries.count(server["country_key"]) >= 1 or server["country_key"] == "unknown":
             continue
             
         modified_link = inject_safe_fp(server["link"])
         final_servers.append(modified_link)
-        chosen_countries.add(server["country_key"])
+        chosen_countries.append(server["country_key"])
         print(f"   ✅ Добавлен сервер [{len(final_servers)}/5]. Страна: {server['country_key'].upper()}")
 
     # Аварийный добор
@@ -183,7 +175,7 @@ def main():
             if modified_link not in final_servers:
                 final_servers.append(modified_link)
 
-    # Записываем результат
+    # Записываем результат с временной меткой
     subscription_content = "\n".join(final_servers[:5]) + f"\n# strict_geo_split_at: {int(time.time())}"
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
