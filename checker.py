@@ -1,3 +1,4 @@
+import ssl
 import json
 import random
 import socket
@@ -19,14 +20,38 @@ RUSSIAN_IP_PREFIXES = [
     "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
 ]
 
-def is_server_alive(ip, port, timeout=2):
-    """Проверяет, отвечает ли порт сервера (TCP-пинг)"""
+def is_server_alive(link, timeout=3):
+    """Проверяет сервер с помощью реального TLS Handshake с учетом SNI"""
     try:
-        with socket.create_connection((ip, int(port)), timeout=timeout):
-            return True
-    except:
-        return False
+        parsed = urlparse(link)
+        ip = parsed.hostname
+        port = parsed.port
+        
+        if not ip or not port:
+            return False
+            
+        port = int(port)
+        
+        # Извлекаем SNI из параметров ссылки (критично для Reality)
+        query_params = parse_qs(parsed.query)
+        sni_list = query_params.get("sni", [None])
+        sni = sni_list[0] if sni_list else None
+        
+        # Если SNI в ссылке нет, используем IP в качестве имени хоста
+        server_hostname = sni if sni else ip
 
+        # Создаем безопасный контекст (отключаем проверку сертификата, так как у Reality он самоподписанный/чужой)
+        context = ssl._create_unverified_context()
+        
+        # Шаг 1: Проверяем обычный TCP-порт
+        with socket.create_connection((ip, port), timeout=timeout) as sock:
+            # Шаг 2: Оборачиваем в TLS и инициируем Handshake с нужным SNI
+            with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
+                # Если выполнение дошло сюда и не выбросило ошибку — сервер ответил на TLS Client Hello
+                return True
+    except Exception:
+        return False
+        
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip:
