@@ -130,7 +130,7 @@ def main():
             port = parsed.port
             
             # Проверяем живой ли порт
-            if is_server_alive(ip, port):
+            if is_server_alive(link):
                 working_links.append(link)
                 print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
         except:
