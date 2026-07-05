@@ -13,8 +13,8 @@ FILE_PATH = "subscription.txt"
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 XRAY_PATH = "./xray"
 
-# Тестовый файл для замера реальной скорости загрузки (размер ~2-5 МБ, CDN Cloudflare)
-SPEED_TEST_URL = "https://cloudflare.com"
+# Официальный файл с серверов Telegram для замера чистой скорости внутри мессенджера
+SPEED_TEST_URL = "https://telegram.org"
 
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
@@ -43,7 +43,7 @@ def check_geoip_api(ip):
         return True
 
 def get_server_rtt(link, timeout=1.5):
-    """Возвращает точное время RTT (пинг) в мс. Если сервер мертв — возвращает None."""
+    """Быстрый замер задержки (пинг) до сервера"""
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, parsed.port
@@ -51,7 +51,7 @@ def get_server_rtt(link, timeout=1.5):
             return None
         
         query_params = parse_qs(parsed.query)
-        sni = query_params.get("sni", [None])[0]
+        sni = query_params.get("sni", [None])
         server_hostname = sni if sni else ip
 
         context = ssl._create_unverified_context()
@@ -64,8 +64,8 @@ def get_server_rtt(link, timeout=1.5):
     except Exception:
         return None
 
-def test_speed_via_xray(link, xray_path, timeout=5):
-    """Тестирует реальную скорость загрузки через Xray. Возвращает скорость в Мбайт/сек."""
+def test_telegram_speed(link, xray_path, timeout=6):
+    """Тестирует реальную скорость скачивания контента с серверов Telegram"""
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
     if not actual_path:
         return 0.0
@@ -87,16 +87,16 @@ def test_speed_via_xray(link, xray_path, timeout=5):
                         "vnext": [{
                             "address": parsed.hostname,
                             "port": int(parsed.port),
-                            "users": [{"id": parsed.username, "encryption": query.get("encryption", ["none"])[0], "flow": query.get("flow", [""])[0]}]
+                            "users": [{"id": parsed.username, "encryption": query.get("encryption", ["none"]), "flow": query.get("flow", [""])}]
                         }]
                     },
                     "streamSettings": {
-                        "network": query.get("type", ["tcp"])[0],
-                        "security": query.get("security", [""])[0],
+                        "network": query.get("type", ["tcp"]),
+                        "security": query.get("security", [""]),
                         "realitySettings": {
-                            "show": False, "fingerprint": query.get("fp", ["chrome"])[0],
-                            "serverName": query.get("sni", [""])[0], "publicKey": query.get("pbk", [""])[0],
-                            "shortId": query.get("sid", [""])[0], "spiderX": query.get("spx", [""])[0]
+                            "show": False, "fingerprint": query.get("fp", ["chrome"]),
+                            "serverName": query.get("sni", [""]), "publicKey": query.get("pbk", [""]),
+                            "shortId": query.get("sid", [""]), "spiderX": query.get("spx", [""])
                         }
                     }
                 },
@@ -108,12 +108,22 @@ def test_speed_via_xray(link, xray_path, timeout=5):
             json.dump(xray_config, f)
 
         process = subprocess.Popen([actual_path, "run", "-c", config_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.4) # Даем ядру запуститься
+        time.sleep(0.4) # даем Xray подняться
         
         proxies = {"http": f"socks5://127.0.0.1:{local_port}", "https": f"socks5://127.0.0.1:{local_port}"}
         
         start_time = time.time()
-        res = requests.get(SPEED_TEST_URL, proxies=proxies, timeout=timeout)
+        # Скачиваем файл потоком, замеряя скорость в процессе
+        res = requests.get(SPEED_TEST_URL, proxies=proxies, timeout=timeout, stream=True)
+        
+        bytes_downloaded = 0
+        for chunk in res.iter_content(chunk_size=32768):
+            if chunk:
+                bytes_downloaded += len(chunk)
+                # Если скачали больше 3 МБ, прерываем, чтобы не тратить трафик
+                if bytes_downloaded > 3 * 1024 * 1024:
+                    break
+                    
         duration = time.time() - start_time
         
         process.terminate()
@@ -121,8 +131,7 @@ def test_speed_via_xray(link, xray_path, timeout=5):
         if os.path.exists(config_path):
             os.remove(config_path)
 
-        if res.status_code == 200:
-            bytes_downloaded = len(res.content)
+        if duration > 0 and bytes_downloaded > 1024:
             mbits = (bytes_downloaded / (1024 * 1024)) / duration # Скорость в Мбайт/сек
             return mbits
     except Exception:
@@ -157,7 +166,7 @@ def main():
                     continue
 
                 query_params = parse_qs(parsed.query)
-                sni = query_params.get("sni", ["blank"])[0].lower()
+                sni = query_params.get("sni", ["blank"]).lower()
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
 
@@ -170,8 +179,8 @@ def main():
     if not all_valid_candidates:
         return
 
-    # Шаг 1: Асинхронно меряем пинг (RTT) для ВСЕХ серверов в 20 потоков
-    print("2. Запуск быстрого многопоточного теста задержки (RTT)...")
+    # Шаг 1: Быстрый замер задержки в 20 потоков
+    print("2. Многопоточный замер пинга до серверов...")
     alive_servers = []
     
     with ThreadPoolExecutor(max_workers=20) as executor:
@@ -182,21 +191,19 @@ def main():
             if rtt is not None:
                 alive_servers.append({"link": link, "rtt": rtt})
 
-    # Сортируем по возрастанию пинга (от лучших к худшим)
     alive_servers.sort(key=lambda x: x["rtt"])
-    print(f"Живых серверов найдено: {len(alive_servers)}")
+    print(f"Доступных серверов: {len(alive_servers)}")
     
     if not alive_servers:
-        print("Нет рабочих серверов.")
         return
 
-    # Шаг 2: Берем топ-15 серверов по пингу и тестируем их реальную скорость через Xray
+    # Шаг 2: Тест скорости скачивания медиафайлов Telegram (Top-15 серверов с минимальным пингом)
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
     top_candidates = alive_servers[:15]
     final_working_links = []
 
     if xray_available and top_candidates:
-        print("3. Проверка реальной скорости загрузки трафика (Top-15 по пингу)...")
+        print("3. Тестирование чистой скорости загрузки файлов Telegram...")
         for item in top_candidates:
             link = item["link"]
             parsed = urlparse(link)
@@ -204,30 +211,28 @@ def main():
             if not check_geoip_api(parsed.hostname):
                 continue
                 
-            speed = test_speed_via_xray(link, XRAY_PATH)
-            if speed > 0.1: # Сервер смог скачать файл
+            speed = test_telegram_speed(link, XRAY_PATH)
+            if speed > 0.1: 
                 item["speed"] = speed
                 final_working_links.append(item)
-                print(f"-> IP: {parsed.hostname} | Пинг: {item['rtt']:.1f}мс | Скорость: {speed:.2f} МБ/с")
+                print(f"-> IP: {parsed.hostname} | Пинг: {item['rtt']:.1f}мс | Скорость в ТГ: {speed:.2f} МБ/с")
         
-        # Сортируем финальный топ по максимальной скорости загрузки
+        # Главная сортировка: от максимальной скорости в Telegram к минимальной
         final_working_links.sort(key=lambda x: x["speed"], reverse=True)
     else:
-        # Если Xray ядра нет, просто берем первые 5 по минимальному пингу
         final_working_links = top_candidates[:5]
 
-    # Отбираем ссылки топ-5 серверов
     result_links = [item["link"] for item in final_working_links[:5]]
 
     if not result_links:
         result_links = [item["link"] for item in alive_servers[:5]]
 
-    # Запись результатов в файл
+    # Запись лучших серверов в файл
     subscription_content = "\n".join(result_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"\nУспех! Отобрано топ-{len(result_links)} самых быстрых серверов.")
+    print(f"\nУспех! В файл записаны ТОП-{len(result_links)} серверов с максимальной скоростью для Telegram.")
 
 if __name__ == "__main__":
     main()
