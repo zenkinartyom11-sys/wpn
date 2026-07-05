@@ -1,12 +1,11 @@
+import ssl
 import json
 import random
 import socket
 import requests
-import ssl
 from urllib.parse import urlparse, parse_qs
 
-FILE_PATH = "subscription.txt"
-JSON_FILE_PATH = "subscription.json"  
+FILE_PATH = "subscription.txt"  
 # Актуальная заграничная база без Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 
@@ -52,7 +51,7 @@ def is_server_alive(link, timeout=3):
                 return True
     except Exception:
         return False
-
+        
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip:
@@ -100,8 +99,7 @@ def main():
                 sni_list = query_params.get("sni", ["blank"])
                 sni = sni_list[0].lower() if sni_list else "blank"
                 
-                # РАСШИРЕНО: Бан СНГ-доменов + Microsoft/Xbox во избежание конфликтов со SmartDNS
-                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi", "xbox", "microsoft", "live"]):
+                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
                 # Если все проверки пройдены, запоминаем UUID и добавляем в список
@@ -120,7 +118,7 @@ def main():
     random.shuffle(all_valid_candidates)
     
     working_links = []
-    print(f"2. Тестируем и отбираем 5 живых заграничных серверов с помощью TLS-проверки...")
+    print(f"2. Тестируем и отбираем 5 живых заграничных серверов...")
     
     for link in all_valid_candidates:
         if len(working_links) >= 5:
@@ -131,8 +129,8 @@ def main():
             ip = parsed.hostname
             port = parsed.port
             
-            # Передаем всю ссылку целиком для полноценного TLS-теста
-            if is_server_alive(link):
+            # Проверяем живой ли порт
+            if is_server_alive(ip, port):
                 working_links.append(link)
                 print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
         except:
@@ -142,84 +140,12 @@ def main():
         print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
         working_links = all_valid_candidates[:5]
 
-    # --- ЧАСТЬ 1: Сохранение обычного .txt подписки с новыми метками ---
-    modified_links = []
-    for idx, link in enumerate(working_links, start=1):
-        base_link = link.split('#')[0]
-        # Каждому серверу даем красивую метку, сигнализирующую о поддержке Xbox-DNS
-        named_link = f"{base_link}#🚀_Server_N{idx}_(Xbox-DNS_OK)"
-        modified_links.append(named_link)
+    # Записываем итоговый файл подписки
+    subscription_content = "\n".join(working_links)
 
-    subscription_content = "\n".join(modified_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-    print(f"✅ Сохранено в текстовый файл: {FILE_PATH}")
-
-    # --- ЧАСТЬ 2: Генерация универсального JSON-конфига для Happ/Xray ---
-        # Переработанный пуленепробиваемый JSON-конфиг для Happ
-    happ_config = {
-        "version": 1,
-        "outbounds": [],  # Сюда автоматически добавятся ссылки
-        "routing": {
-            "domainStrategy": "AsIs",
-            "rules": [
-                # 1. ПРАВИЛО-ПЕРЕХВАТЧИК: отправляем DNS-запросы на внутренний обработчик
-                {
-                    "type": "field",
-                    "outboundTag": "dns-out",
-                    "port": "53",
-                    "network": "udp"
-                },
-                # 2. Пускаем трафик Xbox и Microsoft НАПРЯМУЮ в обход VPN-тунлеля
-                {
-                    "type": "field",
-                    "outboundTag": "direct",
-                    "domain": [
-                        "geosite:xbox",
-                        "geosite:microsoft",
-                        "regexp:.*\\.xboxlive\\.com$"
-                    ]
-                },
-                # 3. Весь остальной трафик заворачиваем в прокси (наши VLESS)
-                {
-                    "type": "field",
-                    "outboundTag": "proxy",
-                    "network": "tcp,udp"
-                }
-            ]
-        },
-        "dns": {
-            # Важный параметр: заставляем Happ принудительно подменять системный DNS телефона
-            "hosts": {},
-            "servers": [
-                # Направляем игровые домены строго на IP xbox-dns.ru
-                {
-                    "address": "185.112.146.104", 
-                    "port": 53,
-                    "domains": [
-                        "geosite:xbox",
-                        "geosite:microsoft",
-                        "regexp:.*\\.xboxlive\\.com$"
-                    ]
-                },
-                # Резервные независимые DNS, которые перебьют "Автоматический DNS" телефона
-                "1.1.1.1",
-                "8.8.8.8"
-            ]
-        }
-    }
-
-    # Помещаем отобранные рабочие ссылки внутрь JSON-конфига
-    for idx, link in enumerate(working_links, start=1):
-        happ_config["outbounds"].append({
-            "tag": f"Зарубежный_Сервер_{idx}",
-            "type": "vless",
-            "link": link
-        })
-
-    with open(JSON_FILE_PATH, "w", encoding="utf-8") as f:
-        json.dump(happ_config, f, indent=4, ensure_ascii=False)
-    print(f"✅ УСПЕХ! Создан универсальный JSON-конфиг для Happ со встроенными правилами Xbox: {JSON_FILE_PATH}")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
 
 if __name__ == "__main__":
     main()
