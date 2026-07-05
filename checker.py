@@ -239,15 +239,11 @@ def main():
 
     if not working_links:
         working_links = all_valid_candidates[:5]
-    my_announcement = "ОБЪЯВЛЕНИЕ: База обновлена! Приятного пользования."
+    name_banner = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:443?security=none#ПОДПИСКА №67"
+    
+    # Вставляем этот баннер на самую первую строчку списка серверов
+    working_links.insert(0, name_banner)
 
-    # Собираем контент по правилам Happ Proxy (Incy)
-    # Используем комментарии // и специальный тег, который Happ выводит как плашку
-    subscription_content = (
-        f"//profile-title: 67\n"
-        f"//profile-web-page-url: {my_announcement}\n"
-        + "\n".join(working_links)
-    )
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
