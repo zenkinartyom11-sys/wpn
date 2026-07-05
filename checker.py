@@ -239,8 +239,15 @@ def main():
 
     if not working_links:
         working_links = all_valid_candidates[:5]
-    my_custom_text = "Привет! Подписка успешно обновлена. Актуальные сервера на сегодня."
-    subscription_content = f"//profile-title: 67\n//profile-notice: {my_custom_text}\n" + "\n".join(working_links)
+    my_announcement = "ОБЪЯВЛЕНИЕ: База обновлена! Приятного пользования."
+
+    # Собираем контент по правилам Happ Proxy (Incy)
+    # Используем комментарии // и специальный тег, который Happ выводит как плашку
+    subscription_content = (
+        f"//profile-title: 67\n"
+        f"//profile-web-page-url: {my_announcement}\n"
+        + "\n".join(working_links)
+    )
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
