@@ -243,7 +243,7 @@ def main():
     
     # Вставляем этот баннер на самую первую строчку списка серверов
     working_links.insert(0, name_banner)
-
+    subscription_content = "\n".join(working_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
