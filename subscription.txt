@@ -1,7 +1,7 @@
 //profile-title: 67
 //profile-web-page-url: ОБЪЯВЛЕНИЕ: База обновлена! Приятного пользования.
-vless://c2787a01-97e6-4a0c-a87c-e50514e2a49e@gate2.gfyhub.cc:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=rf2.gfy-x.su&fp=firefox&pbk=yTFEbq95vvru8nQ7pg3DHQdIT5DXf1YdmhgfInlu-Rc&sid=0d85c502331cf509&spx=%2FYCcabXAgwpYjkBY&type=tcp&headerType=none#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%5B%2ACIDR%5D
-vless://72d1797c-cef8-410a-b8fd-db9104dc3cb0@8.6.112.0:443?encryption=none&host=amooaliii.net&path=%2Fjdhfyws&security=tls&sni=amooaliii.net&type=ws#%F0%9F%87%AB%F0%9F%87%B7%20France%20%5B%2ACIDR%5D
 vless://97d290a0-acec-4aae-b8cf-c7111a5a6397@5.42.106.202:9878?encryption=none&type=grpc&security=reality&mode=gun&serviceName=grpc-tunnel&fp=qq&sni=dl.google.com&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&sid=aabbccdd#%F0%9F%87%AE%F0%9F%87%B9%20Italy%20%5B%2ACIDR%5D
-vless://e64100fd-773d-4cc6-adbe-a4c94876d07a@45.131.214.45:443?encryption=none&fp=&pbk=ID6lMOmt7BiuPHjZkoLSWNR9ONmB6b4L9skIIFjtXxU&security=reality&sni=d.primarymaster.online&type=grpc#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D
-vless://e4824193-4f54-453b-d037-88368e85ef0e@all.tellmethetrue.shop:443?&security=tls&sni=sca12.afterdomain.shop&type=grpc&serviceName=&mode=gun#%F0%9F%87%AE%F0%9F%87%B9%20Italy%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://72d1797c-cef8-410a-b8fd-db9104dc3cb0@8.6.112.0:443?encryption=none&host=amooaliii.net&path=%2Fjdhfyws&security=tls&sni=amooaliii.net&type=ws#%F0%9F%87%AB%F0%9F%87%B7%20France%20%5B%2ACIDR%5D
+vless://7cec3808-65d4-4dbd-941f-e9b640977071@185.71.67.223:443?encryption=none&mode=auto&path=%2Fstart&security=tls&sni=cdn.stroimvmeste.icu&type=xhttp#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://c777e5b5-9904-4644-947a-e4208a0329d0@ru108.mechvpn.online:443?type=tcp&security=tls&flow=xtls-rprx-vision&encryption=none&alpn=h3%2Ch2%2Chttp%2F1.1&fp=chrome#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A7%F0%9F%87%BE%20%F0%9F%87%B5%F0%9F%87%B1%20%5B%2ACIDR%5D
+vless://c2787a01-97e6-f002-a87c-e50514e2a49e@gate2.gfyhub.cc:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=rf2.gfy-x.su&fp=firefox&pbk=yTFEbq95vvru8nQ7pg3DHQdIT5DXf1YdmhgfInlu-Rc&sid=0d85c502331cf509&spx=%2FYCcabXAgwpYjkBY&type=tcp&headerType=none#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%5B%2ACIDR%5D
