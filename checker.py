@@ -239,10 +239,9 @@ def main():
 
     if not working_links:
         working_links = all_valid_candidates[:5]
-    name_banner = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:443?security=none#ПОДПИСКА №67"
+        
+    subscription_content = "//profile-title: 67\n" + "\n".join(working_links)
     
-    # Вставляем этот баннер на самую первую строчку списка серверов
-    working_links.insert(0, name_banner)
     subscription_content = "\n".join(working_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
