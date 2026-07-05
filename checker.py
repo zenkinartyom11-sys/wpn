@@ -1,8 +1,9 @@
-import ssl
 import json
 import random
 import socket
 import requests
+import ssl
+import asyncio
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
@@ -20,38 +21,44 @@ RUSSIAN_IP_PREFIXES = [
     "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
 ]
 
-def is_server_alive(link, timeout=3):
-    """Проверяет сервер с помощью реального TLS Handshake с учетом SNI"""
+async def async_is_server_alive(link, timeout=3):
+    """Асин официально проверяет сервер через TLS Handshake"""
     try:
         parsed = urlparse(link)
         ip = parsed.hostname
         port = parsed.port
-        
         if not ip or not port:
             return False
             
         port = int(port)
-        
-        # Извлекаем SNI из параметров ссылки (критично для Reality)
         query_params = parse_qs(parsed.query)
         sni_list = query_params.get("sni", [None])
         sni = sni_list[0] if sni_list else None
-        
-        # Если SNI в ссылке нет, используем IP в качестве имени хоста
         server_hostname = sni if sni else ip
 
-        # Создаем безопасный контекст (отключаем проверку сертификата, так как у Reality он самоподписанный/чужой)
         context = ssl._create_unverified_context()
         
-        # Шаг 1: Проверяем обычный TCP-порт
-        with socket.create_connection((ip, port), timeout=timeout) as sock:
-            # Шаг 2: Оборачиваем в TLS и инициируем Handshake с нужным SNI
-            with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
-                # Если выполнение дошло сюда и не выбросило ошибку — сервер ответил на TLS Client Hello
-                return True
-    except Exception:
-        return False
+        # Асинхронное подключение (TCP)
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, port), timeout=timeout
+        )
         
+        # Асинхронный TLS-Handshake
+        transport = writer.transport
+        loop = asyncio.get_running_loop() # Безопасный метод для asyncio
+        
+        # Оборачиваем соединение в TLS
+        await asyncio.wait_for(
+            loop.start_tls(transport, protocol=None, ssl_context=context, server_hostname=server_hostname),
+            timeout=timeout
+        )
+        
+        writer.close()
+        await writer.wait_closed()
+        return True
+    except:
+        return False
+
 def is_russian_ip(ip):
     """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip:
@@ -63,15 +70,16 @@ def is_russian_ip(ip):
         return True
     return False
 
-def main():
+async def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
+    # requests синхронный, но для одного запроса в начале это не критично
     res_keys = requests.get(KEYS_LIST_URL)
     if res_keys.status_code != 200:
         print("❌ Ошибка скачивания базы ключей.")
         return
 
     all_valid_candidates = []
-    used_uuids = set()  # Сюда робот будет запоминать ключи, чтобы избежать дубликатов в v2rayTun
+    used_uuids = set()
     
     # Сбор кандидатов
     for line in res_keys.text.splitlines():
@@ -81,20 +89,17 @@ def main():
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
                 port = parsed.port
-                uuid = parsed.username  # Извлекаем UUID (ключ) сервера
+                uuid = parsed.username
                 
                 if not ip or not port or not uuid:
                     continue
                 
-                # 1. Защита от дубликатов UUID (чтобы v2rayTun не склеивал сервера)
                 if uuid in used_uuids:
                     continue
                 
-                # 2. КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ
                 if is_russian_ip(ip):
                     continue
                 
-                # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
                 sni_list = query_params.get("sni", ["blank"])
                 sni = sni_list[0].lower() if sni_list else "blank"
@@ -102,7 +107,6 @@ def main():
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
                 
-                # Если все проверки пройдены, запоминаем UUID и добавляем в список
                 used_uuids.add(uuid)
                 all_valid_candidates.append(clean_line)
             except:
@@ -114,27 +118,32 @@ def main():
         print("❌ Заграничные уникальные серверы не найдены. Выключаем запись во избежание попадания РФ.")
         return
 
-    # Перемешиваем заграничные сервера, чтобы список обновлялся
+    # Перемешиваем заграничные сервера
     random.shuffle(all_valid_candidates)
     
     working_links = []
-    print(f"2. Тестируем и отбираем 5 живых заграничных серверов...")
-    
-    for link in all_valid_candidates:
+    print(f"2. Асинхронно тестируем и отбираем 5 живых заграничных серверов...")
+
+    # Проверяем порции (батчи) по 15 серверов одновременно, чтобы не спамить сеть слишком сильно
+    batch_size = 15
+    for i in range(0, len(all_valid_candidates), batch_size):
         if len(working_links) >= 5:
             break
             
-        try:
-            parsed = urlparse(link)
-            ip = parsed.hostname
-            port = parsed.port
-            
-            # Проверяем живой ли порт
-            if is_server_alive(ip, port):
+        batch = all_valid_candidates[i:i+batch_size]
+        
+        # Создаем задачи на одновременную проверку всей пачки
+        tasks = [async_is_server_alive(link) for link in batch]
+        results = await asyncio.gather(*tasks)
+        
+        # Сопоставляем результаты с серверами
+        for link, is_alive in zip(batch, results):
+            if is_alive:
+                parsed = urlparse(link)
+                print(f"   🚀 Нашли рабочий зарубежный IP: {parsed.hostname}:{parsed.port}. Добавлено ({len(working_links) + 1}/5)")
                 working_links.append(link)
-                print(f"   🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
-        except:
-            continue
+                if len(working_links) >= 5:
+                    break
 
     if not working_links:
         print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
@@ -148,4 +157,5 @@ def main():
     print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
 
 if __name__ == "__main__":
-    main()
+    # Точка входа для запуска асинхронного скрипта
+    asyncio.run(main())
