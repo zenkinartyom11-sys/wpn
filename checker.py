@@ -6,7 +6,7 @@ from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt"  
 # Актуальная заграничная база без Яндекса
-KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+KEYS_LIST_URL = "https://xolirx-vpn.vercel.app/white/raw"
 
 # База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
