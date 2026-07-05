@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt" 
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
-XRAY_PATH = "./xray" # Укажите "xray.exe" для Windows, если он лежит в этой же папке
+XRAY_PATH = "./xray"
 
 # База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
@@ -23,7 +23,7 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_russian_ip(ip):
-    \"\"\"Проверяет, принадлежит ли IP-адрес российскому хостингу по префиксу\"\"\"
+    # Проверка принадлежности IP к хостингам РФ
     if not ip:
         return False
     for prefix in RUSSIAN_IP_PREFIXES:
@@ -34,18 +34,17 @@ def is_russian_ip(ip):
     return False
 
 def check_geoip_api(ip):
-    \"\"\"Дополнительная проверка через внешнее GeoIP API (Защита от спуфинга)\"\"\"
+    # Дополнительная проверка через внешнее GeoIP API
     try:
-        # Используем бесплатное демо-поле без ключа (ограничение ~45 запросов в минуту)
-        response = requests.get(f"http://ip-api.com/json/{ip}", timeout=2).json()
+        response = requests.get(f"http://ip-api.com{ip}", timeout=2).json()
         if response.get("countryCode") == "RU":
             return False
         return True
     except Exception:
-        return True # Если API недоступно или лимит исчерпан, не блокируем сервер зря
+        return True
 
 def is_server_alive_tls(link, timeout=3):
-    \"\"\"Способ 1: Быстрый TLS Handshake с замером задержки (RTT)\"\"\"
+    # Способ 1: Быстрый TLS Handshake с замером RTT
     try:
         parsed = urlparse(link)
         ip = parsed.hostname
@@ -60,15 +59,11 @@ def is_server_alive_tls(link, timeout=3):
         server_hostname = sni if sni else ip
 
         context = ssl._create_unverified_context()
-        
-        # Замеряем время отклика (RTT)
         start_time = time.time()
         
         with socket.create_connection((ip, port), timeout=timeout) as sock:
             with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
                 rtt = (time.time() - start_time) * 1000
-                
-                # Фильтр умирающих/забитых портов (отсекаем всё, что медленнее 1500мс)
                 if rtt > 1500:
                     return False
                 return True
@@ -76,21 +71,17 @@ def is_server_alive_tls(link, timeout=3):
         return False
 
 def check_via_xray_core(link, xray_path, timeout=5):
-    \"\"\"Способ 2: 100% надежная проверка реальным трафиком через локальное ядро Xray\"\"\"
-    # Проверяем, существует ли бинарник xray на диске
+    # Способ 2: Проверка трафиком через локальное ядро Xray
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
     if not actual_path:
-        return None # Сигнализируем, что Xray не найден, нужно использовать TLS метод
+        return None
 
     try:
         parsed = urlparse(link)
         query = parse_qs(parsed.query)
-        
-        # Динамически подбираем случайный свободный порт для локального прокси
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
 
-        # Генерируем минимальный рабочий конфиг Xray для теста одной ссылки
         xray_config = {
             "log": {"loglevel": "none"},
             "inbounds": [{
@@ -106,37 +97,35 @@ def check_via_xray_core(link, xray_path, timeout=5):
                         "port": int(parsed.port),
                         "users": [{
                             "id": parsed.username,
-                            "encryption": query.get("encryption", ["none"]),
-                            "flow": query.get("flow", [""])
+                            "encryption": query.get("encryption", ["none"])[0],
+                            "flow": query.get("flow", [""])[0]
                         }]
                     }]
                 },
                 "streamSettings": {
-                    "network": query.get("type", ["tcp"]),
-                    "security": query.get("security", [""]),
+                    "network": query.get("type", ["tcp"])[0],
+                    "security": query.get("security", [""])[0],
                     "realitySettings": {
                         "show": False,
-                        "fingerprint": query.get("fp", ["chrome"]),
-                        "serverName": query.get("sni", [""]),
-                        "publicKey": query.get("pbk", [""]),
-                        "shortId": query.get("sid", [""]),
-                        "spiderX": query.get("spx", [""])
+                        "fingerprint": query.get("fp", ["chrome"])[0],
+                        "serverName": query.get("sni", [""])[0],
+                        "publicKey": query.get("pbk", [""])[0],
+                        "shortId": query.get("sid", [""])[0],
+                        "spiderX": query.get("spx", [""])[0]
                     }
                 }
             }]
         }
 
-        # Сохраняем конфиг во временный файл
         with open(config_path, "w") as f:
             json.dump(xray_config, f)
 
-        # Запускаем Xray скрытно в фоновом процессе
         process = subprocess.Popen(
             [actual_path, "run", "-c", config_path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
 
-        time.sleep(0.5) # Даем ядру полсекунды на запуск структуры
+        time.sleep(0.5)
         
         proxies = {
             "http": f"socks5://127.0.0.1:{local_port}",
@@ -145,14 +134,12 @@ def check_via_xray_core(link, xray_path, timeout=5):
 
         success = False
         try:
-            # Пытаемся сделать реальный запрос через этот прокси на Google (проверка Reality ключей)
-            res = requests.get("https://www.google.com/generate_204", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
+            res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
+            if res.status_code in:
                 success = True
         except Exception:
             success = False
         finally:
-            # Обязательно убиваем процесс и зачищаем временный файл конфигурации
             process.terminate()
             process.wait()
             if os.path.exists(config_path):
@@ -167,17 +154,16 @@ def main():
     try:
         res_keys = requests.get(KEYS_LIST_URL, timeout=10)
     except Exception as e:
-        print(f"❌ Ошибка сети при скачивании базы: {e}")
+        print(f"Ошибка сети: {e}")
         return
 
     if res_keys.status_code != 200:
-        print("❌ Ошибка скачивания базы ключей.")
+        print("Ошибка скачивания базы.")
         return
 
     all_valid_candidates = []
     used_uuids = set()
 
-    print("Разбираем и фильтруем структуру ключей...")
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -190,53 +176,38 @@ def main():
                 if not ip or not port or not uuid:
                     continue
 
-                # 1. Защита от дубликатов UUID
                 if uuid in used_uuids:
                     continue
 
-                # 2. КРИТИЧЕСКИЙ БАН ВСЕХ РОССИЙСКИХ СЕРВЕРОВ (Быстрый по маске)
                 if is_russian_ip(ip):
                     continue
 
-                # 3. Фильтр по маскировочному домену (SNI)
                 query_params = parse_qs(parsed.query)
                 sni_list = query_params.get("sni", ["blank"])
                 sni = sni_list[0].lower() if sni_list else "blank"
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
 
-                # 4. ВАЛИДАЦИЯ ПАРАМЕТРОВ REALITY (Критические ключи)
                 security = query_params.get("security", [""])[0].lower()
-                pbk = query_params.get("pbk", [""])  # Public Key
+                pbk = query_params.get("pbk", [""])[0]
                 
-                # Если в конфиге заявлен reality, но нет публичного ключа — он никогда не заведется
                 if security == "reality" and not pbk:
                     continue
 
-                # Если все базовые проверки пройдены, сохраняем в первичный пул
                 used_uuids.add(uuid)
                 all_valid_candidates.append(clean_line)
             except Exception:
                 continue
 
-    print(f"ℹ️ Всего валидных заграничных структур найдено: {len(all_valid_candidates)}")
+    print(f"Валидных кандидатов найдено: {len(all_valid_candidates)}")
     if not all_valid_candidates:
-        print("❌ Заграничные уникальные серверы не найдены.")
         return
 
-    # Перемешиваем пул серверов
     random.shuffle(all_valid_candidates)
     working_links = []
     
-    # Проверяем, доступен ли полноценный бинарный чекер Xray
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
-    if xray_available:
-        print("🤖 Обнаружено ядро Xray. Включен 100% точный метод проверки трафиком.")
-    else:
-        print("⚡ Ядро Xray не найдено. Используется быстрый метод TLS-Handshake + RTT.")
 
-    print(f"2. Тестируем и отбираем 5 лучших живых заграничных серверов...")
-    
     for link in all_valid_candidates:
         if len(working_links) >= 5:
             break
@@ -246,44 +217,34 @@ def main():
             ip = parsed.hostname
             port = parsed.port
             
-            # Шаг А: Углубленный GeoIP чек (защита от маскировки русских серверов под зарубежные домены)
             if not check_geoip_api(ip):
                 continue
 
-            # Шаг Б: Основное тестирование доступности
             is_alive = False
-            
             if xray_available:
-                # Проверяем через реальный прокси-запрос ядра Xray
                 res_xray = check_via_xray_core(link, XRAY_PATH)
                 if res_xray is not None:
                     is_alive = res_xray
                 else:
-                    # Фолбэк на TLS, если в процессе что-то сломалось
                     is_alive = is_server_alive_tls(link)
             else:
-                # Проверяем исправленным методом TLS Handshake + RTT лимит
                 is_alive = is_server_alive_tls(link)
 
             if is_alive:
                 working_links.append(link)
-                print(f" 🚀 Нашли рабочий зарубежный IP: {ip}:{port}. Добавлено ({len(working_links)}/5)")
+                print(f"Добавлен рабочий IP: {ip}:{port} ({len(working_links)}/5)")
                 
         except Exception:
             continue
 
     if not working_links:
-        print("⚠️ Живые порты не ответили на тесты трафика. Записываем 5 случайных заграничных серверов...")
         working_links = all_valid_candidates[:5]
 
-    # Записываем итоговый чистый файл подписки
     subscription_content = "\n".join(working_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} гарантированно рабочих чистых серверов.")
+    print(f"Успех! Сохранено серверов: {len(working_links)}")
 
 if __name__ == "__main__":
     main()
-"""
-print(f"Code string length: {len(code)}")
