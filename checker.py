@@ -240,7 +240,7 @@ def main():
     if not working_links:
         working_links = all_valid_candidates[:5]
 
-    subscription_content = "\n".join(working_links)
+    subscription_content = "//profile-title: 67\n" + "\n".join(working_links)
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
