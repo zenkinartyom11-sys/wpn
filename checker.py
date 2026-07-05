@@ -13,8 +13,8 @@ FILE_PATH = "subscription.txt"
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
 XRAY_PATH = "./xray"
 
-# Официальный файл с серверов Telegram для замера чистой скорости внутри мессенджера
-SPEED_TEST_URL = "https://telegram.org"
+# ИСПРАВЛЕНО: Прямой CDN-адрес Telegram для тестов скорости скачивания файлов/медиа
+SPEED_TEST_URL = "https://stel.com"
 
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
@@ -43,7 +43,6 @@ def check_geoip_api(ip):
         return True
 
 def get_server_rtt(link, timeout=1.5):
-    """Быстрый замер задержки (пинг) до сервера"""
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, parsed.port
@@ -65,7 +64,6 @@ def get_server_rtt(link, timeout=1.5):
         return None
 
 def test_telegram_speed(link, xray_path, timeout=6):
-    """Тестирует реальную скорость скачивания контента с серверов Telegram"""
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
     if not actual_path:
         return 0.0
@@ -108,20 +106,20 @@ def test_telegram_speed(link, xray_path, timeout=6):
             json.dump(xray_config, f)
 
         process = subprocess.Popen([actual_path, "run", "-c", config_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.4) # даем Xray подняться
+        time.sleep(0.4)
         
         proxies = {"http": f"socks5://127.0.0.1:{local_port}", "https": f"socks5://127.0.0.1:{local_port}"}
         
         start_time = time.time()
-        # Скачиваем файл потоком, замеряя скорость в процессе
-        res = requests.get(SPEED_TEST_URL, proxies=proxies, timeout=timeout, stream=True)
+        # ИСПРАВЛЕНО: Имитируем реальный браузер/клиент через User-Agent, чтобы избежать блокировки
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        res = requests.get(SPEED_TEST_URL, headers=headers, proxies=proxies, timeout=timeout, stream=True)
         
         bytes_downloaded = 0
         for chunk in res.iter_content(chunk_size=32768):
             if chunk:
                 bytes_downloaded += len(chunk)
-                # Если скачали больше 3 МБ, прерываем, чтобы не тратить трафик
-                if bytes_downloaded > 3 * 1024 * 1024:
+                if bytes_downloaded > 2 * 1024 * 1024: # Ограничимся 2 МБ для скорости теста
                     break
                     
         duration = time.time() - start_time
@@ -132,11 +130,12 @@ def test_telegram_speed(link, xray_path, timeout=6):
             os.remove(config_path)
 
         if duration > 0 and bytes_downloaded > 1024:
-            mbits = (bytes_downloaded / (1024 * 1024)) / duration # Скорость в Мбайт/сек
+            mbits = (bytes_downloaded / (1024 * 1024)) / duration
             return mbits
     except Exception:
         if 'process' in locals():
-            process.terminate()
+            try: process.terminate()
+            except: pass
         if os.path.exists(config_path):
             os.remove(config_path)
     return 0.0
@@ -166,7 +165,7 @@ def main():
                     continue
 
                 query_params = parse_qs(parsed.query)
-                sni = query_params.get("sni", ["blank"]).lower()
+                sni = query_params.get("sni", ["blank"])[0].lower()
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
 
@@ -179,7 +178,6 @@ def main():
     if not all_valid_candidates:
         return
 
-    # Шаг 1: Быстрый замер задержки в 20 потоков
     print("2. Многопоточный замер пинга до серверов...")
     alive_servers = []
     
@@ -192,12 +190,12 @@ def main():
                 alive_servers.append({"link": link, "rtt": rtt})
 
     alive_servers.sort(key=lambda x: x["rtt"])
-    print(f"Доступных серверов: {len(alive_servers)}")
+    print(f"Доступных серверов (с ответом по TLS): {len(alive_servers)}")
     
     if not alive_servers:
+        print("Ни один сервер не ответил.")
         return
 
-    # Шаг 2: Тест скорости скачивания медиафайлов Telegram (Top-15 серверов с минимальным пингом)
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
     top_candidates = alive_servers[:15]
     final_working_links = []
@@ -212,19 +210,18 @@ def main():
                 continue
                 
             speed = test_telegram_speed(link, XRAY_PATH)
-            if speed > 0.1: 
+            if speed > 0.05: 
                 item["speed"] = speed
                 final_working_links.append(item)
                 print(f"-> IP: {parsed.hostname} | Пинг: {item['rtt']:.1f}мс | Скорость в ТГ: {speed:.2f} МБ/с")
         
-        # Главная сортировка: от максимальной скорости в Telegram к минимальной
-        final_working_links.sort(key=lambda x: x["speed"], reverse=True)
+        final_working_links.sort(key=lambda x: x.get("speed", 0), reverse=True)
+
+    # ИСПРАВЛЕНО: Фаллбэк-логика (если тесты скорости по нулям, берем топ-5 по пингу)
+    if final_working_links:
+        result_links = [item["link"] for item in final_working_links[:5]]
     else:
-        final_working_links = top_candidates[:5]
-
-    result_links = [item["link"] for item in final_working_links[:5]]
-
-    if not result_links:
+        print("Внимание: Тест скорости не выявил явных лидеров. Отбираем топ по минимальному пингу.")
         result_links = [item["link"] for item in alive_servers[:5]]
 
     # Запись лучших серверов в файл
@@ -232,7 +229,7 @@ def main():
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"\nУспех! В файл записаны ТОП-{len(result_links)} серверов с максимальной скоростью для Telegram.")
+    print(f"\nУспех! В файл {FILE_PATH} сохранено серверов: {len(result_links)}")
 
 if __name__ == "__main__":
     main()
