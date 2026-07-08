@@ -1,4 +1,5 @@
 import ssl
+import base64
 import json
 import random
 import socket
@@ -314,4 +315,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+# Склеиваем ссылки в один текст
+raw_sub_text = "\n".join(working_links)
 
+# Кодируем в Base64 (Happ требует именно такой формат для кастомных профилей)
+b64_sub_text = base64.b64encode(raw_sub_text.encode('utf-8')).decode('utf-8')
+
+# Сохраняем в файл subscription.txt
+with open(FILE_PATH, "w", encoding="utf-8") as f:
+    f.write(b64_sub_text)
