@@ -1,5 +1,4 @@
 import ssl
-import base64
 import json
 import random
 import socket
@@ -229,7 +228,7 @@ def thread_worker(link, xray_available):
     return link, is_alive
 
 def main():
-    print(" Скачиваем базы серверов...")
+    print("[1] Скачиваем базы серверов...")
     try:
         res_white = requests.get(URL_WHITE, timeout=10)
         res_black = requests.get(URL_BLACK, timeout=10)
@@ -242,6 +241,9 @@ def main():
         return
 
     used_uuids = set()
+    
+    # Парсим списки. ВАЖНО: уберите random.shuffle из parse_list, 
+    # чтобы сохранить исходный порядок агрегатора (там свежие серверы обычно вверху)
     black_candidates = parse_list(res_black.text, is_white_list=False, used_uuids=used_uuids)
     white_candidates = parse_list(res_white.text, is_white_list=True, used_uuids=used_uuids)
 
@@ -257,10 +259,12 @@ def main():
 
     black_working = []
     white_working = []
-    MAX_WORKERS = 30  
+    
+    # Настройки многопоточности
+    MAX_WORKERS = 30  # Проверяем по 30 серверов одновременно
 
-    # Быстрая проверка ЧЕРНОГО списка
-    print("\n Быстрая многопоточная проверка зарубежных серверов (Черный список)...")
+    # [2] Быстрая проверка ЧЕРНОГО списка
+    print("\n[2] Быстрая многопоточная проверка зарубежных серверов (Черный список)...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(thread_worker, link, xray_available): link for link in black_candidates}
         for future in as_completed(futures):
@@ -269,11 +273,12 @@ def main():
                 black_working.append(link)
                 print(f" Найдена рабочая зарубежная прокси ({len(black_working)}/3)")
                 if len(black_working) >= 3:
+                    # Отменяем остальные задачи в этом пуле
                     for f in futures: f.cancel()
                     break
 
-    # Быстрая проверка БЕЛОГО списка
-    print("\n Быстрая многопоточная проверка резервных серверов (Белый список)...")
+    # [3] Быстрая проверка БЕЛОГО списка
+    print("\n[3] Быстрая многопоточная проверка резервных серверов (Белый список)...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(thread_worker, link, xray_available): link for link in white_candidates}
         for future in as_completed(futures):
@@ -285,7 +290,7 @@ def main():
                     for f in futures: f.cancel()
                     break
 
-    # Объединяем результаты в одну переменную без изменения имен
+    # Объединяем результаты
     working_links = black_working[:3] + white_working[:2]
 
     # Фолбэк на случай, если потоки ничего не успели найти
@@ -293,17 +298,19 @@ def main():
         print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
         working_links = black_candidates[:3] + white_candidates[:2]
 
-    # Склеиваем чистые ссылки в один текст
-    raw_sub_text = "\n".join(working_links)
+    my_announcement = "База обновлена (3 ЧС + 2 БС). Многопоточный отбор завершен!"
+    promo_url = "https://github.com"
 
-    # Кодируем в чистый Base64 (чтобы Happ Proxy хавал заголовки от Cloudflare)
-    b64_sub_text = base64.b64encode(raw_sub_text.encode('utf-8')).decode('utf-8')
+    subscription_content = (
+        f"//profile-title: {my_announcement}\n"
+        f"//profile-web-page-url: {promo_url}\n"
+        + "\n".join(working_links)
+    )
 
-    # Сохраняем закодированный результат в файл subscription.txt
     with open(FILE_PATH, "w", encoding="utf-8") as f:
-        f.write(b64_sub_text)
+        f.write(subscription_content)
         
-    print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в Base64 в файл {FILE_PATH}")
+    print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в файл {FILE_PATH}")
 
 if __name__ == "__main__":
     main()
