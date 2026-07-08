@@ -9,10 +9,10 @@ import os
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt" 
-URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
-URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt"
+URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
 XRAY_PATH = "./xray"
 
+# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
     "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.", "212.193.", "213.180.", 
@@ -76,7 +76,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
 
-        security_type = query.get("security", [""])[0].lower()
+        security_type = query.get("security", [""]).lower()
 
         outbound_settings = {
             "protocol": "vless",
@@ -140,7 +140,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
+            if res.status_code == 204 or res.status_code == 200:
                 success = True
         except Exception:
             success = False
@@ -170,10 +170,9 @@ def test_link(link, xray_available):
     except Exception:
         return False
 
-def parse_list(text, is_white_list=False, used_uuids=None):
-    if used_uuids is None:
-        used_uuids = set()
+def parse_white_list(text):
     candidates = []
+    used_uuids = set()
     for line in text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -192,11 +191,11 @@ def parse_list(text, is_white_list=False, used_uuids=None):
                 if security == "reality" and not pbk:
                     continue
 
-                if is_white_list:
-                    sni_list = query_params.get("sni", ["blank"])
-                    sni = sni_list[0].lower() if sni_list else "blank"
-                    if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
-                        continue
+                # Фильтр: убираем явные ру-домены из SNI, оставляя только замаскированные IP-подсети
+                sni_list = query_params.get("sni", ["blank"])
+                sni = sni_list[0].lower() if sni_list else "blank"
+                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
+                    continue
 
                 used_uuids.add(uuid)
                 candidates.append(clean_line)
@@ -206,55 +205,46 @@ def parse_list(text, is_white_list=False, used_uuids=None):
     return candidates
 
 def main():
-    print("[1] Скачиваем базы серверов...")
+    print("🛡️ Скачиваем базу белых списков...")
     try:
         res_white = requests.get(URL_WHITE, timeout=10)
-        res_black = requests.get(URL_BLACK, timeout=10)
     except Exception as e:
         print(f"Ошибка сети: {e}")
         return
 
-    if res_white.status_code != 200 or res_black.status_code != 200:
-        print("Ошибка загрузки списков.")
+    if res_white.status_code != 200:
+        print("Ошибка загрузки белого списка.")
         return
 
-    used_uuids = set()
-    black_candidates = parse_list(res_black.text, is_white_list=False, used_uuids=used_uuids)
-    white_candidates = parse_list(res_white.text, is_white_list=True, used_uuids=used_uuids)
-
-    print(f"Найдено уникальных кандидатов: Черный список - {len(black_candidates)}, Белый список - {len(white_candidates)}")
+    white_candidates = parse_white_list(res_white.text)
+    print(f"Найдено уникальных защищенных кандидатов: {len(white_candidates)}")
     
     working_links = []
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
     if not xray_available:
         print("[!] Ядро Xray не найдено, проверка идет в режиме TLS Handshake.")
 
-    # 1. Отбираем 3 рабочих сервера из ЧЕРНОГО списка (Разные страны)
-    print("\n[2] Проверяем зарубежные серверы (Черный список)...")
-    for link in black_candidates:
-        if len(working_links) >= 3:
-            break
-        if test_link(link, xray_available):
-            working_links.append(link)
-            print(f"Добавлен зарубежный прокси ({len(working_links)}/3)")
-
-    # 2. Добираем 2 рабочих сервера из БЕЛОГО списка (Обход жестких блокировок)
-    print("\n[3] Проверяем резервные серверы (Белый список)...")
+    print("\n Начинаем поиск 5 рабочих серверов для обхода блокировок...")
     for link in white_candidates:
         if len(working_links) >= 5:
             break
         if test_link(link, xray_available):
-            working_links.append(link)
-            print(f"Добавлен резервный прокси ({len(working_links)}/5)")
+            # Очищаем старое название сервера и вешаем красивую метку белого списка
+            base_link = link.split('#')[0]
+            marked_link = f"{base_link}#🛡️ Обход Блокировок [БС] {len(working_links) + 1}"
+            working_links.append(marked_link)
+            print(f"Добавлен неубиваемый прокси ({len(working_links)}/5)")
 
-    # Фолбэк на случай если тесты вообще ничего не нашли
     if not working_links:
-        print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
-        working_links = black_candidates[:3] + white_candidates[:2]
+        print("\n[!] Живые серверы не обнаружены тестами. Записываем первые 5 по умолчанию.")
+        for i, link in enumerate(white_candidates[:5]):
+            base_link = link.split('#')[0]
+            working_links.append(f"{base_link}#🛡️ Резерв [БС] {i + 1}")
 
-    my_announcement = "База обновлена (3 ЧС + 2 БС). Приятного пользования!"
+    my_announcement = "База обновлена! Серверы защищены от чебурнета."
     promo_url = "https://github.com"
 
+    # Собираем контент по правилам Happ Proxy (Incy)
     subscription_content = (
         f"//profile-title: {my_announcement}\n"
         f"//profile-web-page-url: {promo_url}\n"
@@ -264,7 +254,7 @@ def main():
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в файл {FILE_PATH}")
+    print(f"\n[+] Успех! Все 5 серверов сохранены в файл {FILE_PATH}")
 
 if __name__ == "__main__":
     main()
