@@ -1,7 +1,7 @@
-//profile-title: База обновлена (3 ЧС + 2 БС). Приятного пользования!
+//profile-title: База обновлена! Серверы защищены от чебурнета.
 //profile-web-page-url: https://github.com
-vless://18e65438-6095-4430-f258-ad68be5133b6@52.139.202.182:443?&security=tls&sni=sga.okkeo.me&type=ws&headerType=&host=sga.okkeo.me&path=%2Fbing#%F0%9F%87%B8%F0%9F%87%AC%20Singapore%20%7C%20%F0%9F%8C%90%20%7C%20%5BBL%5D
-vless://c078a113-844f-4f5f-9b37-557d47e1ed10@144.31.136.35:443?flow=xtls-rprx-vision&fp=firefox&pbk=7rygtOYobZIUHyas9o8uzH5jV29s9l9p9DvcsEn1PGc&security=reality&sid=7f7a0952d9d6f546&sni=estoxy.com&type=tcp#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Falkenstein%20%7C%20%5BBL%5D
-vless://76713d07-5a6b-49c2-abd8-bc450a2fa7fc@ro.spectrum.vu:443?encryption=none&type=grpc&security=reality&sni=ro.spectrum.vu&pbk=Ia9JdXTzAzoqPEkarBg6HFdXrSKYcUh_dt59tyMjukk&sid=c9e0a2f4b6d8&fp=chrome&serviceName=vless#%F0%9F%87%B7%F0%9F%87%B4%20Romania%2C%20Bucharest%20%7C%20%5BBL%5D
-vless://d8b659b5-5910-4265-87bc-4ef4625e1936@195.209.88.182:443?encryption=none&type=ws&security=tls&path=%2Fv1%2Fdata%2Fsync%2F&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http%2F1.1#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D
-vless://fec5e5ea-0ccc-4abd-99b6-ad29a59274ab@78.41.110.128:443?encryption=none&type=ws&security=tls&path=/v1/data/sync/&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http/1.1#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D
+vless://191a7787-ebcc-412f-9adb-e39830ac2c10@78.41.110.128:443?type=ws&security=tls&fp=chrome&sni=s36978.cdn.ngenix.net&path=/v1/data/sync/&host=s36978.cdn.ngenix.net#🛡️ Обход Блокировок [БС] 1
+vless://d8b659b5-5910-4265-87bc-4ef4625e1936@195.209.88.182:443?encryption=none&type=ws&security=tls&path=%2Fv1%2Fdata%2Fsync%2F&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http%2F1.1#🛡️ Обход Блокировок [БС] 2
+vless://fec5e5ea-0ccc-4abd-99b6-ad29a59274ab@78.41.110.128:443?encryption=none&type=ws&security=tls&path=/v1/data/sync/&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http/1.1#🛡️ Обход Блокировок [БС] 3
+vless://5f068229-56d7-4af0-bdd2-36550e65c3c6@195.209.88.182:443?encryption=none&type=ws&security=tls&path=%2Fv1%2Fdata%2Fsync%2F&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http%2F1.1#🛡️ Обход Блокировок [БС] 4
+vless://fd61f6d8-4465-4063-b37a-46436f02314d@78.41.110.128:443?encryption=none&type=ws&security=tls&path=%2Fv1%2Fdata%2Fsync%2F&host=s36978.cdn.ngenix.net&fp=chrome&sni=s36978.cdn.ngenix.net&alpn=http%2F1.1#🛡️ Обход Блокировок [БС] 5
