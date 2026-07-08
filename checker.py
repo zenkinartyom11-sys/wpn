@@ -140,7 +140,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in:
+            if res.status_code in [200, 204]:
                 success = True
         except Exception:
             success = False
