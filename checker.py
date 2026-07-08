@@ -8,7 +8,7 @@ import subprocess
 import os
 from urllib.parse import urlparse, parse_qs
 
-FILE_PATH = "отдать милостыню @qwerty14921.txt" 
+FILE_PATH = "subscription.txt" 
 URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
 URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 XRAY_PATH = "./xray"
