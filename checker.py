@@ -9,10 +9,10 @@ import os
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt" 
-KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
+URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt"
 XRAY_PATH = "./xray"
 
-# База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
     "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.", "212.193.", "213.180.", 
@@ -23,7 +23,6 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_russian_ip(ip):
-    # Проверка принадлежности IP к хостингам РФ
     if not ip:
         return False
     for prefix in RUSSIAN_IP_PREFIXES:
@@ -34,9 +33,8 @@ def is_russian_ip(ip):
     return False
 
 def check_geoip_api(ip):
-    # Дополнительная проверка через внешнее GeoIP API
     try:
-        response = requests.get(f"http://ip-api.com{ip}", timeout=2).json()
+        response = requests.get(f"http://ip-api.com{ip}", timeout=3).json()
         if response.get("countryCode") == "RU":
             return False
         return True
@@ -44,7 +42,6 @@ def check_geoip_api(ip):
         return True
 
 def is_server_alive_tls(link, timeout=3):
-    # Способ 1: Быстрый TLS Handshake с замером RTT
     try:
         parsed = urlparse(link)
         ip = parsed.hostname
@@ -64,14 +61,11 @@ def is_server_alive_tls(link, timeout=3):
         with socket.create_connection((ip, port), timeout=timeout) as sock:
             with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
                 rtt = (time.time() - start_time) * 1000
-                if rtt > 1500:
-                    return False
-                return True
+                return rtt <= 1500
     except Exception:
         return False
 
 def check_via_xray_core(link, xray_path, timeout=5):
-    # Способ 2: Проверка трафиком через локальное ядро Xray
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
     if not actual_path:
         return None
@@ -82,6 +76,42 @@ def check_via_xray_core(link, xray_path, timeout=5):
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
 
+        security_type = query.get("security", [""])[0].lower()
+
+        outbound_settings = {
+            "protocol": "vless",
+            "settings": {
+                "vnext": [{
+                    "address": parsed.hostname,
+                    "port": int(parsed.port),
+                    "users": [{
+                        "id": parsed.username,
+                        "encryption": query.get("encryption", ["none"])[0],
+                        "flow": query.get("flow", [""])[0]
+                    }]
+                }]
+            },
+            "streamSettings": {
+                "network": query.get("type", ["tcp"])[0],
+                "security": security_type
+            }
+        }
+
+        if security_type == "reality":
+            outbound_settings["streamSettings"]["realitySettings"] = {
+                "show": False,
+                "fingerprint": query.get("fp", ["chrome"])[0],
+                "serverName": query.get("sni", [""])[0],
+                "publicKey": query.get("pbk", [""])[0],
+                "shortId": query.get("sid", [""])[0],
+                "spiderX": query.get("spx", [""])[0]
+            }
+        elif security_type == "tls":
+            outbound_settings["streamSettings"]["tlsSettings"] = {
+                "serverName": query.get("sni", [""])[0],
+                "fingerprint": query.get("fp", ["chrome"])[0]
+            }
+
         xray_config = {
             "log": {"loglevel": "none"},
             "inbounds": [{
@@ -89,32 +119,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
                 "protocol": "socks",
                 "settings": {"auth": "noauth", "udp": True}
             }],
-            "outbounds": [{
-                "protocol": "vless",
-                "settings": {
-                    "vnext": [{
-                        "address": parsed.hostname,
-                        "port": int(parsed.port),
-                        "users": [{
-                            "id": parsed.username,
-                            "encryption": query.get("encryption", ["none"])[0],
-                            "flow": query.get("flow", [""])[0]
-                        }]
-                    }]
-                },
-                "streamSettings": {
-                    "network": query.get("type", ["tcp"])[0],
-                    "security": query.get("security", [""])[0],
-                    "realitySettings": {
-                        "show": False,
-                        "fingerprint": query.get("fp", ["chrome"])[0],
-                        "serverName": query.get("sni", [""])[0],
-                        "publicKey": query.get("pbk", [""])[0],
-                        "shortId": query.get("sid", [""])[0],
-                        "spiderX": query.get("spx", [""])[0]
-                    }
-                }
-            }]
+            "outbounds": [outbound_settings]
         }
 
         with open(config_path, "w") as f:
@@ -125,7 +130,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
 
-        time.sleep(0.5)
+        time.sleep(0.6)
         
         proxies = {
             "http": f"socks5://127.0.0.1:{local_port}",
@@ -135,13 +140,16 @@ def check_via_xray_core(link, xray_path, timeout=5):
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
+            if res.status_code in:
                 success = True
         except Exception:
             success = False
         finally:
-            process.terminate()
-            process.wait()
+            try:
+                process.kill()
+                process.wait()
+            except Exception:
+                pass
             if os.path.exists(config_path):
                 os.remove(config_path)
                 
@@ -149,109 +157,114 @@ def check_via_xray_core(link, xray_path, timeout=5):
     except Exception:
         return False
 
-def main():
-    print("1. Скачиваем проверенную базу Reality-ключей...")
+def test_link(link, xray_available):
     try:
-        res_keys = requests.get(KEYS_LIST_URL, timeout=10)
-    except Exception as e:
-        print(f"Ошибка сети: {e}")
-        return
+        parsed = urlparse(link)
+        ip = parsed.hostname
+        if not check_geoip_api(ip):
+            return False
+        if xray_available:
+            res_xray = check_via_xray_core(link, XRAY_PATH)
+            return res_xray if res_xray is not None else is_server_alive_tls(link)
+        return is_server_alive_tls(link)
+    except Exception:
+        return False
 
-    if res_keys.status_code != 200:
-        print("Ошибка скачивания базы.")
-        return
-
-    all_valid_candidates = []
-    used_uuids = set()
-
-    for line in res_keys.text.splitlines():
+def parse_list(text, is_white_list=False, used_uuids=None):
+    if used_uuids is None:
+        used_uuids = set()
+    candidates = []
+    for line in text.splitlines():
         if line.startswith("vless://"):
             try:
                 clean_line = line.strip()
                 parsed = urlparse(clean_line)
                 ip = parsed.hostname
-                port = parsed.port
                 uuid = parsed.username
 
-                if not ip or not port or not uuid:
-                    continue
-
-                if uuid in used_uuids:
-                    continue
-
-                if is_russian_ip(ip):
+                if not ip or not uuid or uuid in used_uuids or is_russian_ip(ip):
                     continue
 
                 query_params = parse_qs(parsed.query)
-                sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
-                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
-                    continue
-
                 security = query_params.get("security", [""])[0].lower()
                 pbk = query_params.get("pbk", [""])[0]
                 
                 if security == "reality" and not pbk:
                     continue
 
+                if is_white_list:
+                    sni_list = query_params.get("sni", ["blank"])
+                    sni = sni_list[0].lower() if sni_list else "blank"
+                    if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
+                        continue
+
                 used_uuids.add(uuid)
-                all_valid_candidates.append(clean_line)
+                candidates.append(clean_line)
             except Exception:
                 continue
+    random.shuffle(candidates)
+    return candidates
 
-    print(f"Валидных кандидатов найдено: {len(all_valid_candidates)}")
-    if not all_valid_candidates:
+def main():
+    print("[1] Скачиваем базы серверов...")
+    try:
+        res_white = requests.get(URL_WHITE, timeout=10)
+        res_black = requests.get(URL_BLACK, timeout=10)
+    except Exception as e:
+        print(f"Ошибка сети: {e}")
         return
 
-    random.shuffle(all_valid_candidates)
-    working_links = []
-    
-    xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
+    if res_white.status_code != 200 or res_black.status_code != 200:
+        print("Ошибка загрузки списков.")
+        return
 
-    for link in all_valid_candidates:
+    used_uuids = set()
+    black_candidates = parse_list(res_black.text, is_white_list=False, used_uuids=used_uuids)
+    white_candidates = parse_list(res_white.text, is_white_list=True, used_uuids=used_uuids)
+
+    print(f"Найдено уникальных кандидатов: Черный список - {len(black_candidates)}, Белый список - {len(white_candidates)}")
+    
+    working_links = []
+    xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
+    if not xray_available:
+        print("[!] Ядро Xray не найдено, проверка идет в режиме TLS Handshake.")
+
+    # 1. Отбираем 3 рабочих сервера из ЧЕРНОГО списка (Разные страны)
+    print("\n[2] Проверяем зарубежные серверы (Черный список)...")
+    for link in black_candidates:
+        if len(working_links) >= 3:
+            break
+        if test_link(link, xray_available):
+            working_links.append(link)
+            print(f"Добавлен зарубежный прокси ({len(working_links)}/3)")
+
+    # 2. Добираем 2 рабочих сервера из БЕЛОГО списка (Обход жестких блокировок)
+    print("\n[3] Проверяем резервные серверы (Белый список)...")
+    for link in white_candidates:
         if len(working_links) >= 5:
             break
-            
-        try:
-            parsed = urlparse(link)
-            ip = parsed.hostname
-            port = parsed.port
-            
-            if not check_geoip_api(ip):
-                continue
+        if test_link(link, xray_available):
+            working_links.append(link)
+            print(f"Добавлен резервный прокси ({len(working_links)}/5)")
 
-            is_alive = False
-            if xray_available:
-                res_xray = check_via_xray_core(link, XRAY_PATH)
-                if res_xray is not None:
-                    is_alive = res_xray
-                else:
-                    is_alive = is_server_alive_tls(link)
-            else:
-                is_alive = is_server_alive_tls(link)
-
-            if is_alive:
-                working_links.append(link)
-                print(f"Добавлен рабочий IP: {ip}:{port} ({len(working_links)}/5)")
-                
-        except Exception:
-            continue
-
+    # Фолбэк на случай если тесты вообще ничего не нашли
     if not working_links:
-        working_links = all_valid_candidates[:5]
-    my_announcement = "ОБЪЯВЛЕНИЕ: База обновлена! Приятного пользования."
+        print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
+        working_links = black_candidates[:3] + white_candidates[:2]
 
-    # Собираем контент по правилам Happ Proxy (Incy)
-    # Используем комментарии // и специальный тег, который Happ выводит как плашку
+    my_announcement = "База обновлена (3 ЧС + 2 БС). Приятного пользования!"
+    promo_url = "https://github.com"
+
     subscription_content = (
-        f"//profile-title: 67\n"
-        f"//profile-web-page-url: {my_announcement}\n"
+        f"//profile-title: {my_announcement}\n"
+        f"//profile-web-page-url: {promo_url}\n"
         + "\n".join(working_links)
     )
+
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"Успех! Сохранено серверов: {len(working_links)}")
+    print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в файл {FILE_PATH}")
 
 if __name__ == "__main__":
     main()
