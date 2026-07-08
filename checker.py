@@ -1,29 +1,66 @@
-import ssl
 import json
 import random
 import socket
 import requests
-import time
-import subprocess
-import os
+import ssl
+import asyncio
 from urllib.parse import urlparse, parse_qs
 
-FILE_PATH = "subscription.txt" 
+FILE_PATH = "subscription.txt"  
+# Актуальная заграничная база без Яндекса
 KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
-XRAY_PATH = "./xray"
 
 # База жесткого бана российских хостингов по первым цифрам IP
 RUSSIAN_IP_PREFIXES = [
-    "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
-    "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.", "212.193.", "213.180.", 
-    "217.114.", "217.23.", "217.73.", "31.31.", "37.140.", "45.86.", "77.220.", "77.222.", 
-    "79.137.", "80.78.", "80.93.", "81.177.", "82.146.", "82.202.", "83.219.", "85.113.", 
-    "85.119.", "87.251.", "89.108.", "89.111.", "89.169.", "89.223.", "91.210.", "91.213.", 
-    "92.53.", "93.180.", "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
+    "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", 
+    "188.225.", "193.124.", "194.58.", "194.67.", "195.19.", "195.208.", "195.242.",
+    "212.193.", "213.180.", "217.114.", "217.23.", "217.73.", "31.31.", "37.140.",
+    "45.86.", "77.220.", "77.222.", "79.137.", "80.78.", "80.93.", "81.177.", 
+    "82.146.", "82.202.", "83.219.", "85.113.", "85.119.", "87.251.", "89.108.",
+    "89.111.", "89.169.", "89.223.", "91.210.", "91.213.", "92.53.", "93.180.",
+    "94.198.", "94.250.", "95.163.", "95.213.", "185.178.", "185.204.", "194.54."
 ]
 
+async def async_is_server_alive(link, timeout=3):
+    """Асин официально проверяет сервер через TLS Handshake"""
+    try:
+        parsed = urlparse(link)
+        ip = parsed.hostname
+        port = parsed.port
+        if not ip or not port:
+            return False
+            
+        port = int(port)
+        query_params = parse_qs(parsed.query)
+        sni_list = query_params.get("sni", [None])
+        sni = sni_list[0] if sni_list else None
+        server_hostname = sni if sni else ip
+
+        context = ssl._create_unverified_context()
+        
+        # Асинхронное подключение (TCP)
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, port), timeout=timeout
+        )
+        
+        # Асинхронный TLS-Handshake
+        transport = writer.transport
+        loop = asyncio.get_running_loop() # Безопасный метод для asyncio
+        
+        # Оборачиваем соединение в TLS
+        await asyncio.wait_for(
+            loop.start_tls(transport, protocol=None, ssl_context=context, server_hostname=server_hostname),
+            timeout=timeout
+        )
+        
+        writer.close()
+        await writer.wait_closed()
+        return True
+    except:
+        return False
+
 def is_russian_ip(ip):
-    # Проверка принадлежности IP к хостингам РФ
+    """Проверяет, принадлежит ли IP-адрес российскому хостингу"""
     if not ip:
         return False
     for prefix in RUSSIAN_IP_PREFIXES:
@@ -33,137 +70,18 @@ def is_russian_ip(ip):
         return True
     return False
 
-def check_geoip_api(ip):
-    # Дополнительная проверка через внешнее GeoIP API
-    try:
-        response = requests.get(f"http://ip-api.com{ip}", timeout=2).json()
-        if response.get("countryCode") == "RU":
-            return False
-        return True
-    except Exception:
-        return True
-
-def is_server_alive_tls(link, timeout=3):
-    # Способ 1: Быстрый TLS Handshake с замером RTT
-    try:
-        parsed = urlparse(link)
-        ip = parsed.hostname
-        port = parsed.port
-        if not ip or not port:
-            return False
-        port = int(port)
-
-        query_params = parse_qs(parsed.query)
-        sni_list = query_params.get("sni", [None])
-        sni = sni_list[0] if sni_list else None
-        server_hostname = sni if sni else ip
-
-        context = ssl._create_unverified_context()
-        start_time = time.time()
-        
-        with socket.create_connection((ip, port), timeout=timeout) as sock:
-            with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
-                rtt = (time.time() - start_time) * 1000
-                if rtt > 1500:
-                    return False
-                return True
-    except Exception:
-        return False
-
-def check_via_xray_core(link, xray_path, timeout=5):
-    # Способ 2: Проверка трафиком через локальное ядро Xray
-    actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
-    if not actual_path:
-        return None
-
-    try:
-        parsed = urlparse(link)
-        query = parse_qs(parsed.query)
-        local_port = random.randint(20000, 30000)
-        config_path = f"temp_config_{local_port}.json"
-
-        xray_config = {
-            "log": {"loglevel": "none"},
-            "inbounds": [{
-                "port": local_port,
-                "protocol": "socks",
-                "settings": {"auth": "noauth", "udp": True}
-            }],
-            "outbounds": [{
-                "protocol": "vless",
-                "settings": {
-                    "vnext": [{
-                        "address": parsed.hostname,
-                        "port": int(parsed.port),
-                        "users": [{
-                            "id": parsed.username,
-                            "encryption": query.get("encryption", ["none"])[0],
-                            "flow": query.get("flow", [""])[0]
-                        }]
-                    }]
-                },
-                "streamSettings": {
-                    "network": query.get("type", ["tcp"])[0],
-                    "security": query.get("security", [""])[0],
-                    "realitySettings": {
-                        "show": False,
-                        "fingerprint": query.get("fp", ["chrome"])[0],
-                        "serverName": query.get("sni", [""])[0],
-                        "publicKey": query.get("pbk", [""])[0],
-                        "shortId": query.get("sid", [""])[0],
-                        "spiderX": query.get("spx", [""])[0]
-                    }
-                }
-            }]
-        }
-
-        with open(config_path, "w") as f:
-            json.dump(xray_config, f)
-
-        process = subprocess.Popen(
-            [actual_path, "run", "-c", config_path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-
-        time.sleep(0.5)
-        
-        proxies = {
-            "http": f"socks5://127.0.0.1:{local_port}",
-            "https": f"socks5://127.0.0.1:{local_port}"
-        }
-
-        success = False
-        try:
-            res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
-                success = True
-        except Exception:
-            success = False
-        finally:
-            process.terminate()
-            process.wait()
-            if os.path.exists(config_path):
-                os.remove(config_path)
-                
-        return success
-    except Exception:
-        return False
-
-def main():
+async def main():
     print("1. Скачиваем проверенную базу Reality-ключей...")
-    try:
-        res_keys = requests.get(KEYS_LIST_URL, timeout=10)
-    except Exception as e:
-        print(f"Ошибка сети: {e}")
-        return
-
+    # requests синхронный, но для одного запроса в начале это не критично
+    res_keys = requests.get(KEYS_LIST_URL)
     if res_keys.status_code != 200:
-        print("Ошибка скачивания базы.")
+        print("❌ Ошибка скачивания базы ключей.")
         return
 
     all_valid_candidates = []
     used_uuids = set()
-
+    
+    # Сбор кандидатов
     for line in res_keys.text.splitlines():
         if line.startswith("vless://"):
             try:
@@ -172,79 +90,72 @@ def main():
                 ip = parsed.hostname
                 port = parsed.port
                 uuid = parsed.username
-
+                
                 if not ip or not port or not uuid:
                     continue
-
+                
                 if uuid in used_uuids:
                     continue
-
+                
                 if is_russian_ip(ip):
                     continue
-
+                
                 query_params = parse_qs(parsed.query)
                 sni_list = query_params.get("sni", ["blank"])
                 sni = sni_list[0].lower() if sni_list else "blank"
+                
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
-
-                security = query_params.get("security", [""])[0].lower()
-                pbk = query_params.get("pbk", [""])[0]
                 
-                if security == "reality" and not pbk:
-                    continue
-
                 used_uuids.add(uuid)
                 all_valid_candidates.append(clean_line)
-            except Exception:
+            except:
                 continue
 
-    print(f"Валидных кандидатов найдено: {len(all_valid_candidates)}")
+    print(f"ℹ️ Всего найдено УНИКАЛЬНЫХ заграничных кандидатов: {len(all_valid_candidates)}")
+
     if not all_valid_candidates:
+        print("❌ Заграничные уникальные серверы не найдены. Выключаем запись во избежание попадания РФ.")
         return
 
+    # Перемешиваем заграничные сервера
     random.shuffle(all_valid_candidates)
-    working_links = []
     
-    xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
+    working_links = []
+    print(f"2. Асинхронно тестируем и отбираем 5 живых заграничных серверов...")
 
-    for link in all_valid_candidates:
+    # Проверяем порции (батчи) по 15 серверов одновременно, чтобы не спамить сеть слишком сильно
+    batch_size = 15
+    for i in range(0, len(all_valid_candidates), batch_size):
         if len(working_links) >= 5:
             break
             
-        try:
-            parsed = urlparse(link)
-            ip = parsed.hostname
-            port = parsed.port
-            
-            if not check_geoip_api(ip):
-                continue
-
-            is_alive = False
-            if xray_available:
-                res_xray = check_via_xray_core(link, XRAY_PATH)
-                if res_xray is not None:
-                    is_alive = res_xray
-                else:
-                    is_alive = is_server_alive_tls(link)
-            else:
-                is_alive = is_server_alive_tls(link)
-
+        batch = all_valid_candidates[i:i+batch_size]
+        
+        # Создаем задачи на одновременную проверку всей пачки
+        tasks = [async_is_server_alive(link) for link in batch]
+        results = await asyncio.gather(*tasks)
+        
+        # Сопоставляем результаты с серверами
+        for link, is_alive in zip(batch, results):
             if is_alive:
+                parsed = urlparse(link)
+                print(f"   🚀 Нашли рабочий зарубежный IP: {parsed.hostname}:{parsed.port}. Добавлено ({len(working_links) + 1}/5)")
                 working_links.append(link)
-                print(f"Добавлен рабочий IP: {ip}:{port} ({len(working_links)}/5)")
-                
-        except Exception:
-            continue
+                if len(working_links) >= 5:
+                    break
 
     if not working_links:
+        print("⚠️ Живые порты не ответили. Записываем 5 случайных заграничных серверов без проверки...")
         working_links = all_valid_candidates[:5]
 
+    # Записываем итоговый файл подписки
     subscription_content = "\n".join(working_links)
+
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
-        
-    print(f"Успех! Сохранено серверов: {len(working_links)}")
+    print(f"✅ УСПЕХ! В файл {FILE_PATH} сохранено ровно {len(working_links)} уникальных чистых серверов.")
 
 if __name__ == "__main__":
-    main()
+    # Точка входа для запуска асинхронного скрипта
+    asyncio.run(main())
