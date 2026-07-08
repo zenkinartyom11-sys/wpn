@@ -9,7 +9,7 @@ import os
 from urllib.parse import urlparse, parse_qs
 
 FILE_PATH = "subscription.txt" 
-KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt"
+KEYS_LIST_URL = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
 XRAY_PATH = "./xray"
 
 # База жесткого бана российских хостингов по первым цифрам IP
