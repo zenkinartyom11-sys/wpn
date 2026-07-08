@@ -36,14 +36,11 @@ def is_russian_ip(ip):
 def check_geoip_api(ip):
     # Дополнительная проверка через внешнее GeoIP API
     try:
-        # Исправлен URL (добавлен /json/)
         response = requests.get(f"http://ip-api.com{ip}", timeout=2).json()
-        # Если страна Россия — возвращаем False (нам этот сервер не подходит)
         if response.get("countryCode") == "RU":
             return False
         return True
     except Exception:
-        # В случае ошибки API пропускаем дальше, чтобы не заблокировать рабочие прокси
         return True
 
 def is_server_alive_tls(link, timeout=3):
@@ -85,22 +82,6 @@ def check_via_xray_core(link, xray_path, timeout=5):
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
 
-        # Структура стрима безопасности REALITY
-        stream_settings = {
-            "network": query.get("type", ["tcp"])[0],
-            "security": query.get("security", [""])[0]
-        }
-        
-        if stream_settings["security"] == "reality":
-            stream_settings["realitySettings"] = {
-                "show": False,
-                "fingerprint": query.get("fp", ["chrome"])[0],
-                "serverName": query.get("sni", [""])[0],
-                "publicKey": query.get("pbk", [""])[0],
-                "shortId": query.get("sid", [""])[0],
-                "spiderX": query.get("spx", [""])[0]
-            }
-
         xray_config = {
             "log": {"loglevel": "none"},
             "inbounds": [{
@@ -108,27 +89,32 @@ def check_via_xray_core(link, xray_path, timeout=5):
                 "protocol": "socks",
                 "settings": {"auth": "noauth", "udp": True}
             }],
-            "outbounds": [
-                {
-                    "protocol": "vless",
-                    "settings": {
-                        "vnext": [{
-                            "address": parsed.hostname,
-                            "port": int(parsed.port),
-                            "users": [{
-                                "id": parsed.username,
-                                "encryption": query.get("encryption", ["none"])[0],
-                                "flow": query.get("flow", [""])[0]
-                            }]
+            "outbounds": [{
+                "protocol": "vless",
+                "settings": {
+                    "vnext": [{
+                        "address": parsed.hostname,
+                        "port": int(parsed.port),
+                        "users": [{
+                            "id": parsed.username,
+                            "encryption": query.get("encryption", ["none"])[0],
+                            "flow": query.get("flow", [""])[0]
                         }]
-                    },
-                    "streamSettings": stream_settings
+                    }]
                 },
-                {
-                    "protocol": "freedom",
-                    "tag": "direct"
+                "streamSettings": {
+                    "network": query.get("type", ["tcp"])[0],
+                    "security": query.get("security", [""])[0],
+                    "realitySettings": {
+                        "show": False,
+                        "fingerprint": query.get("fp", ["chrome"])[0],
+                        "serverName": query.get("sni", [""])[0],
+                        "publicKey": query.get("pbk", [""])[0],
+                        "shortId": query.get("sid", [""])[0],
+                        "spiderX": query.get("spx", [""])[0]
+                    }
                 }
-            ]
+            }]
         }
 
         with open(config_path, "w") as f:
@@ -149,7 +135,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
+            if res.status_code in:
                 success = True
         except Exception:
             success = False
@@ -215,17 +201,12 @@ def main():
 
     print(f"Валидных кандидатов найдено: {len(all_valid_candidates)}")
     if not all_valid_candidates:
-        print("Нет кандидатов для проверки.")
         return
 
     random.shuffle(all_valid_candidates)
     working_links = []
     
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
-    if xray_available:
-        print("Обнаружено локальное ядро Xray. Проверка будет идти реальным трафиком.")
-    else:
-        print("Ядро Xray не найдено. Проверка через TLS Handshake.")
 
     for link in all_valid_candidates:
         if len(working_links) >= 5:
@@ -236,7 +217,6 @@ def main():
             ip = parsed.hostname
             port = parsed.port
             
-            # Если GeoIP возвращает False (сервер в РФ), пропускаем его
             if not check_geoip_api(ip):
                 continue
 
@@ -258,17 +238,13 @@ def main():
             continue
 
     if not working_links:
-        print("Рабочие прокси не найдены. Записываем первые 5 кандидатов по умолчанию.")
         working_links = all_valid_candidates[:5]
 
-    # Финальная запись результатов в файл
-    try:
-        subscription_content = "\n".join(working_links)
-        with open(FILE_PATH, "w", encoding="utf-8") as f:
-            f.write(subscription_content)
-        print(f"Успешно сохранено {len(working_links)} ссылок в файл {FILE_PATH}")
-    except Exception as e:
-        print(f"Ошибка при сохранении файла: {e}")
+    subscription_content = "\n".join(working_links)
+    with open(FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(subscription_content)
+        
+    print(f"Успех! Сохранено серверов: {len(working_links)}")
 
 if __name__ == "__main__":
     main()
