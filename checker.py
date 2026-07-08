@@ -205,6 +205,28 @@ def parse_list(text, is_white_list=False, used_uuids=None):
     random.shuffle(candidates)
     return candidates
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Список "надежных" SNI, под которые маскируются долгоживущие серверы
+TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
+
+def get_stability_score(link):
+    """Приоритезирует серверы: 0 - высокая стабильность (надежный SNI), 1 - обычный"""
+    try:
+        parsed = urlparse(link)
+        query_params = parse_qs(parsed.query)
+        sni = query_params.get("sni", [""])[0].lower()
+        if any(trusted in sni for trusted in TRUSTED_SNIS):
+            return 0  # Сначала проверяем эти
+    except Exception:
+        pass
+    return 1
+
+def thread_worker(link, xray_available):
+    """Воркер для параллельного тестирования серверов"""
+    is_alive = test_link(link, xray_available)
+    return link, is_alive
+
 def main():
     print("[1] Скачиваем базы серверов...")
     try:
@@ -219,40 +241,64 @@ def main():
         return
 
     used_uuids = set()
+    
+    # Парсим списки. ВАЖНО: уберите random.shuffle из parse_list, 
+    # чтобы сохранить исходный порядок агрегатора (там свежие серверы обычно вверху)
     black_candidates = parse_list(res_black.text, is_white_list=False, used_uuids=used_uuids)
     white_candidates = parse_list(res_white.text, is_white_list=True, used_uuids=used_uuids)
 
     print(f"Найдено уникальных кандидатов: Черный список - {len(black_candidates)}, Белый список - {len(white_candidates)}")
     
-    working_links = []
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
     if not xray_available:
         print("[!] Ядро Xray не найдено, проверка идет в режиме TLS Handshake.")
 
-    # 1. Отбираем 3 рабочих сервера из ЧЕРНОГО списка (Разные страны)
-    print("\n[2] Проверяем зарубежные серверы (Черный список)...")
-    for link in black_candidates:
-        if len(working_links) >= 3:
-            break
-        if test_link(link, xray_available):
-            working_links.append(link)
-            print(f"Добавлен зарубежный прокси ({len(working_links)}/3)")
+    # Сортируем кандидатов, выдвигая вперед потенциальных "долгожителей"
+    black_candidates.sort(key=get_stability_score)
+    white_candidates.sort(key=get_stability_score)
 
-    # 2. Добираем 2 рабочих сервера из БЕЛОГО списка (Обход жестких блокировок)
-    print("\n[3] Проверяем резервные серверы (Белый список)...")
-    for link in white_candidates:
-        if len(working_links) >= 5:
-            break
-        if test_link(link, xray_available):
-            working_links.append(link)
-            print(f"Добавлен резервный прокси ({len(working_links)}/5)")
+    black_working = []
+    white_working = []
+    
+    # Настройки многопоточности
+    MAX_WORKERS = 30  # Проверяем по 30 серверов одновременно
 
-    # Фолбэк на случай если тесты вообще ничего не нашли
+    # [2] Быстрая проверка ЧЕРНОГО списка
+    print("\n[2] Быстрая многопоточная проверка зарубежных серверов (Черный список)...")
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(thread_worker, link, xray_available): link for link in black_candidates}
+        for future in as_completed(futures):
+            link, is_alive = future.result()
+            if is_alive:
+                black_working.append(link)
+                print(f" Найдена рабочая зарубежная прокси ({len(black_working)}/3)")
+                if len(black_working) >= 3:
+                    # Отменяем остальные задачи в этом пуле
+                    for f in futures: f.cancel()
+                    break
+
+    # [3] Быстрая проверка БЕЛОГО списка
+    print("\n[3] Быстрая многопоточная проверка резервных серверов (Белый список)...")
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(thread_worker, link, xray_available): link for link in white_candidates}
+        for future in as_completed(futures):
+            link, is_alive = future.result()
+            if is_alive:
+                white_working.append(link)
+                print(f" Найдена рабочая резервная прокси ({len(white_working)}/2)")
+                if len(white_working) >= 2:
+                    for f in futures: f.cancel()
+                    break
+
+    # Объединяем результаты
+    working_links = black_working[:3] + white_working[:2]
+
+    # Фолбэк на случай, если потоки ничего не успели найти
     if not working_links:
         print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
         working_links = black_candidates[:3] + white_candidates[:2]
 
-    my_announcement = "База обновлена (3 ЧС + 2 БС). Приятного пользования!"
+    my_announcement = "База обновлена (3 ЧС + 2 БС). Многопоточный отбор завершен!"
     promo_url = "https://github.com"
 
     subscription_content = (
@@ -268,3 +314,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
