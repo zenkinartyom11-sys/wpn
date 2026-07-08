@@ -298,8 +298,8 @@ def main():
         print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
         working_links = black_candidates[:3] + white_candidates[:2]
 
-    my_announcement = "База обновлена (3 ЧС + 2 БС). Многопоточный отбор завершен!"
-    promo_url = "https://github.com"
+    my_announcement = "скибидидопдопдоп-ес-ес-скибидидабуди-ди-ди"
+    promo_url = "@qwerty14921"
 
     subscription_content = (
         f"//profile-title: {my_announcement}\n"
