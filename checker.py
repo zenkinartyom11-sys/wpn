@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FILE_PATH = "subscription.txt" 
 XRAY_PATH = "./xray"
 
-# Укажи свои ссылки в этот список
+# Сюда вставь свои 7 источников
 URL_SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
@@ -62,7 +62,7 @@ def get_server_rtt(link, timeout=3):
 
         query_params = parse_qs(parsed.query)
         sni_list = query_params.get("sni", [None])
-        sni = sni_list[0] if isinstance(sni_list, list) and sni_list else None
+        sni = sni_list if isinstance(sni_list, list) and sni_list else None
         server_hostname = sni if sni else ip
 
         context = ssl._create_unverified_context()
@@ -83,7 +83,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         query = parse_qs(parsed.query)
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
-        security_type = query.get("security", [""])[0].lower()
+        security_type = query.get("security", [""]).lower()
 
         outbound_settings = {
             "protocol": "vless",
@@ -93,13 +93,13 @@ def check_via_xray_core(link, xray_path, timeout=5):
                     "port": int(parsed.port),
                     "users": [{
                         "id": parsed.username,
-                        "encryption": query.get("encryption", ["none"])[0],
-                        "flow": query.get("flow", [""])[0]
+                        "encryption": query.get("encryption", ["none"]),
+                        "flow": query.get("flow", [""])
                     }]
                 }]
             },
             "streamSettings": {
-                "network": query.get("type", ["tcp"])[0],
+                "network": query.get("type", ["tcp"]),
                 "security": security_type
             }
         }
@@ -107,16 +107,16 @@ def check_via_xray_core(link, xray_path, timeout=5):
         if security_type == "reality":
             outbound_settings["streamSettings"]["realitySettings"] = {
                 "show": False,
-                "fingerprint": query.get("fp", ["chrome"])[0],
-                "serverName": query.get("sni", [""])[0],
-                "publicKey": query.get("pbk", [""])[0],
-                "shortId": query.get("sid", [""])[0],
-                "spiderX": query.get("spx", [""])[0]
+                "fingerprint": query.get("fp", ["chrome"]),
+                "serverName": query.get("sni", [""]),
+                "publicKey": query.get("pbk", [""]),
+                "shortId": query.get("sid", [""]),
+                "spiderX": query.get("spx", [""])
             }
         elif security_type == "tls":
             outbound_settings["streamSettings"]["tlsSettings"] = {
-                "serverName": query.get("sni", [""])[0],
-                "fingerprint": query.get("fp", ["chrome"])[0]
+                "serverName": query.get("sni", [""]),
+                "fingerprint": query.get("fp", ["chrome"])
             }
 
         xray_config = {
@@ -192,10 +192,10 @@ def parse_list(text, used_uuids=None):
                     continue
 
                 query_params = parse_qs(parsed.query)
-                security = query_params.get("security", [""])[0].lower()
-                pbk = query_params.get("pbk", [""])[0]
+                security = query_params.get("security", [""]).lower()
+                pbk = query_params.get("pbk", [""])
                 sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list[0].lower() if sni_list else "blank"
+                sni = sni_list.lower() if sni_list else "blank"
                 
                 if security == "reality" and not pbk:
                     continue
