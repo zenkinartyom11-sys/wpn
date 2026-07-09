@@ -1,4 +1,5 @@
 import ssl
+import base64
 import json
 import random
 import socket
@@ -7,11 +8,21 @@ import time
 import subprocess
 import os
 from urllib.parse import urlparse, parse_qs
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FILE_PATH = "subscription.txt" 
-URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
-URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 XRAY_PATH = "./xray"
+
+# СЮДА ВПИШИ СВОИ 7 ССЫЛОК (сейчас для примера вставлены старые и заглушки)
+URL_SOURCES = [
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS%2BAll_RUS.txt"
+]
 
 RUSSIAN_IP_PREFIXES = [
     "84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225.", 
@@ -140,7 +151,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
-            if res.status_code in [200, 204]:
+            if res.status_code in:
                 success = True
         except Exception:
             success = False
@@ -170,7 +181,7 @@ def test_link(link, xray_available):
     except Exception:
         return False
 
-def parse_list(text, is_white_list=False, used_uuids=None):
+def parse_list(text, used_uuids=None):
     if used_uuids is None:
         used_uuids = set()
     candidates = []
@@ -188,129 +199,82 @@ def parse_list(text, is_white_list=False, used_uuids=None):
                 query_params = parse_qs(parsed.query)
                 security = query_params.get("security", [""])[0].lower()
                 pbk = query_params.get("pbk", [""])[0]
+                sni_list = query_params.get("sni", ["blank"])
+                sni = sni_list[0].lower() if sni_list else "blank"
                 
                 if security == "reality" and not pbk:
                     continue
-
-                if is_white_list:
-                    sni_list = query_params.get("sni", ["blank"])
-                    sni = sni_list[0].lower() if sni_list else "blank"
-                    if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
-                        continue
+                if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
+                    continue
 
                 used_uuids.add(uuid)
                 candidates.append(clean_line)
             except Exception:
                 continue
-    random.shuffle(candidates)
     return candidates
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-# Список "надежных" SNI, под которые маскируются долгоживущие серверы
-TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
-
-def get_stability_score(link):
-    """Приоритезирует серверы: 0 - высокая стабильность (надежный SNI), 1 - обычный"""
-    try:
-        parsed = urlparse(link)
-        query_params = parse_qs(parsed.query)
-        sni = query_params.get("sni", [""])[0].lower()
-        if any(trusted in sni for trusted in TRUSTED_SNIS):
-            return 0  # Сначала проверяем эти
-    except Exception:
-        pass
-    return 1
-
 def thread_worker(link, xray_available):
-    """Воркер для параллельного тестирования серверов"""
     is_alive = test_link(link, xray_available)
     return link, is_alive
 
 def main():
-    print("[1] Скачиваем базы серверов...")
-    try:
-        res_white = requests.get(URL_WHITE, timeout=10)
-        res_black = requests.get(URL_BLACK, timeout=10)
-    except Exception as e:
-        print(f"Ошибка сети: {e}")
-        return
-
-    if res_white.status_code != 200 or res_black.status_code != 200:
-        print("Ошибка загрузки списков.")
-        return
-
+    print("[1] Скачиваем базы серверов из 7 источников...")
+    all_candidates = []
     used_uuids = set()
-    
-    # Парсим списки. ВАЖНО: уберите random.shuffle из parse_list, 
-    # чтобы сохранить исходный порядок агрегатора (там свежие серверы обычно вверху)
-    black_candidates = parse_list(res_black.text, is_white_list=False, used_uuids=used_uuids)
-    white_candidates = parse_list(res_white.text, is_white_list=True, used_uuids=used_uuids)
 
-    print(f"Найдено уникальных кандидатов: Черный список - {len(black_candidates)}, Белый список - {len(white_candidates)}")
+    # Скачиваем по очереди из всех 7 ссылок
+    for url in URL_SOURCES:
+        try:
+            res = requests.get(url, timeout=7)
+            if res.status_code == 200:
+                parsed_servers = parse_list(res.text, used_uuids=used_uuids)
+                all_candidates.extend(parsed_servers)
+                print(f"[+] Успешно скачано из {urlparse(url).netcode or 'источника'}: {len(parsed_servers)} шт.")
+        except Exception as e:
+            print(f"[-] Ошибка скачивания источника {url}: {e}")
+            continue
+
+    if not all_candidates:
+        print("Ошибка: Все списки пусты или недоступны.")
+        return
+
+    # Рандомим абсолютно всю кучу серверов
+    random.shuffle(all_candidates)
+    print(f"\nВсего уникальных кандидатов перемешано: {len(all_candidates)}")
     
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
-    if not xray_available:
-        print("[!] Ядро Xray не найдено, проверка идет в режиме TLS Handshake.")
+    working_links = []
+    MAX_WORKERS = 30  
 
-    # Сортируем кандидатов, выдвигая вперед потенциальных "долгожителей"
-    black_candidates.sort(key=get_stability_score)
-    white_candidates.sort(key=get_stability_score)
-
-    black_working = []
-    white_working = []
-    
-    # Настройки многопоточности
-    MAX_WORKERS = 30  # Проверяем по 30 серверов одновременно
-
-    # [2] Быстрая проверка ЧЕРНОГО списка
-    print("\n[2] Быстрая многопоточная проверка зарубежных серверов (Черный список)...")
+    print("\n[2] Запуск многопоточной проверки до нахождения 5 случайных живых серверов...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(thread_worker, link, xray_available): link for link in black_candidates}
+        futures = {executor.submit(thread_worker, link, xray_available): link for link in all_candidates}
         for future in as_completed(futures):
             link, is_alive = future.result()
             if is_alive:
-                black_working.append(link)
-                print(f" Найдена рабочая зарубежная прокси ({len(black_working)}/3)")
-                if len(black_working) >= 3:
-                    # Отменяем остальные задачи в этом пуле
+                working_links.append(link)
+                print(f" Найдена рабочая прокси ({len(working_links)}/5)")
+                
+                # Набрали ровно 5 штук — рубим проверку
+                if len(working_links) >= 5:
                     for f in futures: f.cancel()
                     break
 
-    # [3] Быстрая проверка БЕЛОГО списка
-    print("\n[3] Быстрая многопоточная проверка резервных серверов (Белый список)...")
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(thread_worker, link, xray_available): link for link in white_candidates}
-        for future in as_completed(futures):
-            link, is_alive = future.result()
-            if is_alive:
-                white_working.append(link)
-                print(f" Найдена рабочая резервная прокси ({len(white_working)}/2)")
-                if len(white_working) >= 2:
-                    for f in futures: f.cancel()
-                    break
-
-    # Объединяем результаты
-    working_links = black_working[:3] + white_working[:2]
-
-    # Фолбэк на случай, если потоки ничего не успели найти
+    # Если вообще глухо — берем первые 5
     if not working_links:
-        print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
-        working_links = black_candidates[:3] + white_candidates[:2]
+        print("\n[!] Живые серверы не обнаружены. Записываем аварийный набор.")
+        working_links = all_candidates[:5]
 
-    my_announcement = "База обновлена (3 ЧС + 2 БС). Многопоточный отбор завершен!"
-    promo_url = "https://github.com"
+    # Склеиваем чистые оригинальные ссылки
+    raw_sub_text = "\n".join(working_links)
 
-    subscription_content = (
-        f"//profile-title: {my_announcement}\n"
-        f"//profile-web-page-url: {promo_url}\n"
-        + "\n".join(working_links)
-    )
+    # Кодируем в чистый Base64
+    b64_sub_text = base64.b64encode(raw_sub_text.encode('utf-8')).decode('utf-8')
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
-        f.write(subscription_content)
+        f.write(b64_sub_text)
         
-    print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в файл {FILE_PATH}")
+    print(f"\n[+] Готово! Скрипт проверил базы и сохранил ровно {len(working_links)} серверов в Base64.")
 
 if __name__ == "__main__":
     main()
