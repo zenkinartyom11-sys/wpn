@@ -312,5 +312,5 @@ def main():
         
     print(f"\n[+] Готово! Скрипт успешно сохранил {len(working_links)} серверов в файл {FILE_PATH}")
 
-if __name__ == "__main__":
+if __name__ == "main":
     main()
