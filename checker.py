@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FILE_PATH = "subscription.txt" 
 XRAY_PATH = "./xray"
 
-# Твои 7 источников (замени на свои)
+# Укажи свои ссылки в этот список
 URL_SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
@@ -62,7 +62,7 @@ def get_server_rtt(link, timeout=3):
 
         query_params = parse_qs(parsed.query)
         sni_list = query_params.get("sni", [None])
-        sni = sni_list if isinstance(sni_list, list) and sni_list else None
+        sni = sni_list[0] if isinstance(sni_list, list) and sni_list else None
         server_hostname = sni if sni else ip
 
         context = ssl._create_unverified_context()
@@ -73,18 +73,17 @@ def get_server_rtt(link, timeout=3):
     except Exception:
         return None
 
-def check_speed_via_xray(link, xray_path, timeout=6):
-    """Запускает ядро Xray и измеряет РЕАЛЬНУЮ скорость скачивания тестового файла"""
+def check_via_xray_core(link, xray_path, timeout=5):
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
     if not actual_path:
-        return 0.0
+        return None
 
     try:
         parsed = urlparse(link)
         query = parse_qs(parsed.query)
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
-        security_type = query.get("security", [""]).lower()
+        security_type = query.get("security", [""])[0].lower()
 
         outbound_settings = {
             "protocol": "vless",
@@ -94,13 +93,13 @@ def check_speed_via_xray(link, xray_path, timeout=6):
                     "port": int(parsed.port),
                     "users": [{
                         "id": parsed.username,
-                        "encryption": query.get("encryption", ["none"]),
-                        "flow": query.get("flow", [""])
+                        "encryption": query.get("encryption", ["none"])[0],
+                        "flow": query.get("flow", [""])[0]
                     }]
                 }]
             },
             "streamSettings": {
-                "network": query.get("type", ["tcp"]),
+                "network": query.get("type", ["tcp"])[0],
                 "security": security_type
             }
         }
@@ -108,16 +107,16 @@ def check_speed_via_xray(link, xray_path, timeout=6):
         if security_type == "reality":
             outbound_settings["streamSettings"]["realitySettings"] = {
                 "show": False,
-                "fingerprint": query.get("fp", ["chrome"]),
-                "serverName": query.get("sni", [""]),
-                "publicKey": query.get("pbk", [""]),
-                "shortId": query.get("sid", [""]),
-                "spiderX": query.get("spx", [""])
+                "fingerprint": query.get("fp", ["chrome"])[0],
+                "serverName": query.get("sni", [""])[0],
+                "publicKey": query.get("pbk", [""])[0],
+                "shortId": query.get("sid", [""])[0],
+                "spiderX": query.get("spx", [""])[0]
             }
         elif security_type == "tls":
             outbound_settings["streamSettings"]["tlsSettings"] = {
-                "serverName": query.get("sni", [""]),
-                "fingerprint": query.get("fp", ["chrome"])
+                "serverName": query.get("sni", [""])[0],
+                "fingerprint": query.get("fp", ["chrome"])[0]
             }
 
         xray_config = {
@@ -138,48 +137,44 @@ def check_speed_via_xray(link, xray_path, timeout=6):
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
 
-        time.sleep(0.5) # Даем ядру запуститься
+        time.sleep(0.6)
         proxies = {"http": f"socks5://127.0.0.1:{local_port}", "https": f"socks5://127.0.0.1:{local_port}"}
-        
-        # Качаем файл размером 2 МБ (2048 КБ) для теста реальной пропускной способности
-        test_file_url = "https://cloudflare.com"
-        
-        start_time = time.time()
-        res = requests.get(test_file_url, proxies=proxies, timeout=timeout)
-        duration = time.time() - start_time
-        
-        speed_mbps = 0.0
-        if res.status_code == 200:
-            # Высчитываем скорость: (2 МБ * 8 бит) / время в секундах = Мбит/с
-            speed_mbps = (2.0 * 8.0) / duration
-
+        success = False
         try:
-            process.kill()
-            process.wait()
+            res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
+            if res.status_code in [200, 204]:
+                success = True
         except Exception:
-            pass
-        if os.path.exists(config_path):
-            os.remove(config_path)
-            
-        return speed_mbps
+            success = False
+        finally:
+            try:
+                process.kill()
+                process.wait()
+            except Exception:
+                pass
+            if os.path.exists(config_path):
+                os.remove(config_path)
+        return success
     except Exception:
-        return 0.0
+        return False
 
-def test_link_and_get_speed(link, xray_available):
+def test_link_and_get_ping(link, xray_available):
     try:
         parsed = urlparse(link)
-        if not check_geoip_api(parsed.hostname):
-            return 0.0
+        ip = parsed.hostname
+        if not check_geoip_api(ip):
+            return None
         
-        # Первичный быстрый отсев мертвых серверов по TLS пингу
-        if get_server_rtt(link) is None:
-            return 0.0
+        ping = get_server_rtt(link)
+        if ping is None or ping > 1500:
+            return None
 
         if xray_available:
-            return check_speed_via_xray(link, XRAY_PATH)
-        return 5.0 # Если ядра Xray нет в контейнере, ставим заглушку скорости
+            if not check_via_xray_core(link, XRAY_PATH):
+                return None
+        return ping
     except Exception:
-        return 0.0
+        return None
 
 def parse_list(text, used_uuids=None):
     if used_uuids is None:
@@ -190,30 +185,35 @@ def parse_list(text, used_uuids=None):
             try:
                 clean_line = line.strip()
                 parsed = urlparse(clean_line)
-                if not parsed.hostname or not parsed.username or parsed.username in used_uuids or is_russian_ip(parsed.hostname):
+                ip = parsed.hostname
+                uuid = parsed.username
+
+                if not ip or not uuid or uuid in used_uuids or is_russian_ip(ip):
                     continue
 
                 query_params = parse_qs(parsed.query)
-                if query_params.get("security", [""]).lower() == "reality" and not query_params.get("pbk", [""]):
-                    continue
-                
+                security = query_params.get("security", [""])[0].lower()
+                pbk = query_params.get("pbk", [""])[0]
                 sni_list = query_params.get("sni", ["blank"])
-                sni = sni_list.lower() if sni_list else "blank"
+                sni = sni_list[0].lower() if sni_list else "blank"
+                
+                if security == "reality" and not pbk:
+                    continue
                 if any(kw in sni for kw in ["yandex", "ozon", "ru", "vk", "mail", "gosuslugi"]):
                     continue
 
-                used_uuids.add(parsed.username)
+                used_uuids.add(uuid)
                 candidates.append(clean_line)
             except Exception:
                 continue
     return candidates
 
 def thread_worker(link, xray_available):
-    speed = test_link_and_get_speed(link, xray_available)
-    return link, speed
+    ping = test_link_and_get_ping(link, xray_available)
+    return link, ping
 
 def main():
-    print(" Скачиваем базы серверов из 7 источников...")
+    print(" Скачиваем базы серверов из источников...")
     all_candidates = []
     used_uuids = set()
 
@@ -225,49 +225,46 @@ def main():
                 all_candidates.extend(parsed_servers)
                 print(f"[+] Скачано из {urlparse(url).hostname or 'источника'}: {len(parsed_servers)} шт.")
         except Exception as e:
+            print(f"[-] Ошибка скачивания источника {url}: {e}")
             continue
 
     if not all_candidates:
-        print("Ошибка: Все списки пусты.")
+        print("Ошибка: Все списки пусты или лежат.")
         return
 
     random.shuffle(all_candidates)
+    print(f"\nВсего уникальных серверов для теста: {len(all_candidates)}")
     
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
-    if not xray_available:
-        print("[!] ВНИМАНИЕ: Для точного теста скорости нужно положить бинарник xray в папку скрипта!")
-        
-    fast_servers = []
-    MAX_WORKERS = 15 # Уменьшили число потоков, чтобы они не забивали канал друг другу во время спидтеста
+    valid_servers = []
+    MAX_WORKERS = 40  
 
-    print("\n Скрипт качает файлы через сервера и замеряет Мбит/с. Ищем топ по скорости...")
+    print("\n Скрипт замеряет скорость всех серверов. Поиск 5 самых быстрых...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(thread_worker, link, xray_available): link for link in all_candidates}
         for future in as_completed(futures):
-            link, speed = future.result()
-            if speed > 0.1:
-                fast_servers.append({"link": link, "speed": speed})
-                print(f" Найдена рабочая нода! Скорость загрузки: {round(speed, 2)} Мбит/с")
+            link, ping = future.result()
+            if ping is not None:
+                valid_servers.append({"link": link, "ping": ping})
+                print(f" Найдена рабочая прокси! Пинг: {int(ping)}ms")
                 
-                # Собираем пачку живых серверов для жесткого отбора лучших
-                if len(fast_servers) >= 15:
+                if len(valid_servers) >= 20:
                     for f in futures: f.cancel()
                     break
 
-    if not fast_servers:
-        print("\n[!] Скоростные серверы не определены. Записываем аварийный набор.")
+    if not valid_servers:
+        print("\n[!] Живые серверы не обнаружены. Записываем аварийный набор.")
         working_links = all_candidates[:5]
     else:
-        # СОРТИРОВКА: От самой большой скорости к меньшей (reverse=True)
-        fast_servers.sort(key=lambda x: x["speed"], reverse=True)
-        working_links = [srv["link"] for srv in fast_servers[:5]]
+        valid_servers.sort(key=lambda x: x["ping"])
+        working_links = [srv["link"] for srv in valid_servers[:5]]
 
     subscription_content = "\n".join(working_links)
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
-    print(f"\n[+] Скрипт отобрал 5 мощнейших серверов по Мбит/с и сохранил их в {FILE_PATH}!")
-    
-if name == "main":
+    print(f"\n[+] Скрипт отсортировал сервера по скорости и сохранил ТОП-5 лучших в {FILE_PATH}!")
+
+if __name__ == "__main__":
     main()
