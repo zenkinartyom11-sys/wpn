@@ -298,13 +298,8 @@ def main():
         print("\n[!] Живые серверы не обнаружены тестами. Записываем базовый набор.")
         working_links = black_candidates[:3] + white_candidates[:2]
 
-    my_announcement = "База обновлена (3 ЧС + 2 БС). Многопоточный отбор завершен!"
-    promo_url = "https://github.com"
-
     subscription_content = (
-        f"//profile-title: {my_announcement}\n"
-        f"//profile-web-page-url: {promo_url}\n"
-        + "\n".join(working_links)
+        "\n".join(working_links)
     )
 
     with open(FILE_PATH, "w", encoding="utf-8") as f:
