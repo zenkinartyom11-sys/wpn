@@ -3,17 +3,17 @@ name: Auto Update VLESS Config
 on:
   push:
     branches:
-      - main       # Запуск сразу после сохранения файла
+      - main       
   schedule:
-    - cron: '7,22,37,52 * * * *' # Запуск каждые 15 минут в разгруженные минуты серверов
-  workflow_dispatch: # Кнопка для ручного запуска
+    - cron: '7,22,37,52 * * * *' 
+  workflow_dispatch: 
 
 jobs:
   run-parser:
     name: Run VLESS Parser
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Даем права на запись файлов в репозиторий
+      contents: write 
     steps:
       - name: 1. Клонируем ваш репозиторий
         uses: actions/checkout@v4
@@ -26,20 +26,14 @@ jobs:
       - name: 3. Устанавливаем библиотеку requests
         run: pip install requests
 
-      - name: 3.5 Скачиваем и распаковываем ядро Xray для спидтеста
+      - name: 3.5 Скачиваем и распаковываем ядро Xray
         run: |
           wget -O Xray-linux-64.zip https://github.com
-          unzip Xray-linux-64.zip xray
+          unzip -o Xray-linux-64.zip xray
           chmod +x xray
 
-
-      - name: 4. Запускаем скрипт (с авто-переключателем на резервный источник)
-        run: |
-          python checker.py || (
-            echo "⚠️ Основной источник недоступен. Переключаемся на резервный..." && \
-            sed -i "s|https://githubusercontent.com|https://githubusercontent.com|g" checker.py && \
-            python checker.py
-          )
+      - name: 4. Запускаем скрипт
+        run: python checker.py
 
       - name: 5. Сохраняем изменения и пушим в репозиторий
         run: |
