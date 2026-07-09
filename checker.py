@@ -1,5 +1,4 @@
 import ssl
-import base64
 import json
 import random
 import socket
@@ -13,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FILE_PATH = "subscription.txt" 
 XRAY_PATH = "./xray"
 
-# СЮДА ВПИШИ СВОИ 7 ССЫЛОК (сейчас для примера вставлены старые и заглушки)
+# Впиши сюда свои 7 ссылок-источников
 URL_SOURCES = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
@@ -52,18 +51,19 @@ def check_geoip_api(ip):
     except Exception:
         return True
 
-def is_server_alive_tls(link, timeout=3):
+def get_server_rtt(link, timeout=3):
+    """Измеряет точный TCP RTT (пинг) до сервера мессенджера"""
     try:
         parsed = urlparse(link)
         ip = parsed.hostname
         port = parsed.port
         if not ip or not port:
-            return False
+            return None
         port = int(port)
 
         query_params = parse_qs(parsed.query)
         sni_list = query_params.get("sni", [None])
-        sni = sni_list[0] if sni_list else None
+        sni = sni_list[0] if isinstance(sni_list, list) and sni_list else None
         server_hostname = sni if sni else ip
 
         context = ssl._create_unverified_context()
@@ -72,9 +72,9 @@ def is_server_alive_tls(link, timeout=3):
         with socket.create_connection((ip, port), timeout=timeout) as sock:
             with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
                 rtt = (time.time() - start_time) * 1000
-                return rtt <= 1500
+                return rtt
     except Exception:
-        return False
+        return None
 
 def check_via_xray_core(link, xray_path, timeout=5):
     actual_path = xray_path if os.path.exists(xray_path) else (xray_path + ".exe" if os.path.exists(xray_path + ".exe") else None)
@@ -86,7 +86,6 @@ def check_via_xray_core(link, xray_path, timeout=5):
         query = parse_qs(parsed.query)
         local_port = random.randint(20000, 30000)
         config_path = f"temp_config_{local_port}.json"
-
         security_type = query.get("security", [""])[0].lower()
 
         outbound_settings = {
@@ -142,12 +141,7 @@ def check_via_xray_core(link, xray_path, timeout=5):
         )
 
         time.sleep(0.6)
-        
-        proxies = {
-            "http": f"socks5://127.0.0.1:{local_port}",
-            "https": f"socks5://127.0.0.1:{local_port}"
-        }
-
+        proxies = {"http": f"socks5://127.0.0.1:{local_port}", "https": f"socks5://127.0.0.1:{local_port}"}
         success = False
         try:
             res = requests.get("https://google.com", proxies=proxies, timeout=timeout)
@@ -163,23 +157,30 @@ def check_via_xray_core(link, xray_path, timeout=5):
                 pass
             if os.path.exists(config_path):
                 os.remove(config_path)
-                
         return success
     except Exception:
         return False
 
-def test_link(link, xray_available):
+def test_link_and_get_ping(link, xray_available):
+    """Проверяет прокси на доступность и возвращает его пинг"""
     try:
         parsed = urlparse(link)
         ip = parsed.hostname
         if not check_geoip_api(ip):
-            return False
+            return None
+        
+        # Получаем пинг через TLS Handshake
+        ping = get_server_rtt(link)
+        if ping is None or ping > 1500:
+            return None
+
+        # Если доступно ядро Xray, делаем глубокий тест реального интернета
         if xray_available:
-            res_xray = check_via_xray_core(link, XRAY_PATH)
-            return res_xray if res_xray is not None else is_server_alive_tls(link)
-        return is_server_alive_tls(link)
+            if not check_via_xray_core(link, XRAY_PATH):
+                return None
+        return ping
     except Exception:
-        return False
+        return None
 
 def parse_list(text, used_uuids=None):
     if used_uuids is None:
@@ -214,67 +215,68 @@ def parse_list(text, used_uuids=None):
     return candidates
 
 def thread_worker(link, xray_available):
-    is_alive = test_link(link, xray_available)
-    return link, is_alive
+    ping = test_link_and_get_ping(link, xray_available)
+    return link, ping
 
 def main():
-    print("[1] Скачиваем базы серверов из 7 источников...")
+    print(" Скачиваем базы серверов из 7 источников...")
     all_candidates = []
     used_uuids = set()
 
-    # Скачиваем по очереди из всех 7 ссылок
     for url in URL_SOURCES:
         try:
             res = requests.get(url, timeout=7)
             if res.status_code == 200:
                 parsed_servers = parse_list(res.text, used_uuids=used_uuids)
                 all_candidates.extend(parsed_servers)
-                print(f"[+] Успешно скачано из {urlparse(url).netcode or 'источника'}: {len(parsed_servers)} шт.")
+                print(f"[+] Скачано из {urlparse(url).hostname or 'источника'}: {len(parsed_servers)} шт.")
         except Exception as e:
             print(f"[-] Ошибка скачивания источника {url}: {e}")
             continue
 
     if not all_candidates:
-        print("Ошибка: Все списки пусты или недоступны.")
+        print("Ошибка: Все списки пусты.")
         return
 
-    # Рандомим абсолютно всю кучу серверов
+    # Защита от дублей и перемешивание перед тестом скорости
     random.shuffle(all_candidates)
-    print(f"\nВсего уникальных кандидатов перемешано: {len(all_candidates)}")
+    print(f"\nВсего уникальных серверов для теста скорости: {len(all_candidates)}")
     
     xray_available = os.path.exists(XRAY_PATH) or os.path.exists(XRAY_PATH + ".exe")
-    working_links = []
-    MAX_WORKERS = 30  
+    
+    valid_servers = []
+    MAX_WORKERS = 40  # Проверяем по 40 серверов в секунду
 
-    print("\n[2] Запуск многопоточной проверки до нахождения 5 случайных живых серверов...")
+    print("\n Скрипт замеряет скорость всех серверов. Поиск 5 самых быстрых...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(thread_worker, link, xray_available): link for link in all_candidates}
         for future in as_completed(futures):
-            link, is_alive = future.result()
-            if is_alive:
-                working_links.append(link)
-                print(f" Найдена рабочая прокси ({len(working_links)}/5)")
+            link, ping = future.result()
+            if ping is not None:
+                valid_servers.append({"link": link, "ping": ping})
+                print(f" Найдена рабочая прокси! Пинг: {int(ping)}ms")
                 
-                # Набрали ровно 5 штук — рубим проверку
-                if len(working_links) >= 5:
+                # Нам нужно собрать пул из хотя бы 15–20 рабочих серверов, 
+                # чтобы выбрать из них топ-5 самых скоростных
+                if len(valid_servers) >= 20:
                     for f in futures: f.cancel()
                     break
 
-    # Если вообще глухо — берем первые 5
-    if not working_links:
+    if not valid_servers:
         print("\n[!] Живые серверы не обнаружены. Записываем аварийный набор.")
         working_links = all_candidates[:5]
+    else:
+        # СОРТИРОВКА: Выставляем серверы от меньшего пинга к большему
+        valid_servers.sort(key=lambda x: x["ping"])
+        # Берем 5 самых скоростных
+        working_links = [srv["link"] for srv in valid_servers[:5]]
 
-    # Склеиваем чистые оригинальные ссылки
-    raw_sub_text = "\n".join(working_links)
-
-    # Кодируем в чистый Base64
-    b64_sub_text = base64.b64encode(raw_sub_text.encode('utf-8')).decode('utf-8')
-
-    with open(FILE_PATH, "w", encoding="utf-8") as f:
-        f.write(b64_sub_text)
+    # Склеиваем в чистый текст без Base64 и кастомных имен
+    subscription_content = "\n".join(working_links)
+     with open(FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(subscription_content)
         
-    print(f"\n[+] Готово! Скрипт проверил базы и сохранил ровно {len(working_links)} серверов в Base64.")
+    print(f"\n[+] Скрипт отсортировал сервера по скорости и сохранил ТОП-5 лучших в {FILE_PATH}!")
 
 if __name__ == "__main__":
     main()
