@@ -273,7 +273,8 @@ def main():
 
     # Склеиваем в чистый текст без Base64 и кастомных имен
     subscription_content = "\n".join(working_links)
-     with open(FILE_PATH, "w", encoding="utf-8") as f:
+
+    with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write(subscription_content)
         
     print(f"\n[+] Скрипт отсортировал сервера по скорости и сохранил ТОП-5 лучших в {FILE_PATH}!")
