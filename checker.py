@@ -95,7 +95,7 @@ def main():
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
-                    white_w.append(inject_marker_to_link(link, f"WHITE-{len(white_w)+1}"))
+                    white_w.append(link) # Родное имя из базы
                     if len(white_w) >= 5: break
                     
         if black_c:
@@ -103,31 +103,28 @@ def main():
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
-                    black_w.append(inject_marker_to_link(link, f"BLACK-{len(black_w)+1}"))
+                    black_w.append(link) # Родное имя из базы
                     if len(black_w) >= 5: break
 
-    # Фолбэк на случай, если тесты ничего живого не нашли
+    # Фолбэк на случай, если тесты в ранере ничего живого не нашли
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
-            marked = inject_marker_to_link(l, f"WHITE-{len(white_w)+1}")
-            if marked not in white_w: white_w.append(marked)
+            if l not in white_w: white_w.append(l)
             
     if len(black_w) < 5 and black_c:
         for l in black_c:
             if len(black_w) >= 5: break
-            marked = inject_marker_to_link(l, f"BLACK-{len(black_w)+1}")
-            if marked not in black_w: black_w.append(marked)
+            if l not in black_w: black_w.append(l)
 
-    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ДЛЯ HAPP PROXY ===
-    # Добавляем в первую строчку каждого файла команду авто-названия для клиента
+    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ И ОРИГИНАЛЬНЫМИ ИМЕНАМИ СЕРВЕРОВ ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
         
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
         
-    print("[+] Сгенерировано 2 файла с тегами авто-переименования для Happ Proxy.")
+    print("[+] Готово! Сгенерировано 2 отдельных файла подписок с оригинальными именами серверов.")
 
 if __name__ == "__main__":
     main()
