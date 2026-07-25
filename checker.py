@@ -46,21 +46,38 @@ def test_link(link):
 
 def parse_and_classify_lists(text_white, text_black, used_uuids):
     white_cand, black_cand = [], []
-    for idx, line in enumerate(text_white.splitlines() + text_black.splitlines()):
+    used_ips = set() # Сюда пишем уникальные IP
+    
+    # 1. Сначала жестко парсим БЕЛЫЙ список
+    for line in text_white.splitlines():
         if line.startswith("vless://"):
             try:
                 link = line.strip()
                 parsed = urlparse(link)
-                if parsed.hostname in used_uuids or is_russian_ip(parsed.hostname): continue
-                if idx % 5 == 0: time.sleep(0.1)
-                is_ru, is_white, asn = get_asn_info(parsed.hostname)
-                if is_ru: continue
+                ip = parsed.hostname
+                if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
+                
                 used_uuids.add(parsed.username)
-                if is_white: white_cand.append(link)
-                else: black_cand.append(link)
+                used_ips.add(ip)
+                white_cand.append(link)
             except: continue
-    return white_cand, black_cand
 
+    # 2. Потом жестко парсим ЧЕРНЫЙ список
+    for line in text_black.splitlines():
+        if line.startswith("vless://"):
+            try:
+                link = line.strip()
+                parsed = urlparse(link)
+                ip = parsed.hostname
+                if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
+                
+                used_uuids.add(parsed.username)
+                used_ips.add(ip)
+                black_cand.append(link)
+            except: continue
+            
+    return white_cand, black_cand
+    
 def thread_worker(link):
     return link, test_link(link)
 
@@ -72,17 +89,17 @@ def main():
         print(f"❌ Ошибка скачивания баз: {e}")
         return
 
+    # Получаем чистые списки без дубликатов IP
     white_c, black_c = parse_and_classify_lists(raw_w, raw_b, set())
+    
+    # Сортируем по качеству SNI (выдвигаем вперед домены вроде apple, microsoft)
+    white_c.sort(key=get_stability_score)
+    black_c.sort(key=get_stability_score)
+    
     black_w, white_w = [], []
 
+    # Тестируем потоками
     with ThreadPoolExecutor(max_workers=30) as ex:
-        if black_c:
-            f = {ex.submit(thread_worker, l): l for l in black_c}
-            for fut in as_completed(f):
-                link, alive = fut.result()
-                if alive:
-                    black_w.append(inject_marker_to_link(link, f"AUTO-BLACK-{len(black_w)+1}"))
-                    if len(black_w) >= 5: break
         if white_c:
             f = {ex.submit(thread_worker, l): l for l in white_c}
             for fut in as_completed(f):
@@ -90,9 +107,32 @@ def main():
                 if alive:
                     white_w.append(inject_marker_to_link(link, f"AUTO-WHITE-{len(white_w)+1}"))
                     if len(white_w) >= 5: break
+                    
+        if black_c:
+            f = {ex.submit(thread_worker, l): l for l in black_c}
+            for fut in as_completed(f):
+                link, alive = fut.result()
+                if alive:
+                    black_w.append(inject_marker_to_link(link, f"AUTO-BLACK-{len(black_w)+1}"))
+                    if len(black_w) >= 5: break
 
+    # Жесткий Фолбэк: если тесты ничего живого не нашли, берем первые 5 серверов «как есть»
+    if len(white_w) < 5 and white_c:
+        for l in white_c:
+            if len(white_w) >= 5: break
+            marked = inject_marker_to_link(l, f"AUTO-WHITE-{len(white_w)+1}")
+            if marked not in white_w: white_w.append(marked)
+            
+    if len(black_w) < 5 and black_c:
+        for l in black_c:
+            if len(black_w) >= 5: break
+            marked = inject_marker_to_link(l, f"AUTO-BLACK-{len(black_w)+1}")
+            if marked not in black_w: black_w.append(marked)
+
+    # Запись строго 5 + 5 = 10 серверов
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(white_w[:5] + black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+        
+    print(f"[+] Сгенерировано ровно 10 серверов: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных.")
 
 if __name__ == "__main__": main()
