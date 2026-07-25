@@ -8,47 +8,42 @@ FILE_PATH = "subscription.txt"
 URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
 URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 
-WHITE_ASNS = [13335, 15169, 8075, 20940, 16509, 29404]  # Cloudflare, Google, MS, Akamai, AWS, Apple
+TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
 RUSSIAN_IP_PREFIXES = ["84.201.", "51.250.", "178.154.", "91.242.", "185.12.", "185.129.", "185.22.", "188.225."]
 
 def is_russian_ip(ip):
     return any(ip.startswith(p) for p in RUSSIAN_IP_PREFIXES) if ip else False
 
-def get_asn_info(ip):
-    try:
-        res = requests.get(f"https://ripe.net{ip}", timeout=3).json()
-        asn_num, country = 0, ""
-        if "remarks" in res:
-            for r in res["remarks"]:
-                for d in r.get("description", []):
-                    if "AS" in d: asn_num = int(''.join(filter(str.isdigit, d)))
-        if "country" in res: country = str(res["country"]).upper()
-        if not country or asn_num == 0:
-            res_alt = requests.get(f"https://ipapi.co{ip}/json/", timeout=2).json()
-            country = res_alt.get("country_code", "").upper()
-            as_text = res_alt.get("org", "")
-            if "AS" in as_text: asn_num = int(as_text.split()[0].replace("AS", ""))
-        return country == "RU", asn_num in WHITE_ASNS, asn_num
-    except: return False, False, 0
-
 def inject_marker_to_link(link, marker_text):
     try: return urlunparse(urlparse(link)._replace(fragment=marker_text))
     except: return f"{link}#{marker_text}"
+
+def get_stability_score(link):
+    try:
+        parsed = urlparse(link)
+        query_params = parse_qs(parsed.query)
+        sni = query_params.get("sni", [""])[0].lower()
+        if any(trusted in sni for trusted in TRUSTED_SNIS):
+            return 0
+    except: pass
+    return 1
 
 def test_link(link):
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
         with socket.create_connection((ip, port), timeout=3) as sock:
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=parse_qs(parsed.query).get("sni", [ip])[0]) as ssock:
+            query = parse_qs(parsed.query)
+            sni = query.get("sni", [ip])[0]
+            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni) as ssock:
                 return True
     except: return False
 
 def parse_and_classify_lists(text_white, text_black, used_uuids):
     white_cand, black_cand = [], []
-    used_ips = set() # Сюда пишем уникальные IP
+    used_ips = set()
     
-    # 1. Сначала жестко парсим БЕЛЫЙ список
+    # Жесткий парсинг БЕЛОГО списка
     for line in text_white.splitlines():
         if line.startswith("vless://"):
             try:
@@ -56,13 +51,12 @@ def parse_and_classify_lists(text_white, text_black, used_uuids):
                 parsed = urlparse(link)
                 ip = parsed.hostname
                 if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
-                
                 used_uuids.add(parsed.username)
                 used_ips.add(ip)
                 white_cand.append(link)
             except: continue
 
-    # 2. Потом жестко парсим ЧЕРНЫЙ список
+    # Жесткий парсинг ЧЕРНОГО списка
     for line in text_black.splitlines():
         if line.startswith("vless://"):
             try:
@@ -70,14 +64,13 @@ def parse_and_classify_lists(text_white, text_black, used_uuids):
                 parsed = urlparse(link)
                 ip = parsed.hostname
                 if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
-                
                 used_uuids.add(parsed.username)
                 used_ips.add(ip)
                 black_cand.append(link)
             except: continue
             
     return white_cand, black_cand
-    
+
 def thread_worker(link):
     return link, test_link(link)
 
@@ -89,16 +82,13 @@ def main():
         print(f"❌ Ошибка скачивания баз: {e}")
         return
 
-    # Получаем чистые списки без дубликатов IP
     white_c, black_c = parse_and_classify_lists(raw_w, raw_b, set())
     
-    # Сортируем по качеству SNI (выдвигаем вперед домены вроде apple, microsoft)
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
     black_w, white_w = [], []
 
-    # Тестируем потоками
     with ThreadPoolExecutor(max_workers=30) as ex:
         if white_c:
             f = {ex.submit(thread_worker, l): l for l in white_c}
@@ -116,7 +106,7 @@ def main():
                     black_w.append(inject_marker_to_link(link, f"AUTO-BLACK-{len(black_w)+1}"))
                     if len(black_w) >= 5: break
 
-    # Жесткий Фолбэк: если тесты ничего живого не нашли, берем первые 5 серверов «как есть»
+    # Фолбэк: если тесты в ранере заблокированы, берем первые 5 «как есть» без проверки
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
@@ -129,10 +119,11 @@ def main():
             marked = inject_marker_to_link(l, f"AUTO-BLACK-{len(black_w)+1}")
             if marked not in black_w: black_w.append(marked)
 
-    # Запись строго 5 + 5 = 10 серверов
+    # Сохраняем ровно 5 белых + 5 черных = 10 серверов
     with open(FILE_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(white_w[:5] + black_w[:5]))
         
     print(f"[+] Сгенерировано ровно 10 серверов: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных.")
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
