@@ -119,14 +119,15 @@ def main():
             marked = inject_marker_to_link(l, f"BLACK-{len(black_w)+1}")
             if marked not in black_w: black_w.append(marked)
 
-    # === ЗАПИСЬ В ДВА РАЗНЫХ ФАЙЛА ПОДПИСОК ===
+    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ДЛЯ HAPP PROXY ===
+    # Добавляем в первую строчку каждого файла команду авто-названия для клиента
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(white_w[:5]))
+        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
         
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(black_w[:5]))
+        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
         
-    print("[+] Сгенерировано 2 отдельных файла подписок по 5 серверов в каждом.")
+    print("[+] Сгенерировано 2 файла с тегами авто-переименования для Happ Proxy.")
 
 if __name__ == "__main__":
     main()
