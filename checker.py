@@ -95,7 +95,7 @@ def main():
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
-                    white_w.append(inject_marker_to_link(link, f"AUTO-WHITE-{len(white_w)+1}"))
+                    white_w.append(inject_marker_to_link(link, f"WHITE-{len(white_w)+1}"))
                     if len(white_w) >= 5: break
                     
         if black_c:
@@ -103,27 +103,30 @@ def main():
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
-                    black_w.append(inject_marker_to_link(link, f"AUTO-BLACK-{len(black_w)+1}"))
+                    black_w.append(inject_marker_to_link(link, f"BLACK-{len(black_w)+1}"))
                     if len(black_w) >= 5: break
 
-    # Фолбэк: если тесты в ранере заблокированы, берем первые 5 «как есть» без проверки
+    # Фолбэк на случай, если тесты ничего живого не нашли
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
-            marked = inject_marker_to_link(l, f"AUTO-WHITE-{len(white_w)+1}")
+            marked = inject_marker_to_link(l, f"WHITE-{len(white_w)+1}")
             if marked not in white_w: white_w.append(marked)
             
     if len(black_w) < 5 and black_c:
         for l in black_c:
             if len(black_w) >= 5: break
-            marked = inject_marker_to_link(l, f"AUTO-BLACK-{len(black_w)+1}")
+            marked = inject_marker_to_link(l, f"BLACK-{len(black_w)+1}")
             if marked not in black_w: black_w.append(marked)
 
-    # Сохраняем ровно 5 белых + 5 черных = 10 серверов
-    with open(FILE_PATH, "w", encoding="utf-8") as f:
-        f.write("\n".join(white_w[:5] + black_w[:5]))
+    # === ЗАПИСЬ В ДВА РАЗНЫХ ФАЙЛА ПОДПИСОК ===
+    with open("white_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(white_w[:5]))
         
-    print(f"[+] Сгенерировано ровно 10 серверов: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных.")
+    with open("black_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(black_w[:5]))
+        
+    print("[+] Сгенерировано 2 отдельных файла подписок по 5 серверов в каждом.")
 
 if __name__ == "__main__":
     main()
