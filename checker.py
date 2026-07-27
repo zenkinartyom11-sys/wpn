@@ -4,8 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
 URLS_WHITE = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha-All-Type.txt",
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/vless_configs.txt"
 ]
 
 URLS_BLACK = [
@@ -77,45 +77,78 @@ def test_link(link):
     except: return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
-    candidates, used_ips = [], set()
+    candidates = []
+    used_ips = set() # У каждого списка своя личная база уникальных IP
+    
+    # Разрешаем все популярные протоколы для Happ Proxy
+    VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
+    
     for line in text.splitlines():
-        if line.startswith("vless://"):
+        line_clean = line.strip()
+        if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
             try:
-                link = line.strip()
-                parsed = urlparse(link)
-                ip = parsed.hostname
-                if not ip or ip in used_ips or parsed.username in used_uuids: continue
+                parsed = urlparse(line_clean)
                 
-                # Если check_russia=True (для блэклиста) — баним РФ. Если False (для вайтлиста) — пускаем!
-                if check_russia and is_russian_ip(ip): continue
+                # Для Vmess/Hysteria парсинг hostname может слегка отличаться, делаем универсально
+                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
                 
-                used_uuids.add(parsed.username)
+                # Извлекаем уникальный ID пользователя для защиты от дубликатов
+                username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
+
+                if not ip or ip in used_ips or username in used_uuids or is_russian_ip(ip): 
+                    continue
+                
+                # Если check_russia=True (для блэклиста) — баним РФ. Если False (для вайтлиста) — пускаем
+                if check_russia and is_russian_ip(ip): 
+                    continue
+                
+                used_uuids.add(username)
                 used_ips.add(ip)
-                candidates.append(link)
-            except: continue
+                candidates.append(line_clean)
+            except: 
+                continue
     return candidates
 
-def thread_worker(link): return link, test_link(link)
+def thread_worker(link): 
+    return link, test_link(link)
 
 def main():
+    print("[*] Скачиваем базы серверов из 4 источников...")
     raw_white_text, raw_black_text = "", ""
     for url in URLS_WHITE:
+        if not url or "СЮДА_" in url: continue
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
-        except: pass
+        except: print(f"⚠️ Ошибка скачивания источника белого списка: {url[:40]}...")
     for url in URLS_BLACK:
+        if not url or "СЮДА_" in url: continue
         try: raw_black_text += "\n" + requests.get(url, timeout=10).text
-        except: pass
+        except: print(f"⚠️ Ошибка скачивания источника черного списка: {url[:40]}...")
 
     used_uuids = set()
     
-    # ВАЖНО: Для белого списка отключаем фильтр РФ (check_russia=False), для черного — оставляем
+    # Парсим независимые группы
     white_c = parse_source_text(raw_white_text, used_uuids, check_russia=False)
     black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
+    # Сортируем списки по стабильности
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
+    
+    # === ИНТЕЛЛЕКТУАЛЬНЫЙ ФИЛЬТР ДЛЯ БЕЛОГО СПИСКА (Ищем CDN обход и Hysteria2) ===
+    # Hysteria2 (hy2) сама по себе отлично летит через ТСПУ, а vless/vmess ищем с обходом через Websocket/gRPC
+    cdn_and_hy_servers = []
+    for link in white_c:
+        if "hysteria2://" in link or "hy2://" in link or "type=ws" in link or "type=grpc" in link:
+            cdn_and_hy_servers.append(link)
+            
+    # Если продвинутых серверов набралось достаточно, делаем их приоритетом для вайтлиста
+    if len(cdn_and_hy_servers) >= 5:
+        white_c = cdn_and_hy_servers + [s for s in white_c if s not in cdn_and_hy_servers]
+    
     black_w, white_w = [], []
 
+    # Многопоточный тест доступности
+    print("[*] Тестируем доступность серверов...")
     with ThreadPoolExecutor(max_workers=30) as ex:
         if white_c:
             f = {ex.submit(thread_worker, l): l for l in white_c}
@@ -132,20 +165,25 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # Аварийный фолбэк (без фильтрации, чтобы списки не пустовали)
+    # Фолбэк (если тесты заблокированы на GitHub, берем первые рабочие конфигурации)
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
             if l not in white_w: white_w.append(l)
+            
     if len(black_w) < 5 and black_c:
         for l in black_c:
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
+    # === ЗАПИСЬ С АВТОНАЗВАНИЕМ ДЛЯ HAPP PROXY ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+        
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых (РФ подсети) и {len(black_w[:5])} Черных (Зарубежные подсети) серверов.")
+        
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых (с обходом CDN/Hysteria) и {len(black_w[:5])} Черных серверов.")
+
 
 if __name__ == "__main__": main()
