@@ -15,8 +15,7 @@ URLS_BLACK = [
 
 TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
 
-# Сжатый и оптимизированный список для тотального локального бана серверов РФ
-# Базовые префиксы российских хостингов
+# Полный список префиксов подсетей РФ для тотального локального бана
 RUSSIAN_PREFIXES = [
     "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.", 
     "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.", 
@@ -45,52 +44,25 @@ RUSSIAN_PREFIXES = [
 ]
 
 def is_russian_ip(ip):
-    if not ip: 
-        return False
-        
-    # 1. Сначала чекаем наш большой текстовый список провайдеров РФ
-    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): 
-        return True
-        
-    # 2. Логическая и надежная проверка крупных диапазонов РФ без "in" списков
+    if not ip: return False
+    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
         first_octet = int(ip.split('.')[0])
-        
-        # Рубим диапазоны целиком: 91.*, 92.*, 93.*, 94.*, 95.*
-        if 91 <= first_octet <= 95: 
-            return True
-            
-        # Рубим диапазоны: 176.*, 178.*
-        if first_octet == 176 or first_octet == 178: 
-            return True
-            
-        # Рубим диапазоны: 185.*, 188.*
-        if first_octet == 185 or first_octet == 188: 
-            return True
-            
-        # Рубим диапазоны: 193.*, 194.*, 195.*
-        if 193 <= first_octet <= 195: 
-            return True
-            
-        # Рубим диапазоны: 212.*, 213.*
-        if first_octet == 212 or first_octet == 213: 
-            return True
-            
-        # Рубим подсеть хостинга Selectel (128.68.* - 128.75.*)
+        if 91 <= first_octet <= 95: return True
+        if first_octet == 176 or first_octet == 178: return True
+        if first_octet == 185 or first_octet == 188: return True
+        if 193 <= first_octet <= 195: return True
+        if first_octet == 212 or first_octet == 213: return True
         if first_octet == 128:
             second_octet = int(ip.split('.')[1])
-            if 68 <= second_octet <= 75: 
-                return True
-    except: 
-        pass
-        
-    # 3. Бан по доменной зоне, если в ссылке вместо IP буквенный хост
+            if 68 <= second_octet <= 75: return True
+    except: pass
     return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
-    
+
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
-        sni = parse_qs(parsed.query).get("sni", [""]).lower()
+        sni = parse_qs(parsed.query).get("sni", [""])[0].lower()
         if any(trusted in sni for trusted in TRUSTED_SNIS): return 0
     except: pass
     return 1
@@ -100,7 +72,7 @@ def test_link(link):
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
         with socket.create_connection((ip, port), timeout=3) as sock:
-            sni = parse_qs(parsed.query).get("sni", [ip])
+            sni = parse_qs(parsed.query).get("sni", [ip])[0]
             with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
     except: return False
 
@@ -124,11 +96,9 @@ def thread_worker(link): return link, test_link(link)
 def main():
     raw_white_text, raw_black_text = "", ""
     for url in URLS_WHITE:
-        if not url or "СЮДА_" in url: continue
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
         except: pass
     for url in URLS_BLACK:
-        if not url or "СЮДА_" in url: continue
         try: raw_black_text += "\n" + requests.get(url, timeout=10).text
         except: pass
 
@@ -156,14 +126,8 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    if len(white_w) < 5 and white_c:
-        for l in white_c:
-            if len(white_w) >= 5: break
-            if l not in white_w: white_w.append(l)
-    if len(black_w) < 5 and black_c:
-        for l in black_c:
-            if len(black_w) >= 5: break
-            if l not in black_w: black_w.append(l)
+    # === ФОЛБЭК УДАЛЕН НАХЕР ===
+    # Больше скрипт не подсунет забаненный мусор обратно, если списки пусты
 
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
