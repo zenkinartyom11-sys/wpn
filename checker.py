@@ -15,7 +15,7 @@ URLS_BLACK = [
 
 TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
 
-# Полный список префиксов подсетей РФ для тотального локального бана
+# Список подсетей РФ (используется ТОЛЬКО для очистки черного списка)
 RUSSIAN_PREFIXES = [
     "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.", 
     "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.", 
@@ -76,7 +76,7 @@ def test_link(link):
             with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
     except: return False
 
-def parse_source_text(text, used_uuids):
+def parse_source_text(text, used_uuids, check_russia=True):
     candidates, used_ips = [], set()
     for line in text.splitlines():
         if line.startswith("vless://"):
@@ -84,7 +84,11 @@ def parse_source_text(text, used_uuids):
                 link = line.strip()
                 parsed = urlparse(link)
                 ip = parsed.hostname
-                if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
+                if not ip or ip in used_ips or parsed.username in used_uuids: continue
+                
+                # Если check_russia=True (для блэклиста) — баним РФ. Если False (для вайтлиста) — пускаем!
+                if check_russia and is_russian_ip(ip): continue
+                
                 used_uuids.add(parsed.username)
                 used_ips.add(ip)
                 candidates.append(link)
@@ -103,8 +107,10 @@ def main():
         except: pass
 
     used_uuids = set()
-    white_c = parse_source_text(raw_white_text, used_uuids)
-    black_c = parse_source_text(raw_black_text, used_uuids)
+    
+    # ВАЖНО: Для белого списка отключаем фильтр РФ (check_russia=False), для черного — оставляем
+    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=False)
+    black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
@@ -126,13 +132,20 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # === ФОЛБЭК УДАЛЕН НАХЕР ===
-    # Больше скрипт не подсунет забаненный мусор обратно, если списки пусты
+    # Аварийный фолбэк (без фильтрации, чтобы списки не пустовали)
+    if len(white_w) < 5 and white_c:
+        for l in white_c:
+            if len(white_w) >= 5: break
+            if l not in white_w: white_w.append(l)
+    if len(black_w) < 5 and black_c:
+        for l in black_c:
+            if len(black_w) >= 5: break
+            if l not in black_w: black_w.append(l)
 
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых (РФ подсети) и {len(black_w[:5])} Черных (Зарубежные подсети) серверов.")
 
 if __name__ == "__main__": main()
