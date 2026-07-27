@@ -2,13 +2,20 @@ import ssl, json, random, socket, requests, time, os
 from urllib.parse import urlparse, parse_qs, urlunparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# === ТВОИ 2 ССЫЛКИ НА ИСТОЧНИКИ ===
-URL_WHITE = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt"
-URL_BLACK = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt"
+# === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
+# Сюда в кавычки вставь свои вторые источники для белого и черного списков
+URLS_WHITE = [
+    "https://githubusercontent.com",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
+]
+
+URLS_BLACK = [
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+]
 
 TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
 
-# Огромная база префиксов российских хостингов для жесткого локального бана
 RUSSIAN_IP_PREFIXES = [
     "5.101.", "5.143.", "5.187.", "5.188.", "31.31.", "31.40.", "31.134.", "37.140.", "37.143.", 
     "37.192.", "45.8.", "45.12.", "45.67.", "45.86.", "45.90.", "45.132.", "45.142.", "46.17.", 
@@ -39,24 +46,16 @@ RUSSIAN_IP_PREFIXES = [
 ]
 
 def is_russian_ip(ip):
-    if not ip:
-        return False
-    # Жёсткий бан по начальным цифрам IP
+    if not ip: return False
     for prefix in RUSSIAN_IP_PREFIXES:
-        if ip.startswith(prefix):
-            return True
-    # Бан по доменным зонам СНГ, если вместо IP прописан хостнейм
-    if ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by"):
-        return True
-    return False
+        if ip.startswith(prefix): return True
+    return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
 
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
-        query_params = parse_qs(parsed.query)
-        sni = query_params.get("sni", [""]).lower()
-        if any(trusted in sni for trusted in TRUSTED_SNIS):
-            return 0
+        sni = parse_qs(parsed.query).get("sni", [""])[0].lower()
+        if any(trusted in sni for trusted in TRUSTED_SNIS): return 0
     except: pass
     return 1
 
@@ -65,18 +64,14 @@ def test_link(link):
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
         with socket.create_connection((ip, port), timeout=3) as sock:
-            query = parse_qs(parsed.query)
-            sni = query.get("sni", [ip])
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni) as ssock:
+            sni = parse_qs(parsed.query).get("sni", [ip])[0]
+            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni):
                 return True
     except: return False
 
-def parse_and_classify_lists(text_white, text_black, used_uuids):
-    white_cand, black_cand = [], []
-    used_ips = set()
-    
-    # Жесткий локальный парсинг БЕЛОГО списка
-    for line in text_white.splitlines():
+def parse_source_text(text, used_ips, used_uuids):
+    candidates = []
+    for line in text.splitlines():
         if line.startswith("vless://"):
             try:
                 link = line.strip()
@@ -85,36 +80,35 @@ def parse_and_classify_lists(text_white, text_black, used_uuids):
                 if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
                 used_uuids.add(parsed.username)
                 used_ips.add(ip)
-                white_cand.append(link)
+                candidates.append(link)
             except: continue
-
-    # Жесткий локальный парсинг ЧЕРНОГО списка
-    for line in text_black.splitlines():
-        if line.startswith("vless://"):
-            try:
-                link = line.strip()
-                parsed = urlparse(link)
-                ip = parsed.hostname
-                if not ip or ip in used_ips or parsed.username in used_uuids or is_russian_ip(ip): continue
-                used_uuids.add(parsed.username)
-                used_ips.add(ip)
-                black_cand.append(link)
-            except: continue
-            
-    return white_cand, black_cand
+    return candidates
 
 def thread_worker(link):
     return link, test_link(link)
 
 def main():
-    try:
-        raw_w = requests.get(URL_WHITE, timeout=10).text
-        raw_b = requests.get(URL_BLACK, timeout=10).text
-    except Exception as e:
-        print(f"❌ Ошибка скачивания баз: {e}")
-        return
+    raw_white_text = ""
+    raw_black_text = ""
+    
+    # Скачиваем обе ссылки белого списка
+    for url in URLS_WHITE:
+        if not url or "СЮДА_" in url: continue
+        try: raw_white_text += "\n" + requests.get(url, timeout=10).text
+        except: print(f"⚠️ Ошибка скачивания источника белого списка: {url[:40]}...")
 
-    white_c, black_c = parse_and_classify_lists(raw_w, raw_b, set())
+    # Скачиваем обе ссылки черного списка
+    for url in URLS_BLACK:
+        if not url or "СЮДА_" in url: continue
+        try: raw_black_text += "\n" + requests.get(url, timeout=10).text
+        except: print(f"⚠️ Ошибка скачивания источника черного списка: {url[:40]}...")
+
+    used_uuids = set()
+    used_ips = set()
+    
+    # Парсим и склеиваем дубликаты
+    white_c = parse_source_text(raw_white_text, used_ips, used_uuids)
+    black_c = parse_source_text(raw_black_text, used_ips, used_uuids)
     
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
@@ -138,7 +132,7 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # Фолбэк на случай, если тесты в ранере ничего живого не нашли
+    # Фолбэк (на случай, если тесты упали, берем первые попавшиеся)
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
@@ -149,14 +143,14 @@ def main():
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
-    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ И РОДНЫМИ НАЗВАНИЯМИ ===
+    # === ЗАПИСЬ В ДВА ФАЙЛА С АВТОНАЗВАНИЕМ ДЛЯ HAPP PROXY ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
         
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
         
-    print("[+] Готово! Ровно 10 чистых зарубежных серверов без подмеси РФ успешно сохранены.")
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов из 4 источников.")
 
 if __name__ == "__main__":
     main()
