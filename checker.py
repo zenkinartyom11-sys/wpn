@@ -46,15 +46,17 @@ RUSSIAN_PREFIXES = [
 def is_russian_ip(ip):
     if not ip: return False
     if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
-    # Потоковая группировка для диапазонов 91.*, 92.*, 93.*, 94.*, 95.*, 128.*, 176.*, 178.*, 185.*, 188.*, 193.*, 194.*, 195.*, 212.*, 213.*
+    # Математическая группировка крупных подсетей РФ
     try:
         parts = ip.split('.')
         if len(parts) >= 2:
             o1, o2 = int(parts[0]), int(parts[1])
+            # Жестко баним пулы 91-95, 176, 178, 185, 188, 193-195, 212, 213
             if o1 in: return True
             if o1 == 128 and o2 in range(68, 76): return True
     except: pass
     return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
+
 
 def get_stability_score(link):
     try:
