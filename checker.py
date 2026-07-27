@@ -14,8 +14,8 @@ URLS_BLACK = [
 ]
 
 TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
+VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
 
-# Список подсетей РФ (используется ТОЛЬКО для очистки черного списка)
 RUSSIAN_PREFIXES = [
     "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.", 
     "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.", 
@@ -48,22 +48,15 @@ def is_russian_ip(ip):
     if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
         first_octet = int(ip.split('.')[0])
-        if 91 <= first_octet <= 95: return True
-        if first_octet == 176 or first_octet == 178: return True
-        if first_octet == 185 or first_octet == 188: return True
-        if 193 <= first_octet <= 195: return True
-        if first_octet == 212 or first_octet == 213: return True
-        if first_octet == 128:
-            second_octet = int(ip.split('.')[1])
-            if 68 <= second_octet <= 75: return True
+        if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
+        if first_octet == 128 and 68 <= int(ip.split('.')[1]) <= 75: return True
     except: pass
     return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
 
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
-        sni = parse_qs(parsed.query).get("sni", [""])[0].lower()
-        if any(trusted in sni for trusted in TRUSTED_SNIS): return 0
+        if any(t in parse_qs(parsed.query).get("sni", [""])[0].lower() for t in TRUSTED_SNIS): return 0
     except: pass
     return 1
 
@@ -72,118 +65,80 @@ def test_link(link):
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
         with socket.create_connection((ip, port), timeout=3) as sock:
-            sni = parse_qs(parsed.query).get("sni", [ip])[0]
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
+            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=parse_qs(parsed.query).get("sni", [ip])[0]): return True
     except: return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
-    candidates = []
-    used_ips = set() # У каждого списка своя личная база уникальных IP
-    
-    # Разрешаем все популярные протоколы для Happ Proxy
-    VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
-    
+    candidates, used_ips, count = [], set(), 0
     for line in text.splitlines():
         line_clean = line.strip()
         if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
             try:
                 parsed = urlparse(line_clean)
-                
-                # Для Vmess/Hysteria парсинг hostname может слегка отличаться, делаем универсально
                 ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
-                
-                # Извлекаем уникальный ID пользователя для защиты от дубликатов
                 username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-
-                if not ip or ip in used_ips or username in used_uuids or is_russian_ip(ip): 
-                    continue
-                
-                # Если check_russia=True (для блэклиста) — баним РФ. Если False (для вайтлиста) — пускаем
-                if check_russia and is_russian_ip(ip): 
-                    continue
-                
+                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
-            except: 
-                continue
+                count += 1
+                if count >= 100: break # ОПТИМИЗАЦИЯ: берем только первые 100 серверов из файла
+            except: continue
     return candidates
 
-def thread_worker(link): 
-    return link, test_link(link)
+def thread_worker(link): return link, test_link(link)
 
 def main():
-    print("[*] Скачиваем базы серверов из 4 источников...")
     raw_white_text, raw_black_text = "", ""
     for url in URLS_WHITE:
-        if not url or "СЮДА_" in url: continue
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
-        except: print(f"⚠️ Ошибка скачивания источника белого списка: {url[:40]}...")
+        except: pass
     for url in URLS_BLACK:
-        if not url or "СЮДА_" in url: continue
         try: raw_black_text += "\n" + requests.get(url, timeout=10).text
-        except: print(f"⚠️ Ошибка скачивания источника черного списка: {url[:40]}...")
+        except: pass
 
     used_uuids = set()
-    
-    # Парсим независимые группы
     white_c = parse_source_text(raw_white_text, used_uuids, check_russia=False)
     black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
-    # Сортируем списки по стабильности
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
-    # === ИНТЕЛЛЕКТУАЛЬНЫЙ ФИЛЬТР ДЛЯ БЕЛОГО СПИСКА (Ищем CDN обход и Hysteria2) ===
-    # Hysteria2 (hy2) сама по себе отлично летит через ТСПУ, а vless/vmess ищем с обходом через Websocket/gRPC
-    cdn_and_hy_servers = []
-    for link in white_c:
-        if "hysteria2://" in link or "hy2://" in link or "type=ws" in link or "type=grpc" in link:
-            cdn_and_hy_servers.append(link)
-            
-    # Если продвинутых серверов набралось достаточно, делаем их приоритетом для вайтлиста
-    if len(cdn_and_hy_servers) >= 5:
-        white_c = cdn_and_hy_servers + [s for s in white_c if s not in cdn_and_hy_servers]
+    cdn_and_hy = [l for l in white_c if any(k in l for k in ("hysteria2://", "hy2://", "type=ws", "type=grpc"))]
+    if len(cdn_and_hy) >= 5:
+        white_c = cdn_and_hy + [s for s in white_c if s not in cdn_and_hy]
     
     black_w, white_w = [], []
 
-    # Многопоточный тест доступности
-    print("[*] Тестируем доступность серверов...")
     with ThreadPoolExecutor(max_workers=30) as ex:
         if white_c:
-            f = {ex.submit(thread_worker, l): l for l in white_c}
+            f = {ex.submit(thread_worker, l): l for l in white_c[:30]} # ОПТИМИЗАЦИЯ: тестируем максимум 30 лучших
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     white_w.append(link)
                     if len(white_w) >= 5: break
         if black_c:
-            f = {ex.submit(thread_worker, l): l for l in black_c}
+            f = {ex.submit(thread_worker, l): l for l in black_c[:30]} # ОПТИМИЗАЦИЯ: тестируем максимум 30 лучших
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # Фолбэк (если тесты заблокированы на GitHub, берем первые рабочие конфигурации)
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
             if l not in white_w: white_w.append(l)
-            
     if len(black_w) < 5 and black_c:
         for l in black_c:
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
-    # === ЗАПИСЬ С АВТОНАЗВАНИЕМ ДЛЯ HAPP PROXY ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-        
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-        
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых (с обходом CDN/Hysteria) и {len(black_w[:5])} Черных серверов.")
-
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
 
 if __name__ == "__main__": main()
