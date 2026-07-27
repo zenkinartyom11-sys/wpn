@@ -16,6 +16,7 @@ URLS_BLACK = [
 TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
 
 # Сжатый и оптимизированный список для тотального локального бана серверов РФ
+# Базовые префиксы российских хостингов
 RUSSIAN_PREFIXES = [
     "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.", 
     "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.", 
@@ -44,20 +45,48 @@ RUSSIAN_PREFIXES = [
 ]
 
 def is_russian_ip(ip):
-    if not ip: return False
-    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
-    # Математическая группировка крупных подсетей РФ
+    if not ip: 
+        return False
+        
+    # 1. Сначала чекаем наш большой текстовый список провайдеров РФ
+    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): 
+        return True
+        
+    # 2. Логическая и надежная проверка крупных диапазонов РФ без "in" списков
     try:
-        parts = ip.split('.')
-        if len(parts) >= 2:
-            o1, o2 = int(parts[0]), int(parts[1])
-            # Жестко баним пулы 91-95, 176, 178, 185, 188, 193-195, 212, 213
-            if o1 in: return True
-            if o1 == 128 and o2 in range(68, 76): return True
-    except: pass
+        first_octet = int(ip.split('.')[0])
+        
+        # Рубим диапазоны целиком: 91.*, 92.*, 93.*, 94.*, 95.*
+        if 91 <= first_octet <= 95: 
+            return True
+            
+        # Рубим диапазоны: 176.*, 178.*
+        if first_octet == 176 or first_octet == 178: 
+            return True
+            
+        # Рубим диапазоны: 185.*, 188.*
+        if first_octet == 185 or first_octet == 188: 
+            return True
+            
+        # Рубим диапазоны: 193.*, 194.*, 195.*
+        if 193 <= first_octet <= 195: 
+            return True
+            
+        # Рубим диапазоны: 212.*, 213.*
+        if first_octet == 212 or first_octet == 213: 
+            return True
+            
+        # Рубим подсеть хостинга Selectel (128.68.* - 128.75.*)
+        if first_octet == 128:
+            second_octet = int(ip.split('.')[1])
+            if 68 <= second_octet <= 75: 
+                return True
+    except: 
+        pass
+        
+    # 3. Бан по доменной зоне, если в ссылке вместо IP буквенный хост
     return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
-
-
+    
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
