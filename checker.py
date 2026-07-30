@@ -145,4 +145,14 @@ def main():
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
-    with open("white_subscription.txt", "w", 
+    with open("white_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+        
+    with open("black_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+        
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+
+if __name__ == "__main__":
+    main()
+
