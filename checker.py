@@ -13,7 +13,26 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
-TRUSTED_SNIS = ["microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com"]
+TRUSTED_SNIS = [ "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
+    "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
+    "android.com", "://google.com", "googleapis.com", "gstatic.com", "ggpht.com",
+    "apple-dns.net", "mzstatic.com", "itunes.com", "digicert.com", "comodo.com",
+    
+    # Крупнейшие мировые CDN и инфраструктурные гиганты (на них держится весь рунет)
+    "cloudflare-dns.com", "fastly.net", "akamai.net", "akamaiedge.net", "akamaihd.net",
+    "cloudfront.net", "://amazon.com", "amazonaws.com", "azure.com", "azureedge.net",
+    
+    # Мировые платежные системы и финансовые шлюзы
+    "visa.com", "mastercard.com", "stripe.com", "paypal.com", "apple-pay.com",
+    
+    # Крупнейшие технологические и корпоративные домены
+    "github.com", "githubusercontent.com", "gitlab.com", "docker.com", "docker.io",
+    "adobe.com", "oracle.com", "intel.com", "amd.com", "nvidia.com", "asus.com",
+    "cisco.com", "ibm.com", "hp.com", "dell.com", "lenovo.com", "sony.com",
+    
+    # Крупнейшие производители смартфонов и электроники
+    "xiaomi.com", "mi.com", "huawei.com", "oppo.com", "vivo.com", "realme.com",
+    "oneplus.com", "nokia.com", "lg.com", "panasonic.com"]
 VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
 
 RUSSIAN_PREFIXES = [
