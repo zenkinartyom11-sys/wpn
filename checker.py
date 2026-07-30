@@ -13,7 +13,6 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
-# Огромный пул из 60+ "бессмертных" SNI
 TRUSTED_SNIS = [
     "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
     "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
@@ -78,14 +77,20 @@ def get_stability_score(link):
     return 1
 
 def test_link(link):
+    """Ультра-надежная и быстрая проверка TCP + TLS без зависимости от сторонних API"""
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
-        with socket.create_connection((ip, port), timeout=3) as sock:
+        # Чистый коннект к сокету с коротким таймаутом
+        with socket.create_connection((ip, port), timeout=2.5) as sock:
             sni_list = parse_qs(parsed.query).get("sni", [ip])
             sni = sni_list[0] if sni_list else ip
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
-    except: return False
+            context = ssl._create_unverified_context()
+            with context.wrap_socket(sock, server_hostname=sni):
+                return True
+    except:
+        pass
+    return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
     candidates, used_ips, count = [], set(), 0
@@ -148,21 +153,21 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    if len(white_w) < 5 and white_c:
-        for l in white_c:
-            if len(white_w) >= 5: break
-            if l not in white_w: white_w.append(l)
-    if len(black_w) < 5 and black_c:
-        for l in black_c:
-            if len(black_w) >= 5: break
-            if l not in black_w: black_w.append(l)
+    # === ЖЕСТКАЯ ЗАЩИТА: ЗАПИСЫВАЕМ ТОЛЬКО ЕСЛИ НАШЛИ МИНИМУМ 3 РЕАЛЬНО ЖИВЫХ ===
+    # Если тесты выдали пустоту из-за сетевых сбоев, файлы просто НЕ обновляются (остаются старые рабочие)
+    if len(white_w) >= 3:
+        with open("white_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+            print(f"[+] Белый список успешно обновлен: {len(white_w[:5])} серверов.")
+    else:
+        print("⚠️ Обновление Белого списка пропущено: найдено слишком мало живых серверов.")
 
-    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ===
-    with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-    with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+    if len(black_w) >= 3:
+        with open("black_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+            print(f"[+] Черный список успешно обновлен: {len(black_w[:5])} серверов.")
+    else:
+        print("⚠️ Обновление Черного списка пропущено: найдено слишком мало живых серверов.")
 
 if __name__ == "__main__":
     main()
