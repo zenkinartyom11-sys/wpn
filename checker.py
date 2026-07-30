@@ -3,6 +3,7 @@ from urllib.parse import urlparse, parse_qs, urlunparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
+# Заменили РУ-базы белого списка на топовые зарубежные CDN/Hysteria агрегаторы
 URLS_WHITE = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
@@ -56,7 +57,9 @@ def is_russian_ip(ip):
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
-        if any(t in parse_qs(parsed.query).get("sni", [""])[0].lower() for t in TRUSTED_SNIS): return 0
+        sni_list = parse_qs(parsed.query).get("sni", [""])
+        sni = sni_list[0].lower() if sni_list else ""
+        if any(t in sni for t in TRUSTED_SNIS): return 0
     except: pass
     return 1
 
@@ -65,7 +68,9 @@ def test_link(link):
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
         with socket.create_connection((ip, port), timeout=3) as sock:
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=parse_qs(parsed.query).get("sni", [ip])[0]): return True
+            sni_list = parse_qs(parsed.query).get("sni", [ip])
+            sni = sni_list[0] if sni_list else ip
+            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
     except: return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
@@ -77,12 +82,13 @@ def parse_source_text(text, used_uuids, check_russia=True):
                 parsed = urlparse(line_clean)
                 ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
                 username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
+                # ТЕПЕРЬ check_russia ВСЕГДА TRUE ДЛЯ ОБЕИХ ГРУПП
+                if not ip or ip in used_ips or username in used_uuids or is_russian_ip(ip): continue
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
                 count += 1
-                if count >= 100: break # ОПТИМИЗАЦИЯ: берем только первые 100 серверов из файла
+                if count >= 100: break
             except: continue
     return candidates
 
@@ -98,12 +104,14 @@ def main():
         except: pass
 
     used_uuids = set()
-    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=False)
+    # Жестко включили бан РФ (check_russia=True) и для БЕЛОГО, и для ЧЕРНОГО списков
+    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=True)
     black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
+    # Отбираем во вкладку Белого списка только то, что пробьет ТСПУ через CDN (WS/gRPC) или Hysteria2
     cdn_and_hy = [l for l in white_c if any(k in l for k in ("hysteria2://", "hy2://", "type=ws", "type=grpc"))]
     if len(cdn_and_hy) >= 5:
         white_c = cdn_and_hy + [s for s in white_c if s not in cdn_and_hy]
@@ -112,20 +120,21 @@ def main():
 
     with ThreadPoolExecutor(max_workers=30) as ex:
         if white_c:
-            f = {ex.submit(thread_worker, l): l for l in white_c[:30]} # ОПТИМИЗАЦИЯ: тестируем максимум 30 лучших
+            f = {ex.submit(thread_worker, l): l for l in white_c[:30]}
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     white_w.append(link)
                     if len(white_w) >= 5: break
         if black_c:
-            f = {ex.submit(thread_worker, l): l for l in black_c[:30]} # ОПТИМИЗАЦИЯ: тестируем максимум 30 лучших
+            f = {ex.submit(thread_worker, l): l for l in black_c[:30]}
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
+    # Фолбэк без РФ (если тесты на гитхабе упали, берем чистые зарубежные первые попавшиеся)
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
