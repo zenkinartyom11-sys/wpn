@@ -13,26 +13,22 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
-TRUSTED_SNIS = [ "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
+# Огромный пул из 60+ "бессмертных" SNI
+TRUSTED_SNIS = [
+    "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
     "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
     "android.com", "://google.com", "googleapis.com", "gstatic.com", "ggpht.com",
     "apple-dns.net", "mzstatic.com", "itunes.com", "digicert.com", "comodo.com",
-    
-    # Крупнейшие мировые CDN и инфраструктурные гиганты (на них держится весь рунет)
     "cloudflare-dns.com", "fastly.net", "akamai.net", "akamaiedge.net", "akamaihd.net",
     "cloudfront.net", "://amazon.com", "amazonaws.com", "azure.com", "azureedge.net",
-    
-    # Мировые платежные системы и финансовые шлюзы
     "visa.com", "mastercard.com", "stripe.com", "paypal.com", "apple-pay.com",
-    
-    # Крупнейшие технологические и корпоративные домены
     "github.com", "githubusercontent.com", "gitlab.com", "docker.com", "docker.io",
     "adobe.com", "oracle.com", "intel.com", "amd.com", "nvidia.com", "asus.com",
     "cisco.com", "ibm.com", "hp.com", "dell.com", "lenovo.com", "sony.com",
-    
-    # Крупнейшие производители смартфонов и электроники
     "xiaomi.com", "mi.com", "huawei.com", "oppo.com", "vivo.com", "realme.com",
-    "oneplus.com", "nokia.com", "lg.com", "panasonic.com"]
+    "oneplus.com", "nokia.com", "lg.com", "panasonic.com"
+]
+
 VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
 
 RUSSIAN_PREFIXES = [
@@ -127,14 +123,11 @@ def main():
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
-    # === МОДЕРНИЗИРОВАННАЯ СОРТИРОВКА ВАЙТЛИСТА ===
+    # Сортировка вайтлиста (WS+CDN на самый верх)
     ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
     hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
-    
-    # ПРАВИЛЬНЫЙ ЦИКЛ БЕЗ ОПЕЧАТОК: сначала WS+CDN, затем Hysteria 2
     priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
     other_white = [s for s in white_c if s not in priority_white]
-    
     white_c = priority_white + other_white
     
     black_w, white_w = [], []
@@ -164,14 +157,12 @@ def main():
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
+    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-        
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-        
     print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
 
 if __name__ == "__main__":
     main()
-
