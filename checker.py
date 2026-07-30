@@ -3,7 +3,6 @@ from urllib.parse import urlparse, parse_qs, urlunparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
-# Заменили РУ-базы белого списка на топовые зарубежные CDN/Hysteria агрегаторы
 URLS_WHITE = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
@@ -82,7 +81,6 @@ def parse_source_text(text, used_uuids, check_russia=True):
                 parsed = urlparse(line_clean)
                 ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
                 username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-                # ТЕПЕРЬ check_russia ВСЕГДА TRUE ДЛЯ ОБЕИХ ГРУПП
                 if not ip or ip in used_ips or username in used_uuids or is_russian_ip(ip): continue
                 used_uuids.add(username)
                 used_ips.add(ip)
@@ -104,17 +102,24 @@ def main():
         except: pass
 
     used_uuids = set()
-    # Жестко включили бан РФ (check_russia=True) и для БЕЛОГО, и для ЧЕРНОГО списков
     white_c = parse_source_text(raw_white_text, used_uuids, check_russia=True)
     black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
-    # Отбираем во вкладку Белого списка только то, что пробьет ТСПУ через CDN (WS/gRPC) или Hysteria2
-    cdn_and_hy = [l for l in white_c if any(k in l for k in ("hysteria2://", "hy2://", "type=ws", "type=grpc"))]
-    if len(cdn_and_hy) >= 5:
-        white_c = cdn_and_hy + [s for s in white_c if s not in cdn_and_hy]
+    # === МОДЕРНИЗИРОВАННАЯ СОРТИРОВКА ВАЙТЛИСТА ===
+    # Группа 1: Абсолютный топ надежности — VLESS/VMess через Websocket (WS) для обхода CDN
+    ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
+    
+    # Группа 2: Мощные HTTP/3 протоколы (Hysteria 2 / TUIC)
+    hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
+    
+    # Собираем приоритетный пул: сначала WS+CDN, затем Hysteria 2, затем все остальные
+    priority_white = ws_cdn_servers + [h for s in hy2_servers if h not in ws_cdn_servers]
+    other_white = [s for s in white_c if s not in priority_white]
+    
+    white_c = priority_white + other_white
     
     black_w, white_w = [], []
 
@@ -134,7 +139,6 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # Фолбэк без РФ (если тесты на гитхабе упали, берем чистые зарубежные первые попавшиеся)
     if len(white_w) < 5 and white_c:
         for l in white_c:
             if len(white_w) >= 5: break
