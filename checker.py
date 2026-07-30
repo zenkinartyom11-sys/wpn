@@ -81,7 +81,7 @@ def parse_source_text(text, used_uuids, check_russia=True):
                 parsed = urlparse(line_clean)
                 ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
                 username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-                if not ip or ip in used_ips or username in used_uuids or is_russian_ip(ip): continue
+                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
@@ -109,14 +109,11 @@ def main():
     black_c.sort(key=get_stability_score)
     
     # === МОДЕРНИЗИРОВАННАЯ СОРТИРОВКА ВАЙТЛИСТА ===
-    # Группа 1: Абсолютный топ надежности — VLESS/VMess через Websocket (WS) для обхода CDN
     ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
-    
-    # Группа 2: Мощные HTTP/3 протоколы (Hysteria 2 / TUIC)
     hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
     
-    # Собираем приоритетный пул: сначала WS+CDN, затем Hysteria 2, затем все остальные
-    priority_white = ws_cdn_servers + [h for s in hy2_servers if h not in ws_cdn_servers]
+    # ПРАВИЛЬНЫЙ ЦИКЛ БЕЗ ОПЕЧАТОК: сначала WS+CDN, затем Hysteria 2
+    priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
     other_white = [s for s in white_c if s not in priority_white]
     
     white_c = priority_white + other_white
@@ -148,10 +145,4 @@ def main():
             if len(black_w) >= 5: break
             if l not in black_w: black_w.append(l)
 
-    with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-    with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
-
-if __name__ == "__main__": main()
+    with open("white_subscription.txt", "w", 
