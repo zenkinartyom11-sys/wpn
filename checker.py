@@ -57,39 +57,46 @@ RUSSIAN_PREFIXES = [
     "217.23.", "217.66.", "217.73.", "217.107.", "217.114.", "217.118.", "217.150.", "217.174."
 ]
 
-def is_russian_ip(ip):
-    if not ip: return False
-    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
+def is_russian_ip(ip_or_domain):
+    if not ip_or_domain: return False
+    
+    # Пытаемся превратить буквенный домен в цифровой IP на лету
+    target_ip = ip_or_domain
+    if not ip_or_domain.replace('.', '').isdigit():
+        try:
+            target_ip = socket.gethostbyname(ip_or_domain)
+        except:
+            # Если домен не резолвится, баним от греха подальше
+            return True
+
+    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
-        first_octet = int(ip.split('.')[0])
+        first_octet = int(target_ip.split('.')[0])
         if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
-        if first_octet == 128 and 68 <= int(ip.split('.')[1]) <= 75: return True
+        if first_octet == 128 and 68 <= int(target_ip.split('.')) <= 75: return True
     except: pass
-    return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
+    return target_ip.endswith(".ru") or target_ip.endswith(".su") or target_ip.endswith(".by")
 
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
         sni_list = parse_qs(parsed.query).get("sni", [""])
-        sni = sni_list[0].lower() if sni_list else ""
+        sni = sni_list.lower() if sni_list else ""
         if any(t in sni for t in TRUSTED_SNIS): return 0
     except: pass
     return 1
 
 def test_link(link):
-    """Ультра-надежная и быстрая проверка TCP + TLS без зависимости от сторонних API"""
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
-        # Чистый коннект к сокету с коротким таймаутом
+        if not ip: return False
         with socket.create_connection((ip, port), timeout=2.5) as sock:
             sni_list = parse_qs(parsed.query).get("sni", [ip])
-            sni = sni_list[0] if sni_list else ip
+            sni = sni_list if sni_list else ip
             context = ssl._create_unverified_context()
-            with context.wrap_socket(sock, server_hostname=sni):
-                return True
-    except:
-        pass
+            with context.wrap_socket(sock, server_hostname=sni): return True
+    except: pass
     return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
@@ -101,7 +108,10 @@ def parse_source_text(text, used_uuids, check_russia=True):
                 parsed = urlparse(line_clean)
                 ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
                 username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
+                
+                if not ip or ip in used_ips or username in used_uuids: continue
+                if check_russia and is_russian_ip(ip): continue
+                
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
@@ -128,7 +138,6 @@ def main():
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
-    # Сортировка вайтлиста (WS+CDN на самый верх)
     ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
     hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
     priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
@@ -153,21 +162,22 @@ def main():
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    # === ЖЕСТКАЯ ЗАЩИТА: ЗАПИСЫВАЕМ ТОЛЬКО ЕСЛИ НАШЛИ МИНИМУМ 3 РЕАЛЬНО ЖИВЫХ ===
-    # Если тесты выдали пустоту из-за сетевых сбоев, файлы просто НЕ обновляются (остаются старые рабочие)
-    if len(white_w) >= 3:
-        with open("white_subscription.txt", "w", encoding="utf-8") as f:
-            f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-            print(f"[+] Белый список успешно обновлен: {len(white_w[:5])} серверов.")
-    else:
-        print("⚠️ Обновление Белого списка пропущено: найдено слишком мало живых серверов.")
+    if len(white_w) < 5 and white_c:
+        for l in white_c:
+            if len(white_w) >= 5: break
+            if l not in white_w: white_w.append(l)
+    if len(black_w) < 5 and black_c:
+        for l in black_c:
+            if len(black_w) >= 5: break
+            if l not in black_w: black_w.append(l)
 
-    if len(black_w) >= 3:
-        with open("black_subscription.txt", "w", encoding="utf-8") as f:
-            f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-            print(f"[+] Черный список успешно обновлен: {len(black_w[:5])} серверов.")
-    else:
-        print("⚠️ Обновление Черного списка пропущено: найдено слишком мало живых серверов.")
+    with open("white_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+        
+    with open("black_subscription.txt", "w", encoding="utf-8") as f:
+        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+        
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
 
 if __name__ == "__main__":
     main()
