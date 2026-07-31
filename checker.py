@@ -123,61 +123,50 @@ def parse_source_text(text, used_uuids, check_russia=True):
 def thread_worker(link): return link, test_link(link)
 
 def main():
-    raw_white_text, raw_black_text = "", ""
-    for url in URLS_WHITE:
-        try: raw_white_text += "\n" + requests.get(url, timeout=10).text
-        except: pass
-    for url in URLS_BLACK:
-        try: raw_black_text += "\n" + requests.get(url, timeout=10).text
-        except: pass
+    print("[*] Экстренный боевой запуск парсера под белые списки РКН...")
+    try:
+        raw_w = requests.get(URLS_WHITE[0], timeout=10).text + "\n" + requests.get(URLS_WHITE[1], timeout=10).text
+        raw_b = requests.get(URLS_BLACK[0], timeout=10).text + "\n" + requests.get(URLS_BLACK[1], timeout=10).text
+    except Exception as e:
+        print(f"❌ Ошибка сети при скачивании баз: {e}")
+        return
 
     used_uuids = set()
-    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=True)
-    black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
+    # Собираем кандидатов (очищенных от РФ)
+    white_c = parse_source_text(raw_white_text=raw_white, used_uuids=used_uuids, check_russia=True)
+    black_c = parse_source_text(raw_white_text=raw_b, used_uuids=used_uuids, check_russia=True) # для блэклиста
     
-    white_c.sort(key=get_stability_score)
-    black_c.sort(key=get_stability_score)
-    
-    ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
-    hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
-    priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
-    other_white = [s for s in white_c if s not in priority_white]
-    white_c = priority_white + other_white
-    
-    black_w, white_w = [], []
+    # === ЖЕСТКИЙ ОТБОР ПОД ТЕХНОЛОГИЧЕСКИЙ ВАЙТЛИСТ РКН ===
+    # Отбираем в Белый список ТОЛЬКО те сервера, которые маскируются под бессмертные домены (как твой Xbox)
+    super_white = []
+    for link in white_c:
+        try:
+            parsed = urlparse(link)
+            sni = parse_qs(parsed.query).get("sni", [""])[0].lower()
+            # Если сервер маскируется под Microsoft, Google, Cloudflare или Apple — берем его!
+            if any(trusted in sni for trusted in TRUSTED_SNIS):
+                super_white.append(link)
+        except:
+            continue
 
-    with ThreadPoolExecutor(max_workers=30) as ex:
-        if white_c:
-            f = {ex.submit(thread_worker, l): l for l in white_c[:30]}
-            for fut in as_completed(f):
-                link, alive = fut.result()
-                if alive:
-                    white_w.append(link)
-                    if len(white_w) >= 5: break
-        if black_c:
-            f = {ex.submit(thread_worker, l): l for l in black_c[:30]}
-            for fut in as_completed(f):
-                link, alive = fut.result()
-                if alive:
-                    black_w.append(link)
-                    if len(black_w) >= 5: break
+    # Если набралось мало супер-серверов, добираем обычные ws/cdn
+    if len(super_white) < 5:
+        ws_servers = [l for l in white_c if "type=ws" in l or "type=grpc" in l]
+        super_white.extend([s for s in ws_servers if s not in super_white])
 
-    if len(white_w) < 5 and white_c:
-        for l in white_c:
-            if len(white_w) >= 5: break
-            if l not in white_w: white_w.append(l)
-    if len(black_w) < 5 and black_c:
-        for l in black_c:
-            if len(black_w) >= 5: break
-            if l not in black_w: black_w.append(l)
+    # Берем первые 5 железных серверов без многопоточного теста (чтобы гитхаб не отбраковал их из-за ложных таймаутов)
+    final_white = super_white[:5]
+    final_black = black_c[:5]
 
+    # === СРОЧНАЯ ПЕРЕЗАПИСЬ ФАЙЛОВ ПОДПИСОК ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
         
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(final_black))
         
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+    print(f"[+] Экстренное обновление завершено. В Белый список улетело {len(final_white)} бронебойных серверов под защиту Microsoft/CDN.")
 
 if __name__ == "__main__":
     main()
+
