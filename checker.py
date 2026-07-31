@@ -1,5 +1,6 @@
 import ssl, json, random, socket, requests, time, os
 from urllib.parse import urlparse, parse_qs, urlunparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
 URLS_WHITE = [
@@ -12,6 +13,7 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
+# Огромный пул из 60+ "бессмертных" SNI
 TRUSTED_SNIS = [
     "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
     "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
@@ -56,62 +58,57 @@ RUSSIAN_PREFIXES = [
     "217.23.", "217.66.", "217.73.", "217.107.", "217.114.", "217.118.", "217.150.", "217.174."
 ]
 
-def is_russian_ip(ip_or_domain):
-    if not ip_or_domain: return False
-    target_ip = ip_or_domain
-    if not ip_or_domain.replace('.', '').isdigit():
-        try: target_ip = socket.gethostbyname(ip_or_domain)
-        except: return True
-    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
+def is_russian_ip(ip):
+    if not ip: return False
+    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
-        first_octet = int(target_ip.split('.')[0])
+        first_octet = int(ip.split('.')[0])
         if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
-        if first_octet == 128 and 68 <= int(target_ip.split('.')[1]) <= 75: return True
+        if first_octet == 128 and 68 <= int(ip.split('.')[1]) <= 75: return True
     except: pass
-    return target_ip.endswith(".ru") or target_ip.endswith(".su") or target_ip.endswith(".by")
+    return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
 
-def parse_source_text(text, used_uuids, is_white_list=False):
+def get_stability_score(link):
+    try:
+        parsed = urlparse(link)
+        sni_list = parse_qs(parsed.query).get("sni", [""])
+        sni = sni_list[0].lower() if sni_list else ""
+        if any(t in sni for t in TRUSTED_SNIS): return 0
+    except: pass
+    return 1
+
+def test_link(link):
+    try:
+        parsed = urlparse(link)
+        ip, port = parsed.hostname, int(parsed.port)
+        with socket.create_connection((ip, port), timeout=3) as sock:
+            sni_list = parse_qs(parsed.query).get("sni", [ip])
+            sni = sni_list[0] if sni_list else ip
+            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
+    except: return False
+
+def parse_source_text(text, used_uuids, check_russia=True):
     candidates, used_ips, count = [], set(), 0
     for line in text.splitlines():
         line_clean = line.strip()
         if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
             try:
                 parsed = urlparse(line_clean)
-                ip = parsed.hostname
-                username = parsed.username
-                
-                # Исправленный безопасный строковый сплит с индексами [0] для нетипичных ссылок
-                if not ip:
-                    try:
-                        ip = line_clean.split('@')[-1].split(':')[0]
-                        username = line_clean.split('://')[-1].split('@')[0]
-                    except: continue
-
-                if not ip or ip in used_ips or username in used_uuids: continue
-                
-                # Достаем SNI домена
-                sni_list = parse_qs(parsed.query).get("sni", [""])
-                sni = sni_list[0].lower() if sni_list else ""
-                
-                # Условие выживания: Если это белый список и SNI маскируется под Microsoft, 
-                # то РКН его пропустит, игнорируем бан РФ
-                if is_white_list and any(trusted in sni for trusted in TRUSTED_SNIS):
-                    pass
-                else:
-                    if is_russian_ip(ip): continue
-                
+                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
+                username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
+                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
                 count += 1
-                if count >= 150: break
+                if count >= 100: break
             except: continue
     return candidates
 
+def thread_worker(link): return link, test_link(link)
+
 def main():
-    print("[*] Экстренный боевой запуск парсера под белые списки РКН...")
     raw_white_text, raw_black_text = "", ""
-    
     for url in URLS_WHITE:
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
         except: pass
@@ -120,36 +117,52 @@ def main():
         except: pass
 
     used_uuids = set()
-    white_c = parse_source_text(raw_white_text, used_uuids, is_white_list=True)
-    black_c = parse_source_text(raw_black_text, used_uuids, is_white_list=False)
+    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=True)
+    black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
     
-    # Сортируем вайтлист: двигаем на самый верх сервера с доверенными SNI (Xbox/Microsoft)
-    super_white = []
-    for link in white_c:
-        try:
-            parsed = urlparse(link)
-            sni_list = parse_qs(parsed.query).get("sni", [""])
-            sni = sni_list[0].lower() if sni_list else ""
-            if any(trusted in sni for trusted in TRUSTED_SNIS):
-                super_white.append(link)
-        except: continue
+    white_c.sort(key=get_stability_score)
+    black_c.sort(key=get_stability_score)
+    
+    # Сортировка вайтлиста (WS+CDN на самый верх)
+    ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
+    hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
+    priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
+    other_white = [s for s in white_c if s not in priority_white]
+    white_c = priority_white + other_white
+    
+    black_w, white_w = [], []
 
-    # Если серверов под защиту ИТ-гигантов мало, добираем обычные ws/grpc
-    if len(super_white) < 5:
-        ws_servers = [l for l in white_c if "type=ws" in l or "type=grpc" in l]
-        super_white.extend([s for s in ws_servers if s not in super_white])
+    with ThreadPoolExecutor(max_workers=30) as ex:
+        if white_c:
+            f = {ex.submit(thread_worker, l): l for l in white_c[:30]}
+            for fut in as_completed(f):
+                link, alive = fut.result()
+                if alive:
+                    white_w.append(link)
+                    if len(white_w) >= 5: break
+        if black_c:
+            f = {ex.submit(thread_worker, l): l for l in black_c[:30]}
+            for fut in as_completed(f):
+                link, alive = fut.result()
+                if alive:
+                    black_w.append(link)
+                    if len(black_w) >= 5: break
 
-    # Забиваем лимиты по 5 штук без ломающих многопоточных тестов гитхаба
-    final_white = super_white[:5] if super_white else white_c[:5]
-    final_black = black_c[:5]
+    if len(white_w) < 5 and white_c:
+        for l in white_c:
+            if len(white_w) >= 5: break
+            if l not in white_w: white_w.append(l)
+    if len(black_w) < 5 and black_c:
+        for l in black_c:
+            if len(black_w) >= 5: break
+            if l not in black_w: black_w.append(l)
 
+    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ===
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
-        
+        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(final_black))
-        
-    print(f"[+] Экстренное боевое обновление завершено. Записано Белых: {len(final_white)}, Черных: {len(final_black)}.")
+        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
 
 if __name__ == "__main__":
     main()
