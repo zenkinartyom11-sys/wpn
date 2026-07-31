@@ -1,6 +1,5 @@
 import ssl, json, random, socket, requests, time, os
 from urllib.parse import urlparse, parse_qs, urlunparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
 URLS_WHITE = [
@@ -13,7 +12,6 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
-# Тот самый пул неубиваемых SNI, под защиту которых мы прячем мобильный трафик
 TRUSTED_SNIS = [
     "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
     "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
@@ -66,9 +64,9 @@ def is_russian_ip(ip_or_domain):
         except: return True
     if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
-        first_octet = int(target_ip.split('.'))
+        first_octet = int(target_ip.split('.')[0])
         if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
-        if first_octet == 128 and 68 <= int(target_ip.split('.')) <= 75: return True
+        if first_octet == 128 and 68 <= int(target_ip.split('.')[1]) <= 75: return True
     except: pass
     return target_ip.endswith(".ru") or target_ip.endswith(".su") or target_ip.endswith(".by")
 
@@ -79,28 +77,34 @@ def parse_source_text(text, used_uuids, is_white_list=False):
         if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
             try:
                 parsed = urlparse(line_clean)
-                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')
-                username = parsed.username if parsed.username else parsed.netloc.split('@')
+                ip = parsed.hostname
+                username = parsed.username
                 
+                # Исправленный безопасный строковый сплит с индексами [0] для нетипичных ссылок
+                if not ip:
+                    try:
+                        ip = line_clean.split('@')[-1].split(':')[0]
+                        username = line_clean.split('://')[-1].split('@')[0]
+                    except: continue
+
                 if not ip or ip in used_ips or username in used_uuids: continue
                 
-                # Извлекаем SNI для проверки исключений
+                # Достаем SNI домена
                 sni_list = parse_qs(parsed.query).get("sni", [""])
-                sni = sni_list.lower() if sni_list else ""
+                sni = sni_list[0].lower() if sni_list else ""
                 
-                # ЖЕСТКОЕ ПРАВИЛО: Если это Белый список И сервер маскируется под Microsoft/Xbox, 
-                # то мы пускаем его БЕЗ проверки на русский IP, потому что ТСПУ его пропустит!
+                # Условие выживания: Если это белый список и SNI маскируется под Microsoft, 
+                # то РКН его пропустит, игнорируем бан РФ
                 if is_white_list and any(trusted in sni for trusted in TRUSTED_SNIS):
-                    pass # Пропускаем подсеть в вайтлист, игнорируя проверку РФ
+                    pass
                 else:
-                    # В остальных случаях (для блэклиста) — строго баним РФ
                     if is_russian_ip(ip): continue
                 
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
                 count += 1
-                if count >= 100: break
+                if count >= 150: break
             except: continue
     return candidates
 
@@ -116,26 +120,27 @@ def main():
         except: pass
 
     used_uuids = set()
-    # Передаем флаг is_white_list=True для первой группы, чтобы активировать исключение для Xbox/Microsoft
     white_c = parse_source_text(raw_white_text, used_uuids, is_white_list=True)
     black_c = parse_source_text(raw_black_text, used_uuids, is_white_list=False)
     
-    # === ЭКСТРЕННЫЙ ОТБОР ПОД ТЕХНОЛОГИЧЕСКИЙ ВАЙТЛИСТ РКН ===
+    # Сортируем вайтлист: двигаем на самый верх сервера с доверенными SNI (Xbox/Microsoft)
     super_white = []
     for link in white_c:
         try:
             parsed = urlparse(link)
             sni_list = parse_qs(parsed.query).get("sni", [""])
-            sni = sni_list.lower() if sni_list else ""
+            sni = sni_list[0].lower() if sni_list else ""
             if any(trusted in sni for trusted in TRUSTED_SNIS):
                 super_white.append(link)
         except: continue
 
+    # Если серверов под защиту ИТ-гигантов мало, добираем обычные ws/grpc
     if len(super_white) < 5:
         ws_servers = [l for l in white_c if "type=ws" in l or "type=grpc" in l]
         super_white.extend([s for s in ws_servers if s not in super_white])
 
-    final_white = super_white[:5]
+    # Забиваем лимиты по 5 штук без ломающих многопоточных тестов гитхаба
+    final_white = super_white[:5] if super_white else white_c[:5]
     final_black = black_c[:5]
 
     with open("white_subscription.txt", "w", encoding="utf-8") as f:
@@ -144,7 +149,7 @@ def main():
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(final_black))
         
-    print(f"[+] Экстренное боевое обновление завершено. Белых: {len(final_white)}, Черных: {len(final_black)}.")
+    print(f"[+] Экстренное боевое обновление завершено. Записано Белых: {len(final_white)}, Черных: {len(final_black)}.")
 
 if __name__ == "__main__":
     main()
