@@ -1,11 +1,13 @@
 import ssl, json, random, socket, requests, time, os
 from urllib.parse import urlparse, parse_qs, urlunparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
+# === ТВОИ ССЫЛКИ НА ИСТОЧНИКИ (МОЖНО ДОБАВЛЯТЬ СКОЛЬКО УГОДНО) ===
+# Для Белого списка сделали 4 источника. Вставь в кавычки свои 3-ю и 4-ю ссылки.
 URLS_WHITE = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt", 
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt"
 ]
 
 URLS_BLACK = [
@@ -83,19 +85,6 @@ def get_stability_score(link):
     except: pass
     return 1
 
-def test_link(link):
-    try:
-        parsed = urlparse(link)
-        ip, port = parsed.hostname, int(parsed.port)
-        if not ip: return False
-        with socket.create_connection((ip, port), timeout=2.5) as sock:
-            sni_list = parse_qs(parsed.query).get("sni", [ip])
-            sni = sni_list[0] if sni_list else ip
-            context = ssl._create_unverified_context()
-            with context.wrap_socket(sock, server_hostname=sni): return True
-    except: pass
-    return False
-
 def parse_source_text(text, used_uuids, is_white_list=False):
     candidates, used_ips, count = [], set(), 0
     for line in text.splitlines():
@@ -126,20 +115,22 @@ def parse_source_text(text, used_uuids, is_white_list=False):
                 used_ips.add(ip)
                 candidates.append(line_clean)
                 count += 1
-                if count >= 100: break
+                if count >= 150: break  # Увеличили лимит до 150 для обработки 4-х файлов
             except: continue
     return candidates
-
-def thread_worker(link): return link, test_link(link)
 
 def main():
     print("[*] Экстренный боевой запуск парсера под белые списки РКН...")
     raw_white_text, raw_black_text = "", ""
     
+    # Спокойный цикл, который скачивает ВСЕ прописанные ссылки вайтлиста (хоть 4, хоть 10)
     for url in URLS_WHITE:
+        if not url or "СЮДА_" in url: continue
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
         except: pass
+        
     for url in URLS_BLACK:
+        if not url or "СЮДА_" in url: continue
         try: raw_black_text += "\n" + requests.get(url, timeout=10).text
         except: pass
 
@@ -147,6 +138,10 @@ def main():
     white_c = parse_source_text(raw_white_text, used_uuids, is_white_list=True)
     black_c = parse_source_text(raw_black_text, used_uuids, is_white_list=False)
     
+    white_c.sort(key=get_stability_score)
+    black_c.sort(key=get_stability_score)
+    
+    # Отбор серверов под защиту ИТ-гигантов
     super_white = []
     for link in white_c:
         try:
@@ -170,7 +165,7 @@ def main():
     with open("black_subscription.txt", "w", encoding="utf-8") as f:
         f.write("#profile-title: Черный список (РКН)\n" + "\n".join(final_black))
         
-    print(f"[+] Экстренное боевое обновление завершено. Записано Белых: {len(final_white)}, Черных: {len(final_black)}.")
+    print(f"[+] Экстренное боевое обновление завершено. Скачано из всех источников. Записано Белых: {len(final_white)}, Черных: {len(final_black)}.")
 
 if __name__ == "__main__":
     main()
