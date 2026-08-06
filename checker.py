@@ -4,7 +4,7 @@ from urllib.parse import urlparse, parse_qs, urlunparse
 # === ТВОИ ССЫЛКИ НА ИСТОЧНИКИ (МОЖНО ДОБАВЛЯТЬ СКОЛЬКО УГОДНО) ===
 # Для Белого списка сделали 4 источника. Вставь в кавычки свои 3-ю и 4-ю ссылки.
 URLS_WHITE = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt"
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt", 
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt"
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt"
