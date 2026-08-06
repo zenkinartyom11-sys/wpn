@@ -14,20 +14,22 @@ URLS_BLACK = [
 ]
 
 # Огромный пул из 60+ "бессмертных" SNI
+# Финтех-пул из 60 "неприкасаемых" банковских шлюзов для обхода жесткого вайтлиста
 TRUSTED_SNIS = [
-    "microsoft.com", "apple.com", "icloud.com", "samsung.com", "google.com", "cloudflare.com",
-    "windows.com", "windowsupdate.com", "office.com", "office365.com", "live.com", "skype.com",
-    "android.com", "://google.com", "googleapis.com", "gstatic.com", "ggpht.com",
-    "apple-dns.net", "mzstatic.com", "itunes.com", "digicert.com", "comodo.com",
-    "cloudflare-dns.com", "fastly.net", "akamai.net", "akamaiedge.net", "akamaihd.net",
-    "cloudfront.net", "://amazon.com", "amazonaws.com", "azure.com", "azureedge.net",
-    "visa.com", "mastercard.com", "stripe.com", "paypal.com", "apple-pay.com",
-    "github.com", "githubusercontent.com", "gitlab.com", "docker.com", "docker.io",
-    "adobe.com", "oracle.com", "intel.com", "amd.com", "nvidia.com", "asus.com",
-    "cisco.com", "ibm.com", "hp.com", "dell.com", "lenovo.com", "sony.com",
-    "xiaomi.com", "mi.com", "huawei.com", "oppo.com", "vivo.com", "realme.com",
-    "oneplus.com", "nokia.com", "lg.com", "panasonic.com"
+    "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
+    "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
+    "sagepay.co.uk", "klarna.com", "squareupsandbox.com", "shopify.com", "swift.com",
+    "revolut.com", "wise.com", "westernunion.com", "moneygram.com", "n26.com",
+    "paystat.com", "plaid.com", "finastra.com", "visa.com", "mastercard.com",
+    "americanexpress.com", "discover.com", "jcbco.jp", "unionpayintl.com", "visaeurope.com",
+    "mastercardconnect.com", "hsbc.com", "jpmorganchase.com", "chase.com", "goldmansachs.com",
+    "morganstanley.com", "citibank.com", "citi.com", "bankofamerica.com", "bofa.com",
+    "barclays.com", "db.com", "bnpparibas.com", "ubs.com", "credit-suisse.com",
+    "binance.com", "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info",
+    "etherscan.io", "tronscan.org", "tether.to", "circle.com", "paxos.com",
+    "bitpay.com", "coingecko.com", "coinmarketcap.com", "ledger.com", "trezor.io"
 ]
+
 
 VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
 
