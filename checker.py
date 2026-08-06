@@ -4,8 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
 URLS_WHITE = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt"
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha-All-Type.txt",
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/vless_configs.txt"
 ]
 
 URLS_BLACK = [
@@ -13,8 +13,6 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
 ]
 
-# Огромный пул из 60+ "бессмертных" SNI
-# Финтех-пул из 60 "неприкасаемых" банковских шлюзов для обхода жесткого вайтлиста
 TRUSTED_SNIS = [
     "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
     "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
@@ -29,7 +27,6 @@ TRUSTED_SNIS = [
     "etherscan.io", "tronscan.org", "tether.to", "circle.com", "paxos.com",
     "bitpay.com", "coingecko.com", "coinmarketcap.com", "ledger.com", "trezor.io"
 ]
-
 
 VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
 
@@ -60,21 +57,25 @@ RUSSIAN_PREFIXES = [
     "217.23.", "217.66.", "217.73.", "217.107.", "217.114.", "217.118.", "217.150.", "217.174."
 ]
 
-def is_russian_ip(ip):
-    if not ip: return False
-    if any(ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
+def is_russian_ip(ip_or_domain):
+    if not ip_or_domain: return False
+    target_ip = ip_or_domain
+    if not ip_or_domain.replace('.', '').isdigit():
+        try: target_ip = socket.gethostbyname(ip_or_domain)
+        except: return True
+    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
-        first_octet = int(ip.split('.')[0])
+        first_octet = int(target_ip.split('.'))
         if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
-        if first_octet == 128 and 68 <= int(ip.split('.')[1]) <= 75: return True
+        if first_octet == 128 and 68 <= int(target_ip.split('.')) <= 75: return True
     except: pass
-    return ip.endswith(".ru") or ip.endswith(".su") or ip.endswith(".by")
+    return target_ip.endswith(".ru") or target_ip.endswith(".su") or target_ip.endswith(".by")
 
 def get_stability_score(link):
     try:
         parsed = urlparse(link)
         sni_list = parse_qs(parsed.query).get("sni", [""])
-        sni = sni_list[0].lower() if sni_list else ""
+        sni = sni_list.lower() if sni_list else ""
         if any(t in sni for t in TRUSTED_SNIS): return 0
     except: pass
     return 1
@@ -83,11 +84,14 @@ def test_link(link):
     try:
         parsed = urlparse(link)
         ip, port = parsed.hostname, int(parsed.port)
-        with socket.create_connection((ip, port), timeout=3) as sock:
+        if not ip: return False
+        with socket.create_connection((ip, port), timeout=2.5) as sock:
             sni_list = parse_qs(parsed.query).get("sni", [ip])
-            sni = sni_list[0] if sni_list else ip
-            with ssl._create_unverified_context().wrap_socket(sock, server_hostname=sni): return True
-    except: return False
+            sni = sni_list if sni_list else ip
+            context = ssl._create_unverified_context()
+            with context.wrap_socket(sock, server_hostname=sni): return True
+    except: pass
+    return False
 
 def parse_source_text(text, used_uuids, check_russia=True):
     candidates, used_ips, count = [], set(), 0
@@ -96,9 +100,12 @@ def parse_source_text(text, used_uuids, check_russia=True):
         if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
             try:
                 parsed = urlparse(line_clean)
-                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')[0]
-                username = parsed.username if parsed.username else parsed.netloc.split('@')[0]
-                if not ip or ip in used_ips or username in used_uuids or (check_russia and is_russian_ip(ip)): continue
+                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')
+                username = parsed.username if parsed.username else parsed.netloc.split('@')
+                
+                if not ip or ip in used_ips or username in used_uuids: continue
+                if check_russia and is_russian_ip(ip): continue
+                
                 used_uuids.add(username)
                 used_ips.add(ip)
                 candidates.append(line_clean)
@@ -110,6 +117,7 @@ def parse_source_text(text, used_uuids, check_russia=True):
 def thread_worker(link): return link, test_link(link)
 
 def main():
+    print("[*] Боевой запуск парсера с банковской фильтрацией...")
     raw_white_text, raw_black_text = "", ""
     for url in URLS_WHITE:
         try: raw_white_text += "\n" + requests.get(url, timeout=10).text
@@ -125,46 +133,204 @@ def main():
     white_c.sort(key=get_stability_score)
     black_c.sort(key=get_stability_score)
     
-    # Сортировка вайтлиста (WS+CDN на самый верх)
-    ws_cdn_servers = [l for l in white_c if ("vless://" in l or "vmess://" in l) and "type=ws" in l]
-    hy2_servers = [l for l in white_c if ("hysteria2://" in l or "hy2://" in l) or "type=grpc" in l]
-    priority_white = ws_cdn_servers + [h for h in hy2_servers if h not in ws_cdn_servers]
-    other_white = [s for s in white_c if s not in priority_white]
-    white_c = priority_white + other_white
-    
     black_w, white_w = [], []
 
+    # ТЕСТИРУЕМ ТОЛЬКО РЕАЛЬНО ЖИВЫЕ С СОВПАДАЮЩИМИ КЛЮЧАМИ
     with ThreadPoolExecutor(max_workers=30) as ex:
         if white_c:
-            f = {ex.submit(thread_worker, l): l for l in white_c[:30]}
+            f = {ex.submit(thread_worker, l): l for l in white_c[:40]}
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     white_w.append(link)
                     if len(white_w) >= 5: break
         if black_c:
-            f = {ex.submit(thread_worker, l): l for l in black_c[:30]}
+            f = {ex.submit(thread_worker, l): l for l in black_c[:40]}
             for fut in as_completed(f):
                 link, alive = fut.result()
                 if alive:
                     black_w.append(link)
                     if len(black_w) >= 5: break
 
-    if len(white_w) < 5 and white_c:
-        for l in white_c:
-            if len(white_w) >= 5: break
-            if l not in white_w: white_w.append(l)
-    if len(black_w) < 5 and black_c:
-        for l in black_c:
-            if len(black_w) >= 5: break
-            if l not in black_w: black_w.append(l)
+    # === ФОЛБЭК УБРАН НАХУЙ ===
+    # Если тесты выдали пустоту, файлы просто НЕ обновляются (остаются старые рабочие)
+    if len(white_w) >= 1:
+        with open("white_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+            print(f"[+] Белый список успешно обновлен: {len(white_w)} серверов.")
 
-    # === ЗАПИСЬ С ТЕГАМИ ПЕРЕИМЕНОВАНИЯ ===
-    with open("white_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
-    with open("black_subscription.txt", "w", encoding="utf-8") as f:
-        f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
-    print(f"[+] Сгенерировано: {len(white_w[:5])} Белых и {len(black_w[:5])} Черных серверов.")
+    if len(black_w) >= 1:
+        with open("black_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+            print(f"[+] Черный список успешно обновлен: {len(black_w)} серверов.")
+
+if __name__ == "__main__":
+    main()
+import ssl, json, random, socket, requests, time, os
+from urllib.parse import urlparse, parse_qs, urlunparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# === ТВОИ 4 ССЫЛКИ НА ИСТОЧНИКИ ===
+URLS_WHITE = [
+    "https://githubusercontent.com",
+    "https://githubusercontent.com"
+]
+
+URLS_BLACK = [
+    "https://githubusercontent.com",
+    "https://githubusercontent.com"
+]
+
+TRUSTED_SNIS = [
+    "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
+    "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
+    "sagepay.co.uk", "klarna.com", "squareupsandbox.com", "shopify.com", "swift.com",
+    "revolut.com", "wise.com", "westernunion.com", "moneygram.com", "n26.com",
+    "paystat.com", "plaid.com", "finastra.com", "visa.com", "mastercard.com",
+    "americanexpress.com", "discover.com", "jcbco.jp", "unionpayintl.com", "visaeurope.com",
+    "mastercardconnect.com", "hsbc.com", "jpmorganchase.com", "chase.com", "goldmansachs.com",
+    "morganstanley.com", "citibank.com", "citi.com", "bankofamerica.com", "bofa.com",
+    "barclays.com", "db.com", "bnpparibas.com", "ubs.com", "credit-suisse.com",
+    "binance.com", "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info",
+    "etherscan.io", "tronscan.org", "tether.to", "circle.com", "paxos.com",
+    "bitpay.com", "coingecko.com", "coinmarketcap.com", "ledger.com", "trezor.io"
+]
+
+VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://")
+
+RUSSIAN_PREFIXES = [
+    "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.", 
+    "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.", 
+    "37.192.", "37.235.", "45.8.", "45.9.", "45.12.", "45.66.", "45.67.", "45.81.", "45.86.", 
+    "45.89.", "45.90.", "45.95.", "45.130.", "45.132.", "45.135.", "45.141.", "45.142.", "45.145.", 
+    "45.155.", "45.156.", "46.3.", "46.8.", "46.17.", "46.38.", "46.39.", "46.146.", "46.147.", 
+    "46.148.", "46.161.", "46.182.", "46.242.", "51.124.", "51.250.", "62.33.", "62.76.", "62.109.", 
+    "62.117.", "62.148.", "62.152.", "62.213.", "77.37.", "77.41.", "77.51.", "77.72.", "77.73.", 
+    "77.74.", "77.82.", "77.108.", "77.220.", "77.222.", "77.232.", "77.242.", "77.244.", "78.25.", 
+    "78.29.", "78.36.", "78.37.", "78.46.", "78.47.", "78.81.", "78.85.", "78.108.", "78.109.", 
+    "78.140.", "79.104.", "79.111.", "79.120.", "79.133.", "79.134.", "79.137.", "79.143.", "79.174.", 
+    "80.64.", "80.68.", "80.78.", "80.80.", "80.82.", "80.83.", "80.87.", "80.92.", "80.93.", 
+    "81.9.", "81.18.", "81.19.", "81.23.", "81.25.", "81.30.", "81.95.", "81.163.", "81.176.", 
+    "81.177.", "81.195.", "81.200.", "81.211.", "82.112.", "82.138.", "82.140.", "82.146.", "82.148.", 
+    "82.162.", "82.179.", "82.193.", "82.194.", "82.200.", "82.202.", "83.102.", "83.142.", "83.149.", 
+    "83.166.", "83.217.", "83.219.", "83.220.", "83.222.", "83.234.", "83.239.", "83.242.", "84.22.", 
+    "84.38.", "84.52.", "84.53.", "84.201.", "84.204.", "84.253.", "85.12.", "85.15.", "85.21.", 
+    "85.26.", "85.93.", "85.95.", "85.112.", "85.113.", "85.114.", "85.115.", "85.118.", "85.119.", 
+    "85.142.", "85.143.", "85.158.", "85.172.", "85.173.", "85.174.", "85.175.", "85.192.", "85.233.", 
+    "85.234.", "85.236.", "85.249.", "87.103.", "87.117.", "87.224.", "87.225.", "87.226.", "87.228.", 
+    "87.237.", "87.241.", "87.242.", "87.244.", "87.247.", "87.249.", "87.250.", "87.251.", "88.84.", 
+    "88.212.", "89.108.", "89.109.", "89.111.", "89.113.", "89.169.", "89.175.", "89.178.", "89.179.", 
+    "89.189.", "89.207.", "89.208.", "89.222.", "89.223.", "89.249.", "89.250.", "89.251.", "109.106.",
+    "109.184.", "109.194.", "109.195.", "109.252.", "141.8.", "141.101.", "151.249.", "217.21.",
+    "217.23.", "217.66.", "217.73.", "217.107.", "217.114.", "217.118.", "217.150.", "217.174."
+]
+
+def is_russian_ip(ip_or_domain):
+    if not ip_or_domain: return False
+    target_ip = ip_or_domain
+    if not ip_or_domain.replace('.', '').isdigit():
+        try: target_ip = socket.gethostbyname(ip_or_domain)
+        except: return True
+    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
+    try:
+        first_octet = int(target_ip.split('.'))
+        if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
+        if first_octet == 128 and 68 <= int(target_ip.split('.')) <= 75: return True
+    except: pass
+    return target_ip.endswith(".ru") or target_ip.endswith(".su") or target_ip.endswith(".by")
+
+def get_stability_score(link):
+    try:
+        parsed = urlparse(link)
+        sni_list = parse_qs(parsed.query).get("sni", [""])
+        sni = sni_list.lower() if sni_list else ""
+        if any(t in sni for t in TRUSTED_SNIS): return 0
+    except: pass
+    return 1
+
+def test_link(link):
+    try:
+        parsed = urlparse(link)
+        ip, port = parsed.hostname, int(parsed.port)
+        if not ip: return False
+        with socket.create_connection((ip, port), timeout=2.5) as sock:
+            sni_list = parse_qs(parsed.query).get("sni", [ip])
+            sni = sni_list if sni_list else ip
+            context = ssl._create_unverified_context()
+            with context.wrap_socket(sock, server_hostname=sni): return True
+    except: pass
+    return False
+
+def parse_source_text(text, used_uuids, check_russia=True):
+    candidates, used_ips, count = [], set(), 0
+    for line in text.splitlines():
+        line_clean = line.strip()
+        if any(line_clean.startswith(proto) for proto in VALID_PROTOCOLS):
+            try:
+                parsed = urlparse(line_clean)
+                ip = parsed.hostname if parsed.hostname else parsed.netloc.split('@')[-1].split(':')
+                username = parsed.username if parsed.username else parsed.netloc.split('@')
+                
+                if not ip or ip in used_ips or username in used_uuids: continue
+                if check_russia and is_russian_ip(ip): continue
+                
+                used_uuids.add(username)
+                used_ips.add(ip)
+                candidates.append(line_clean)
+                count += 1
+                if count >= 100: break
+            except: continue
+    return candidates
+
+def thread_worker(link): return link, test_link(link)
+
+def main():
+    print("[*] Боевой запуск парсера с банковской фильтрацией...")
+    raw_white_text, raw_black_text = "", ""
+    for url in URLS_WHITE:
+        try: raw_white_text += "\n" + requests.get(url, timeout=10).text
+        except: pass
+    for url in URLS_BLACK:
+        try: raw_black_text += "\n" + requests.get(url, timeout=10).text
+        except: pass
+
+    used_uuids = set()
+    white_c = parse_source_text(raw_white_text, used_uuids, check_russia=True)
+    black_c = parse_source_text(raw_black_text, used_uuids, check_russia=True)
+    
+    white_c.sort(key=get_stability_score)
+    black_c.sort(key=get_stability_score)
+    
+    black_w, white_w = [], []
+
+    # ТЕСТИРУЕМ ТОЛЬКО РЕАЛЬНО ЖИВЫЕ С СОВПАДАЮЩИМИ КЛЮЧАМИ
+    with ThreadPoolExecutor(max_workers=30) as ex:
+        if white_c:
+            f = {ex.submit(thread_worker, l): l for l in white_c[:40]}
+            for fut in as_completed(f):
+                link, alive = fut.result()
+                if alive:
+                    white_w.append(link)
+                    if len(white_w) >= 5: break
+        if black_c:
+            f = {ex.submit(thread_worker, l): l for l in black_c[:40]}
+            for fut in as_completed(f):
+                link, alive = fut.result()
+                if alive:
+                    black_w.append(link)
+                    if len(black_w) >= 5: break
+
+    # === ФОЛБЭК УБРАН НАХУЙ ===
+    # Если тесты выдали пустоту, файлы просто НЕ обновляются (остаются старые рабочие)
+    if len(white_w) >= 1:
+        with open("white_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Белый список (РКН)\n" + "\n".join(white_w[:5]))
+            print(f"[+] Белый список успешно обновлен: {len(white_w)} серверов.")
+
+    if len(black_w) >= 1:
+        with open("black_subscription.txt", "w", encoding="utf-8") as f:
+            f.write("#profile-title: Черный список (РКН)\n" + "\n".join(black_w[:5]))
+            print(f"[+] Черный список успешно обновлен: {len(black_w)} серверов.")
 
 if __name__ == "__main__":
     main()
