@@ -1,3 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://161773c8-6634-4f5c-98dd-8c1a6c6694ba@80.66.65.45:1505?encryption=none&pbk=HnqIgsSExriczShU5PzdhnNYXfRXq_mqaK006N5yS04&security=reality&serviceName=grpc&sni=gp.x5.ru&type=grpc&fp=android#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D
-vless://112912a9-cedf-485d-b8ed-d8f8d4774437@104.171.132.185:4100?type=ws&path=%2Fv1&host=live.ok.ru#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
+vless://161773c8-6634-4f5c-98dd-8c1a6c6694ba@80.66.65.45:1505?encryption=none&pbk=HnqIgsSExriczShU5PzdhnNYXfRXq_mqaK006N5yS04&security=reality&serviceName=grpc&sni=gp.x5.ru&type=grpc&fp=edge#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%AC%F0%9F%87%A7%20%F0%9F%87%B3%F0%9F%87%B1%20%7C%20%5B%2ACIDR%5D
