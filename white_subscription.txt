@@ -1,4 +1,5 @@
 #profile-title: Белый список (РКН)
-vless://95e8532b-cc69-42d4-9553-e3c23292b15b@45.151.101.103:6443?encryption=none&security=reality&sni=maps.apple.com&pbk=OMlQAFrCMZ3DX0xlnbEZiByLBFzpUE8XJHJsrBzLdlY&sid=2da4299da566b7&type=grpc&authority=&serviceName=your-custom-path&mode=gun&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D
-vless://112912a9-cedf-485d-b8ed-d8f8d4774437@104.171.132.185:4100?type=ws&path=%2Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-vless://e7299042-7d8f-440f-8368-2516b0e69341@201.51.0.38:4100?encryption=none&security=none&type=ws&host=live.ok.ru&path=%2Fv1#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://1d847c48-6327-5865-b242-bf099e69a647@5.178.85.81:8443?type=grpc&security=reality&fp=firefox&pbk=DaIRouGSxxQDEv9WKRxD79b2Vt0fsw4yQOTeAmXUYCM&sid=08&sni=gazeta-business.ru&serviceName=grpc#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%5B%2ACIDR%5D
+vless://d4aad26f-70b6-4411-8517-17f7b4281886@168.222.140.205:2200?encryption=none&type=ws&security=none&path=/v1#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://6c0ced37-dd9c-43f2-b474-6dafe036c44b@104.171.132.128:4100?encryption=none&path=%2Fv1&security=none&type=ws#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://89537879-e550-45e9-ab1c-5e1a11c168f1@45.151.101.67:4100?encryption=none&type=ws&security=none&path=%2Fv1&host=live.ok.ru#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%AC%F0%9F%87%A7%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
