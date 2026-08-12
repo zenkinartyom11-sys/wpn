@@ -1,3 +1,3 @@
 #profile-title: Белый список (РКН)
-vless://e83af88a-a884-48ba-b462-a1edccff15e7@66.90.93.74:8449?encryption=none&path=%2Fapi%2Fv6%2Fconnect&security=tls&sni=gateway-v1.bosx.net&type=ws&fp=android#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D%20Beeline
-vless://155e8dd4-a559-407a-9ea8-13a5e829f066@104.171.133.161:4100?encryption=none&type=ws&sni=tn.tmn141246.ru&path=%252Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://e83af88a-a884-48ba-b462-a1edccff15e7@66.90.93.74:8444?type=ws&security=tls&encryption=none&sni=gateway-v1.bosx.net&path=%2Fapi%2Fv1%2Fconnect&alpn=http%2F1.1&fp=chrome#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20Beeline
+vless://218fd696-e3a2-4c33-b397-a5f13a82969e@45.151.62.156:7443?security=reality&type=grpc&sni=dogs.abvphelp.cc&pbk=aBs0x09cXtjTpsrGb21cJsEmDsaCaC1RPeutNu404V0&serviceName=grpc&sid=6fa13cdb&encryption=none&fp=chrome#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A8%F0%9F%87%AD%20%F0%9F%87%B3%F0%9F%87%B1%20%7C%20%5B%2ACIDR%5D
