@@ -1,6 +1,4 @@
 #profile-title: Белый список (РКН)
-vless://f742f141-6ed5-481a-be9b-2e17e76083db@90.156.218.117:8443?type=grpc&security=reality&pbk=lIYgfvo0lOlm8AC7YLwJxSYOGvjWxARihnkOrfmx0y4&sni=360.yandex.ru&fp=android#%F0%9F%87%B8%F0%9F%87%AA%20Sweden%20%7C%20%5B%2ACIDR%5D%20VK
-vless://20be6e2a-809d-48ba-aa38-69607dcae8cc@46.243.235.77:443?type=grpc&security=reality&pbk=na4liMQYlI_sUt5fxfVoty37p2jNVlG2zUIzpPC95XU&sid=846229eb47b3a5c9&sni=ads.x5.ru&mode=multi&serviceName=api.v2.SyncService%2FStreamUpdates&fp=android#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D%20CDN
-vless://553e3253-c454-431d-a7e6-42bc06ea5e14@62.233.43.86:9893?type=grpc&security=reality&encryption=none&sni=dl.google.com&serviceName=grpc-tunnel&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&fp=chrome#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%5B%2ACIDR%5D
-vless://112912a9-cedf-485d-b8ed-d8f8d4774437@104.171.132.185:4100?type=ws&path=%2Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
-vless://ea535a23-447f-4501-918c-de8a8b376bec@62.113.103.10:4100?type=ws&security=none&path=/v1#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
+vless://553e3253-c454-431d-a7e6-42bc06ea5e14@62.233.43.86:9893?type=grpc&security=reality&encryption=none&sni=dl.google.com&serviceName=grpc-tunnel&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&fp=firefox#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%5B%2ACIDR%5D
+vless://82ae728b-49a7-4b86-8976-1125da20cd6b@186.246.6.234:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://9b4ba157-f60b-4a5b-b326-4d561eb826d4@77.95.201.235:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
