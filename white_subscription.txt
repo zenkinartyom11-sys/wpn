@@ -1,6 +1,3 @@
 #profile-title: Белый список (РКН)
-vless://553e3253-c454-431d-a7e6-42bc06ea5e14@45.151.30.127:9872?type=grpc&headerType=none&security=reality&encryption=none&sni=dl.google.com&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&sid=aabbccdd&serviceName=grpc-tunnel&fp=edge#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-vless://155e8dd4-a559-407a-9ea8-13a5e829f066@168.222.140.236:4100?encryption=none&type=ws&path=%252Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-vless://737572bf-24d1-4465-aca9-6675f016a9f6@104.171.137.176:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-vless://55009b9b-7b9c-4830-86c6-cb058a7a2e2f@147.45.235.14:2200?type=ws&security=none&encryption=none&path=%2Fv1&headerType=none#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
-vless://eb135f2b-4b9e-4abb-9a89-78242613da61@5.129.252.140:4100?encryption=none&type=ws&security=none&path=%2Fv1&host=live.ok.ru#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
+vless://553e3253-c454-431d-a7e6-42bc06ea5e14@45.151.30.127:9872?encryption=none&mode=gun&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&security=reality&serviceName=grpc-tunnel&sid=aabbccdd&sni=dl.google.com&type=grpc&fp=chrome#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D
+vless://82ae728b-49a7-4b86-8976-1125da20cd6b@186.246.6.234:2200?type=ws&security=none&path=/v1#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%5B%2ACIDR%5D
