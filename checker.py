@@ -11,8 +11,8 @@ URLS_WHITE = [
 ]
 
 URLS_BLACK = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt"
+    "https://raw.githubusercontent.com/zieng2/wl/refs/heads/main/vless_universal.txt",
+    "https://raw.githubusercontent.com/zieng2/wl/refs/heads/main/vless_lite.txt"
 ]
 
 # Пул из 60 финтех-доменов, которые РКН не сможет зажать на ТСПУ
