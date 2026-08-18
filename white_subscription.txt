@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://746c4004-1d8f-4541-8e8a-533213d8a863@66.90.93.74:8449?encryption=none&path=%2Fapi%2Fv6%2Fconnect&security=tls&sni=gateway-v1.bosx.net&type=ws&fp=chrome#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D%20Beeline
+vless://746c4004-1d8f-4541-8e8a-533213d8a863@66.90.93.74:8449?encryption=none&path=%2Fapi%2Fv6%2Fconnect&security=tls&sni=gateway-v1.bosx.net&type=ws&fp=firefox#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D%20Beeline
