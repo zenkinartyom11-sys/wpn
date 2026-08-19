@@ -1,2 +1,1 @@
-#profile-title: Белый список (РКН)
-vless://9b5d42a0-6653-4959-8fa6-6232df458023@81.94.148.66:443?encryption=none&path=%2Fws%2F&security=tls&sni=exit-nl-2.rog-self.co.uk&type=ws&fp=chrome#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20CDN
+#profile-title: Белый список (Казахстан)
