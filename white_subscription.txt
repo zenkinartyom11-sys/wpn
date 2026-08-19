@@ -1,3 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://af2a0c18-b08c-471f-baa3-259ac2ce3a85@tr3.wba-pn.ru:443?type=ws&security=tls&sni=tr3.wba-pn.ru&fp=chrome#%F0%9F%87%B9%F0%9F%87%B7%20Turkey%20%7C%20%5B%2ACIDR%5D
-vless://af412668-578c-4296-bc8c-8fac6a8d9003@72.56.243.125:4100?encryption=none&type=ws&security=none&path=%2Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://cbe5611f-392b-4ec3-9d8b-5bbe59c0fa68@62.233.43.35:5443?type=grpc&security=tls&sni=de2.frost-api.com&mode=gun&serviceName=media.playback.v1.SessionGateway&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
