@@ -1,3 +1,2 @@
 #profile-title: Белый список (РКН)
-hysteria2://391f093f-85fc-473d-abe2-ea607b9ff567@46.243.235.23:8443?sni=quic.tyr-agentstvo.tech#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B5%F0%9F%87%B1%20%5B%2ACIDR%5D%20CDN
-vless://6bdd905e-78d6-4ed2-8dcd-d006e5cc1c70@77.95.203.224:443?encryption=none&flow=xtls-rprx-vision&pbk=x_Xq88pDWx7xLRYLUiSF0KrH7nPyt_Fy0w-E70dTr3A&security=reality&sid=d4dbb62d53cd16ec&sni=foodnetwork.com&type=tcp&fp=android#%F0%9F%87%AC%F0%9F%87%A7%20United%20Kingdom%20%7C%20%5B%2ACIDR%5D
+vless://2cd5f052-6455-4153-b7d3-0545184dc64c@5.129.215.34:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
