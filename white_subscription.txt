@@ -1,3 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://f6da8274-44be-4599-a8d8-66929c980677@72.56.5.183:443?type=grpc&security=reality&pbk=eNvO4-6_VFngHHC6D5AhcCpCpOdi5gY7-Srimhh-6Xw&sid=bc5e0c082adcd6be&sni=dl.google.com&serviceName=grpc-tunnel&fp=firefox#%F0%9F%87%AE%F0%9F%87%B9%20Italy%20%5B%2ACIDR%5D
-vless://19bf9ed0-9ca4-446b-bd5a-ead2a135ca03@81.94.148.66:443?type=ws&security=tls&encryption=none&path=%2Fws%2F&sni=exit-nl-2.rog-self.co.uk&headerType=none&fp=android#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20CDN
+vless://9b5d42a0-6653-4959-8fa6-6232df458023@81.94.148.66:443?encryption=none&path=%2Fws%2F&security=tls&sni=exit-nl-2.rog-self.co.uk&type=ws&fp=chrome#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20CDN
