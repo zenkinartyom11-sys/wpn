@@ -1,5 +1,4 @@
 #profile-title: Белый список (РКН)
-vless://20595050-84c7-40e6-b9e3-cf90c99f8a4c@109.107.189.6:443?encryption=none&security=tls&sni=fin4.wba-pn.ru&insecure=0&allowInsecure=0&type=ws&host=fin4.wba-pn.ru&path=%2F&fp=android#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%7C%20%5B%2ACIDR%5D
-vless://03617697-bdf9-4e60-be63-65e0df332da2@85.193.84.49:443?alpn=http%2F1.1&encryption=none&path=%2Fapi%2Fv2%2Fconnect&security=tls&sni=files-x.bosx.net&type=ws&fp=chrome#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%7C%20%F0%9F%8C%90%20%7C%20%5B%2ACIDR%5D
 vless://cbe5611f-392b-4ec3-9d8b-5bbe59c0fa68@62.233.43.35:5443?type=grpc&security=tls&sni=de2.frost-api.com&mode=gun&serviceName=media.playback.v1.SessionGateway&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-vless://3637fb28-8c92-4518-a5d3-95524aef6e90@147.45.99.16:4100?encryption=none&type=ws&security=none&path=%2Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://4829c2f5-f45a-4330-9b3c-d381b9efdbec@104.143.201.196:443?authority=id.pervye.ru&encryption=none&pbk=QZz4tjRkxYsgTZBlRALOQU4O5YnAGtSGkXF8OSX11m8&security=reality&serviceName=ns&sni=id.pervye.ru&type=grpc&fp=chrome#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
+vless://af412668-578c-4296-bc8c-8fac6a8d9003@72.56.243.125:4100?encryption=none&type=ws&security=none&path=%2Fv1&host=live.ok.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
