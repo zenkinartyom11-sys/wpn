@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://b9fa61b2-2049-4e17-bc96-e99c07871afd@msk-5.self-kvn.org:443?type=tcp&security=reality&sni=fomin-clinic.ru&pbk=Y7iH7q2MbNJyGAdTUfX4wFnxgh0dbuyFDI9Z20ABPjE&sid=79fdde3912083809&encryption=none&flow=xtls-rprx-vision&fp=android#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A8%F0%9F%87%A6%20%F0%9F%87%B7%F0%9F%87%BA%20%7C%20%5B%2ACIDR%5D
+vless://03617697-bdf9-4e60-be63-65e0df332da2@85.193.84.49:443?alpn=http%2F1.1&encryption=none&path=%2Fapi%2Fv2%2Fconnect&security=tls&sni=files-x.bosx.net&type=ws&fp=chrome#%F0%9F%87%AB%F0%9F%87%AE%20Finland%20%5B%2ACIDR%5D
