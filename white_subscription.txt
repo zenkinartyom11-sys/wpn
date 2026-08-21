@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://a261baf0-8e37-4ff0-b9d1-7180c570073a@rus.deall.icu:443?type=grpc&headerType=none&security=reality&encryption=none&sni=rus.deall.icu&pbk=Zo3OftHANSWinV-kajh98gqzcjWnkB_q7JPaG87SMGA&spx=%2F&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%5B%2ACIDR%5D
+vless://d4b80eae-4e0d-4211-bec2-2dc03afb3637@46.149.67.129:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
