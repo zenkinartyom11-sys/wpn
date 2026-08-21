@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://fc72e947-b8dd-4de0-9ec7-2b0050c9f83a@109.73.206.166:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru&fp=chrome#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B7%F0%9F%87%BA%20%7C%20%5B%2ACIDR%5D
+vless://8e85752d-c04f-427d-9d70-b10d144c8492@31.177.111.140:443?encryption=none&mode=gun&pbk=W1HS-FMd_ifTXpXHzdLXTGcLRWF7ReGSecd7kdhRF2U&security=reality&serviceName=grpc&sni=m1.vk.ru&type=grpc&fp=chrome#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D
