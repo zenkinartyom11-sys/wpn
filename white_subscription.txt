@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://2c634977-584e-4e1f-b501-1b70c77a6743@78.159.250.33:9002?security=reality&type=grpc&nonce=gqdghdaG&mode=gun&encryption=none&sni=api-maps.yandex.ru&serviceName=grpc-reality&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&fp=android#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20Beeline
+vless://2c634977-584e-4e1f-b501-1b70c77a6743@78.159.250.33:9002?security=reality&type=grpc&nonce=gqdghdaG&mode=gun&encryption=none&sni=api-maps.yandex.ru&serviceName=grpc-reality&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&fp=chrome#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D%20Beeline
