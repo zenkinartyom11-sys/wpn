@@ -1,2 +1,2 @@
 #profile-title: Белый список (РКН)
-vless://14777bd9-56a5-46f6-a94f-826b4800dc05@89.248.192.63:9895?type=grpc&security=reality&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&sid=aabb&sni=dl.google.com&serviceName=grpc-tunnel&spx=%2F&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D
+vless://14777bd9-56a5-46f6-a94f-826b4800dc05@134.0.116.208:9880?type=grpc&security=reality&pbk=bnRIb3Er1i-K6NGGByCO9UbGfOvu43ZoiK7ulPd1SzU&sid=aa&sni=dl.google.com&serviceName=grpc-tunnel&spx=%2F&fp=random#%F0%9F%87%AB%F0%9F%87%B7%20France%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
