@@ -1,5 +1,4 @@
 #profile-title: Белый список (РКН)
-vless://1ba59989-225e-4f1c-ab62-9bd7366009cb@5.35.12.222:22109?encryption=none&flow=xtls-rprx-vision&pbk=LKjl_OublHl2Y8DbIhVgkz7jwnJmzsHrjbes39cmdyQ&security=reality&sid=748d7aa53e2be16b&sni=www.cloudflare.com&type=tcp&fp=edge#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%5B%2ACIDR%5D
-vless://1e77a4ba-1d92-42c2-941f-aa9d0bee9c2f@2.27.54.212:443?encryption=none&flow=xtls-rprx-vision&pbk=yLYyh0xg5ztgfXbGhkMUfMJcoQypJBfxHZ2vMiIThGY&security=reality&sni=www.kinopoisk.ru&type=raw&fp=chrome#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
-vless://d7ff1a6d-529e-4260-aa46-3c8a7fd681f4@139.100.227.176:443?alpn=http%2F1.1&flow=xtls-rprx-vision&host=ya.ru&pbk=Sm9bhIqBASg1A0frr4ogMq47_QfufVAkaY4bp5HhyE8&security=reality&sid=5726b22c209c49&sni=ya.ru&type=tcp&fp=edge#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D
-hysteria2://41f0d6d3-4a45-4635-8225-2abd2284189b@els1.mangshe.xyz:2056?insecure=1&sni=els1.mangshe.xyz#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://0036ae55-1684-4ebc-a52c-32f1fcf0e044@89.104.74.45:8880?type=ws&security=none&sni=89.104.74.45&path=/rutube&host=rutube.serverssharecdn.app#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://a1c04020-0053-449e-8f0d-bfd1de57746f@147.45.185.246:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://aa7d939b-feaa-4ad3-9615-74216f490807@147.45.189.133:2200?encryption=none&type=ws&security=none&path=%2Fv1&host=rzd.ru#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
