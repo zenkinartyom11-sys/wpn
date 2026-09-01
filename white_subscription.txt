@@ -1,3 +1,4 @@
 #profile-title: Белый список (РКН)
-vless://2ae1bbd2-dd81-4737-bbec-6a8c1c74e8f1@147.45.47.58:443?type=tcp&headerType=none&security=reality&encryption=none&sni=abuse.sellflow.org&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&flow=xtls-rprx-vision&fp=edge#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
-hysteria2://19f72087-4591-4d72-930b-2697078ec2be@ru1.xiaoliyu.cyou:4433?insecure=1&sni=ru1.xiaoliyu.cyou#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D
+vless://e41dbbf8-b0ca-4328-a237-1520da5246c1@46.243.234.193:2053?encryption=none&mode=gun&pbk=bBKApM5WgpuMsXoaDD2Umv4K7pc-02P_yfmHClQ-Ong&security=reality&serviceName=grpc-wl&sid=daa26763b27edd53&sni=5post-gate.x5.ru&type=grpc&fp=android#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%5B%2ACIDR%5D%20CDN
+vless://bd7501b8-5c29-4b4d-a060-76446349c835@bz11.wba-pn.ru:2053?type=ws&security=tls&sni=bz11.wba-pn.ru&fp=edge#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%5B%2ACIDR%5D
+vless://141bbdef-a341-4846-aec7-9d6531ff8790@t2xmzpec98.nl.cdnfludelivery.com:447?encryption=none&security=reality&sni=api-maps.yandex.ru&pbk=sCpeAZBGOOE_9CeeXyu3-jl68ODzQjts8gG_ZHk44Qk&sid=d7abeb515312dc2f&allowInsecure=1&type=grpc&authority=api-maps.yandex.ru&serviceName=api-maps.yandex.ru&mode=gun&fp=android#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%7C%20%5B%2ACIDR%5D
