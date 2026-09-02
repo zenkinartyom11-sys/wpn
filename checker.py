@@ -3,15 +3,15 @@ from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === НАСТРОЙКИ ===
-TARGET_COUNT   = 10    # серверов в каждой подписке
-CHECK_TIMEOUT  = 3     # таймаут на TCP+TLS (сек)
-MAX_CHECK      = 80    # максимум серверов на проверку
-CACHE_HOURS    = 6     # если файлы свежие, пропустить запуск
-FETCH_WORKERS  = 50    # потоков на скачивание
-CHECK_WORKERS  = 40    # потоков на проверку
+TARGET_COUNT   = 10
+CHECK_TIMEOUT  = 3
+MAX_CHECK      = 80
+FETCH_WORKERS  = 50
+CHECK_WORKERS  = 40
 
-# === ТВОИ 400 ССЫЛОК (вставь сюда свой массив ALL_SOURCES) ===
+# === ВСТАВЬ ВСЕ 400 ССЫЛОК СЮДА ===
 ALL_SOURCES = [
+    # ... вставь весь свой массив ссылок сюда ...
     "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/yitong2333/proxy-minging/refs/heads/main/v2ray.txt",
     "https://raw.githubusercontent.com/acymz/AutoVPN/refs/heads/main/data/V2.txt",
@@ -283,7 +283,7 @@ TRUSTED_SNIS = [
     "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info", "etherscan.io",
 ]
 
-# !!! ЖЕСТКИЙ ФИЛЬТР: только vless и hysteria2 (hy2) !!!
+# Жёсткий фильтр: только vless и hy2
 VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
 
 RUSSIAN_PREFIXES = [
@@ -326,21 +326,17 @@ def is_russian_ip(ip_or_domain):
     return target_ip.endswith((".ru", ".su", ".by"))
 
 def smart_decode(text):
-    """Распаковывает base64 (включая двойной и склеенные ссылки) и вытаскивает только нужные протоколы."""
+    """Распаковывает base64 (включая двойной) и вытаскивает только vless/hy2."""
     result_lines = []
     for line in text.splitlines():
         line = line.strip()
         if not line: continue
-        
-        # Если строка уже нормальная ссылка
         if any(line.startswith(p) for p in VALID_PROTOCOLS):
             result_lines.append(line)
             continue
-            
-        # Пробуем декодировать как base64
         t = line
         decoded = False
-        for _ in range(3):  # защита от двойного кодирования
+        for _ in range(3):
             try:
                 pad = '=' * (-len(t) % 4)
                 dec = base64.b64decode(t + pad).decode('utf-8', errors='ignore')
@@ -351,12 +347,9 @@ def smart_decode(text):
                 t = dec.strip()
                 if not t: break
             except: break
-                
-        # Если не декодировалось, но внутри есть ссылки (склеенные мусором)
         if not decoded and "://" in line:
             matches = re.findall(r'(vless://[^\s<>"\'`,]+|hysteria2://[^\s<>"\'`,]+|hy2://[^\s<>"\'`,]+)', line)
             result_lines.extend(matches)
-
     return "\n".join(result_lines)
 
 def fetch_one(url):
@@ -368,7 +361,6 @@ def fetch_one(url):
     return ""
 
 def extract_info(line):
-    """Упрощенный парсер только для vless и hy2 (убран vmess JSON)."""
     try:
         parsed = urlparse(line)
         host, port, user = parsed.hostname, parsed.port, parsed.username
@@ -388,9 +380,7 @@ def parse_source_text(text, used_keys, is_white_list=False):
     candidates, seen = [], set()
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
-        # Жесткий фильтр: пропускаем всё, что не vless/hy2
-        if not any(line.startswith(p) for p in VALID_PROTOCOLS):
-            continue
+        if not any(line.startswith(p) for p in VALID_PROTOCOLS): continue
         info = extract_info(line)
         if not info: continue
         host, port, user, sni, security = info
@@ -413,17 +403,13 @@ def test_server(item):
         host, port, user, sni, security = info
         if not host or not port: return None
         sni = sni or host
-
-        # hysteria2 работает по UDP, полноценно из Python без клиента не проверить
         if proto in ('hysteria2', 'hy2'):
             if resolve(host) is None: return None
             return (line, 8.0, has_trusted)
-
         t0 = time.monotonic()
         sock = socket.create_connection((host, port), timeout=CHECK_TIMEOUT)
         tcp_time = time.monotonic() - t0
         score = tcp_time + 0.5
-
         if security in ('tls', 'reality', 'xtls'):
             ctx = ssl._create_unverified_context()
             try: ctx.set_ciphers('DEFAULT@SECLEVEL=0')
@@ -456,20 +442,10 @@ def verify_candidates(candidates, need):
                 if len(alive) >= need * 2: break
     return alive
 
-def files_are_fresh():
-    files = ["white_subscription.txt", "black_subscription.txt"]
-    for f in files:
-        if not os.path.exists(f): return False
-        if time.time() - os.path.getmtime(f) < CACHE_HOURS * 3600: return True
-    return False
-
 def main():
-    print("[*] Парсер v5: жесткий фильтр vless+hy2, авто-декод base64")
+    t_start = time.monotonic()
+    print("[*] Парсер v6: vless+hy2, авто-base64, без кэша")
     print(f"[*] Источников: {len(URLS_WHITE)} белых, {len(URLS_BLACK)} чёрных, {len(URLS_MIXED)} смешанных")
-
-    if files_are_fresh():
-        print(f"[+] Файлы обновлялись меньше {CACHE_HOURS} часов назад. Пропускаем.")
-        return
 
     print("[*] Скачиваю источники...")
     white_urls = URLS_WHITE + URLS_MIXED
@@ -479,7 +455,8 @@ def main():
         white_text = "\n".join(r for r in ex.map(fetch_one, white_urls) if r)
         black_text = "\n".join(r for r in ex.map(fetch_one, black_urls) if r)
 
-    print("[*] Парсинг и фильтрация...")
+    print(f"[*] Скачано байт: белых {len(white_text)}, чёрных {len(black_text)}")
+    print("[*] Парсинг (только vless + hy2)...")
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
@@ -503,14 +480,16 @@ def main():
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
         print(f"[+] Белый список обновлён: {len(final_white)} серверов")
     else:
-        print("[!] Белый список не обновлён — нет живых серверов")
+        print("[!] Белый список не обновлён — нет живых")
 
     if len(final_black) >= 1:
         with open("black_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
         print(f"[+] Чёрный список обновлён: {len(final_black)} серверов")
     else:
-        print("[!] Чёрный список не обновлён — нет живых серверов")
+        print("[!] Чёрный список не обновлён — нет живых")
+
+    print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
 
 if __name__ == "__main__":
     main()
