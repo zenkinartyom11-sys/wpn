@@ -1,13 +1,15 @@
-import ssl, socket, requests, time, base64, re, random
-from urllib.parse import urlparse, parse_qs
+import ssl, socket, requests, time, base64, re, random, json, subprocess, os, signal
+from urllib.parse import urlparse, parse_qs, unquote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-TARGET_COUNT   = 10
-CHECK_TIMEOUT  = 3
-MAX_CHECK      = 50
-FETCH_WORKERS  = 10
-CHECK_WORKERS  = 30
-HTTP_TIMEOUT   = 8
+# === НАСТРОЙКИ ===
+TARGET_COUNT    = 10
+CHECK_TIMEOUT   = 3
+FETCH_WORKERS   = 10
+HANDSHAKE_POOL  = 40     # сколько серверов проверить хендшейками
+REAL_CHECK_POOL = 25     # сколько из них прогнать через реальный xray
+XRAY_TIMEOUT    = 8      # таймаут на реальную проверку
+PRIORITY_COUNTRIES = {"DE", "FI"}  # Германия и Финляндия в приоритете
 
 URLS_WHITE = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
@@ -16,7 +18,6 @@ URLS_WHITE = [
     "https://raw.githubusercontent.com/FLEXIY0/matryoshka-vpn/main/configs/russia_whitelist.txt",
     "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part1.txt",
 ]
-
 URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
@@ -30,8 +31,7 @@ TRUSTED_SNIS = [
     "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
     "klarna.com", "shopify.com", "swift.com", "revolut.com", "wise.com",
     "visa.com", "mastercard.com", "americanexpress.com", "hsbc.com", "chase.com",
-    "goldmansachs.com", "morganstanley.com", "citibank.com", "bankofamerica.com",
-    "barclays.com", "ubs.com", "binance.com", "coinbase.com", "kraken.com",
+    "binance.com", "coinbase.com", "kraken.com",
 ]
 
 VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
@@ -48,7 +48,22 @@ RUSSIAN_PREFIXES = [
     "78.29.", "78.36.", "78.37.", "78.46.", "78.47.", "78.81.", "78.85.", "78.108.", "78.109.",
     "78.140.", "79.104.", "79.111.", "79.120.", "79.133.", "79.134.", "79.137.", "79.143.", "79.174.",
     "80.64.", "80.68.", "80.78.", "80.80.", "80.82.", "80.83.", "80.87.", "80.92.", "80.93.",
+    "81.9.", "81.18.", "81.19.", "81.23.", "81.25.", "81.30.", "81.95.", "81.163.", "81.176.",
+    "81.177.", "81.195.", "81.200.", "81.211.", "82.112.", "82.138.", "82.140.", "82.146.", "82.148.",
+    "82.162.", "82.179.", "82.193.", "82.194.", "82.200.", "82.202.", "83.102.", "83.142.", "83.149.",
+    "83.166.", "83.217.", "83.219.", "83.220.", "83.222.", "83.234.", "83.239.", "83.242.", "84.22.",
+    "84.38.", "84.52.", "84.53.", "84.201.", "84.204.", "84.253.", "85.12.", "85.15.", "85.21.",
+    "85.26.", "85.93.", "85.95.", "85.112.", "85.113.", "85.114.", "85.115.", "85.118.", "85.119.",
+    "85.142.", "85.143.", "85.158.", "85.172.", "85.173.", "85.174.", "85.175.", "85.192.", "85.233.",
+    "85.234.", "85.236.", "85.249.", "87.103.", "87.117.", "87.224.", "87.225.", "87.226.", "87.228.",
+    "87.237.", "87.241.", "87.242.", "87.244.", "87.247.", "87.249.", "87.250.", "87.251.", "88.84.",
+    "88.212.", "89.108.", "89.109.", "89.111.", "89.113.", "89.169.", "89.175.", "89.178.", "89.179.",
+    "89.189.", "89.207.", "89.208.", "89.222.", "89.223.", "89.249.", "89.250.", "89.251.", "109.106.",
+    "109.184.", "109.194.", "109.195.", "109.252.", "141.8.", "141.101.", "151.249.", "217.21.",
+    "217.23.", "217.66.", "217.73.", "217.107.", "217.114.", "217.118.", "217.150.", "217.174.",
 ]
+
+XRAY_PATH = "./xray" if os.path.exists("./xray") else "xray"
 
 _dns_cache = {}
 def resolve(host):
@@ -80,18 +95,15 @@ def smart_decode(text):
         line = line.strip()
         if not line: continue
         if any(line.startswith(p) for p in VALID_PROTOCOLS):
-            result_lines.append(line)
-            continue
-        t = line
-        decoded = False
+            result_lines.append(line); continue
+        t = line; decoded = False
         for _ in range(3):
             try:
                 pad = '=' * (-len(t) % 4)
                 dec = base64.b64decode(t + pad).decode('utf-8', errors='ignore')
                 if any(p in dec for p in VALID_PROTOCOLS):
                     result_lines.extend([l.strip() for l in dec.splitlines() if l.strip()])
-                    decoded = True
-                    break
+                    decoded = True; break
                 t = dec.strip()
                 if not t: break
             except: break
@@ -102,14 +114,13 @@ def smart_decode(text):
 
 def fetch_one(url):
     try:
-        r = requests.get(url, timeout=HTTP_TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             return smart_decode(r.text.lstrip('\ufeff'))
     except: pass
     return ""
 
 def extract_info(line):
-    """Возвращает (host, port, user, sni, security, typ, path, pbk) или None."""
     try:
         parsed = urlparse(line)
         host, port, user = parsed.hostname, parsed.port, parsed.username
@@ -133,168 +144,238 @@ def parse_source_text(text, used_keys, is_white_list=False):
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
         if not any(line.startswith(p) for p in VALID_PROTOCOLS): continue
+        proto = line.split('://', 1)[0]
+        if proto in ('hysteria2', 'hy2'): continue  # hy2 не проверяем через xray
         info = extract_info(line)
         if not info: continue
         host, port, user, sni, security, typ, path, pbk = info
         key = (user, host, port)
         if key in seen or key in used_keys: continue
-        
-        # ЖЁСТКИЙ ФИЛЬТР: Reality без ключа = мёртвый, отбрасываем сразу
-        if security == 'reality' and not pbk:
-            continue
-        
+        if security == 'reality' and not pbk: continue
         has_trusted = any(t in sni for t in TRUSTED_SNIS)
         if not (is_white_list and has_trusted):
             if is_russian_ip(host): continue
-        seen.add(key)
-        used_keys.add(key)
+        seen.add(key); used_keys.add(key)
         candidates.append((line, has_trusted))
     return candidates
 
-def test_server(item):
-    """Проверяет живость сервера. Возвращает (ссылка, score, has_trusted) или None."""
+# === ЭТАП 1: быстрый отсев хендшейками ===
+def handshake_check(item):
     line, has_trusted = item
     try:
-        proto = line.split('://', 1)[0]
         info = extract_info(line)
         if not info: return None
         host, port, user, sni, security, typ, path, pbk = info
         if not host or not port: return None
         sni = sni or host
-        
-        # hy2 работает по UDP, из Python не проверить — низкий приоритет
-        if proto in ('hysteria2', 'hy2'):
-            if resolve(host) is None: return None
-            return (line, 8.0, has_trusted)
-        
-        # Reality без ключа — мёртвый
-        if security == 'reality' and not pbk:
-            return None
-        
+        if security == 'reality' and not pbk: return None
         t0 = time.monotonic()
         sock = socket.create_connection((host, port), timeout=CHECK_TIMEOUT)
-        
-        # Для WS с TLS: проверяем реальный путь через HTTP-запрос
-        if typ == 'ws' and security == 'tls':
-            ws_path = path if path else '/'
-            request = (
-                f"GET {ws_path} HTTP/1.1\r\n"
-                f"Host: {sni}\r\n"
-                f"Upgrade: websocket\r\n"
-                f"Connection: Upgrade\r\n"
-                f"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
-                f"Sec-WebSocket-Version: 13\r\n\r\n"
-            )
-            try:
-                sock.sendall(request.encode())
-                sock.settimeout(CHECK_TIMEOUT)
-                response = sock.recv(1024).decode('utf-8', errors='ignore')
-                sock.close()
-                
-                # 404 = путь неверный, сервер мёртв
-                if '404' in response:
-                    return None
-                # 101 или 403 или 400 = сервер жив (может требовать авторизацию)
-                if any(code in response for code in ['101', '403', '400', '200']):
-                    score = time.monotonic() - t0
-                    return (line, score, has_trusted)
-                # Любой другой ответ — мёртвый
-                return None
-            except Exception:
-                try: sock.close()
-                except: pass
-                return None
-        
-        # Для остальных протоколов — стандартный TLS-хендшейк
-        score = time.monotonic() - t0 + 0.5
         if security in ('tls', 'reality', 'xtls'):
             ctx = ssl._create_unverified_context()
             try: ctx.set_ciphers('DEFAULT@SECLEVEL=0')
             except: pass
             try:
                 sock.settimeout(CHECK_TIMEOUT)
-                with ctx.wrap_socket(sock, server_hostname=sni):
-                    score = time.monotonic() - t0
+                with ctx.wrap_socket(sock, server_hostname=sni): pass
                 sock = None
-            except Exception:
+            except:
                 if security != 'reality':
                     try: sock.close()
                     except: pass
                     return None
-                score = time.monotonic() - t0 + 2.0
         if sock:
             try: sock.close()
             except: pass
-        
-        # Отбрасываем медленные/перегруженные сервера
-        if score > CHECK_TIMEOUT:
-            return None
-        
+        score = time.monotonic() - t0
+        if score > CHECK_TIMEOUT: return None
         return (line, score, has_trusted)
-    except Exception:
-        return None
+    except: return None
 
-def verify_candidates(candidates, need):
+# === ЭТАП 2: конвертация vless:// в конфиг xray ===
+def vless_to_xray_config(link, local_port):
+    parsed = urlparse(link)
+    uuid = parsed.username
+    host = parsed.hostname
+    port = parsed.port
+    q = parse_qs(parsed.query)
+    g = lambda k, d="": (q.get(k, [d]) or [d])[0]
+    
+    security = g("security", "none")
+    typ = g("type", "tcp")
+    sni = g("sni", host)
+    pbk = g("pbk")
+    sid = g("sid")
+    fp = g("fp", "chrome")
+    flow = g("flow")
+    path = g("path", "/")
+    host_header = g("host", sni)
+    service_name = g("serviceName", "")
+    encryption = g("encryption", "none")
+    
+    user_obj = {"id": uuid, "encryption": encryption or "none"}
+    if flow: user_obj["flow"] = flow
+    
+    outbound = {
+        "protocol": "vless",
+        "settings": {"vnext": [{"address": host, "port": port, "users": [user_obj]}]},
+        "streamSettings": {"network": typ, "security": security if security != "none" else "none"}
+    }
+    ss = outbound["streamSettings"]
+    
+    if security == "reality":
+        ss["realitySettings"] = {
+            "serverName": sni, "fingerprint": fp, "publicKey": pbk,
+            "shortId": sid, "spiderX": "/"
+        }
+    elif security == "tls":
+        ss["tlsSettings"] = {"serverName": sni, "allowInsecure": True}
+    
+    if typ == "ws":
+        ss["wsSettings"] = {"path": path, "headers": {"Host": host_header}}
+    elif typ == "grpc":
+        ss["grpcSettings"] = {"serviceName": service_name}
+    
+    return {
+        "log": {"loglevel": "none"},
+        "inbounds": [{
+            "listen": "127.0.0.1", "port": local_port,
+            "protocol": "http", "settings": {"allowTransparent": False}
+        }],
+        "outbounds": [outbound, {"protocol": "freedom", "tag": "direct"}]
+    }
+
+# === ЭТАП 3: реальная проверка через xray ===
+def real_check_xray(line, local_port, timeout=XRAY_TIMEOUT):
+    """Запускает xray, делает запрос через прокси, возвращает (скорость, страна)."""
+    config = vless_to_xray_config(line, local_port)
+    config_path = f"/tmp/xray_cfg_{local_port}.json"
+    try:
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+        
+        proc = subprocess.Popen(
+            [XRAY_PATH, "run", "-c", config_path],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            preexec_fn=os.setsid
+        )
+        try:
+            time.sleep(1.2)
+            proxies = {
+                "http": f"http://127.0.0.1:{local_port}",
+                "https": f"http://127.0.0.1:{local_port}"
+            }
+            t0 = time.monotonic()
+            r = requests.get("https://ipwho.is/", proxies=proxies, timeout=timeout)
+            speed = time.monotonic() - t0
+            if r.status_code != 200:
+                return None, None
+            data = r.json()
+            country = data.get("country_code", "")
+            if not country:
+                return None, None
+            return speed, country
+        except Exception:
+            return None, None
+        finally:
+            try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except: pass
+            proc.wait()
+    finally:
+        try: os.remove(config_path)
+        except: pass
+
+def verify_real(candidates, need):
+    """Прогоняет кандидатов через реальный xray, фильтрует по странам, сортирует по скорости."""
     random.shuffle(candidates)
-    to_check = candidates[:MAX_CHECK]
-    alive = []
-    with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as ex:
-        futures = [ex.submit(test_server, c) for c in to_check]
-        for f in as_completed(futures):
-            res = f.result()
-            if res:
-                alive.append(res)
-                if len(alive) >= need * 2:
-                    for fut in futures: fut.cancel()
-                    break
-    return alive
+    to_check = candidates[:REAL_CHECK_POOL]
+    
+    results = []
+    base_port = 15000
+    for i, (line, has_trusted) in enumerate(to_check):
+        port = base_port + i
+        speed, country = real_check_xray(line, port)
+        if speed is not None:
+            priority = 0 if country in PRIORITY_COUNTRIES else 1
+            results.append((line, speed, has_trusted, country, priority))
+            print(f"    [+] {country} | {speed:.2f}s | {line[:60]}...")
+        else:
+            print(f"    [-] МЁРТВ | {line[:60]}...")
+        
+        # Ранняя остановка: если набрали достаточно приоритетных
+        good = [r for r in results if r[4] == 0]
+        if len(good) >= need:
+            break
+    
+    # Сортировка: приоритетные страны (Германия/Финляндия) первыми, потом по скорости
+    results.sort(key=lambda x: (x[4], x[1]))
+    
+    # Если приоритетных стран мало, добираем другими
+    if len(results) < need:
+        print(f"[!] Приоритетных серверов (Германия/Финляндия) мало: {len(results)}")
+    
+    return results
 
 def main():
     t_start = time.monotonic()
-    print(f"[*] Парсер v9: жёсткая проверка живости")
-    print(f"[*] Белых источников: {len(URLS_WHITE)}, чёрных: {len(URLS_BLACK)}")
-
+    print(f"[*] Парсер v10: РЕАЛЬНАЯ проверка через xray")
+    print(f"[*] Приоритет стран: Германия (DE), Финляндия (FI)")
+    
+    if not os.path.exists(XRAY_PATH) and not shutil.which("xray"):
+        print(f"[!] xray не найден. Установите бинарник.")
+        return
+    
     print("[*] Скачиваю источники...")
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
         white_text = "\n".join(r for r in ex.map(fetch_one, URLS_WHITE) if r)
         black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
-
-    print(f"[+] Скачано: белых {len(white_text)} байт, чёрных {len(black_text)} байт")
-    print("[*] Парсинг (только vless + hy2, отбрасываю Reality без ключа)...")
     
+    print("[*] Парсинг...")
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
-
     print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-    print("[*] Проверяю живость (жёсткий режим)...")
-
-    white_alive = verify_candidates(white_c, TARGET_COUNT)
-    black_alive = verify_candidates(black_c, TARGET_COUNT)
-
-    print(f"[+] Живых: белых {len(white_alive)}, чёрных {len(black_alive)}")
-
-    white_alive.sort(key=lambda x: (0 if x[2] else 1, x[1]))
-    black_alive.sort(key=lambda x: x[1])
-
-    final_white = [l for l, s, t in white_alive[:TARGET_COUNT]]
-    final_black = [l for l, s, t in black_alive[:TARGET_COUNT]]
-
+    
+    print("[*] ЭТАП 1: отсев хендшейками...")
+    white_hs, black_hs = [], []
+    with ThreadPoolExecutor(max_workers=30) as ex:
+        f_white = [ex.submit(handshake_check, c) for c in white_c[:HANDSHAKE_POOL]]
+        for f in as_completed(f_white):
+            r = f.result()
+            if r: white_hs.append(r)
+        f_black = [ex.submit(handshake_check, c) for c in black_c[:HANDSHAKE_POOL]]
+        for f in as_completed(f_black):
+            r = f.result()
+            if r: black_hs.append(r)
+    print(f"[+] Прошли хендшейк: белых {len(white_hs)}, чёрных {len(black_hs)}")
+    
+    print("[*] ЭТАП 2: РЕАЛЬНАЯ проверка через xray (медленно, но точно)...")
+    print("--- Белые ---")
+    white_real = verify_real(white_hs, TARGET_COUNT)
+    print("--- Чёрные ---")
+    black_real = verify_real(black_hs, TARGET_COUNT)
+    
+    final_white = [l for l, s, t, c, p in white_real[:TARGET_COUNT]]
+    final_black = [l for l, s, t, c, p in black_real[:TARGET_COUNT]]
+    
+    print(f"\n[+] Итог: белых {len(final_white)}, чёрных {len(final_black)}")
+    
     if final_white:
         with open("white_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
-        print(f"[+] Белый список: {len(final_white)} серверов")
+        print(f"[+] Белый список записан")
     else:
-        print("[!] Белый список не обновлён — нет живых")
-
+        print("[!] Белый список не обновлён")
+    
     if final_black:
         with open("black_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
-        print(f"[+] Чёрный список: {len(final_black)} серверов")
+        print(f"[+] Чёрный список записан")
     else:
-        print("[!] Чёрный список не обновлён — нет живых")
-
+        print("[!] Чёрный список не обновлён")
+    
     print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
 
 if __name__ == "__main__":
+    import shutil
     main()
