@@ -1,17 +1,16 @@
-import ssl, json, socket, requests, time, os, base64, re
+import ssl, socket, requests, time, os, base64, re, random
 from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# === НАСТРОЙКИ ===
 TARGET_COUNT   = 10
-CHECK_TIMEOUT  = 3
-MAX_CHECK      = 80
-FETCH_WORKERS  = 50
-CHECK_WORKERS  = 40
+CHECK_TIMEOUT  = 2      # таймаут TCP+TLS
+MAX_CHECK      = 80     # проверять только 80 случайных серверов из всех
+FETCH_WORKERS  = 50     # потоков на скачивание
+CHECK_WORKERS  = 60     # потоков на проверку
+HTTP_TIMEOUT   = 8      # таймаут на скачивание источника
 
 # === ВСТАВЬ ВСЕ 400 ССЫЛОК СЮДА ===
 ALL_SOURCES = [
-    # ... вставь весь свой массив ссылок сюда ...
     "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/yitong2333/proxy-minging/refs/heads/main/v2ray.txt",
     "https://raw.githubusercontent.com/acymz/AutoVPN/refs/heads/main/data/V2.txt",
@@ -255,7 +254,6 @@ ALL_SOURCES = [
     "https://cyb-portal.com/CP-044",
 ]
 
-# === Автоматическое распределение по URL ===
 WHITE_KEYWORDS = ["white", "wl", "wbl", "whitelist", "whitelistkeys"]
 BLACK_KEYWORDS = ["black", "bl", "blacklist", "non_ru", "euro"]
 
@@ -264,12 +262,9 @@ for url in ALL_SOURCES:
     u = url.lower()
     is_white = any(k in u for k in WHITE_KEYWORDS)
     is_black = any(k in u for k in BLACK_KEYWORDS)
-    if is_white and not is_black:
-        URLS_WHITE.append(url)
-    elif is_black and not is_white:
-        URLS_BLACK.append(url)
-    else:
-        URLS_MIXED.append(url)
+    if is_white and not is_black:    URLS_WHITE.append(url)
+    elif is_black and not is_white:  URLS_BLACK.append(url)
+    else:                            URLS_MIXED.append(url)
 
 TRUSTED_SNIS = [
     "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
@@ -283,7 +278,6 @@ TRUSTED_SNIS = [
     "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info", "etherscan.io",
 ]
 
-# Жёсткий фильтр: только vless и hy2
 VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
 
 RUSSIAN_PREFIXES = [
@@ -301,7 +295,6 @@ RUSSIAN_PREFIXES = [
 ]
 
 _dns_cache = {}
-
 def resolve(host):
     if host in _dns_cache: return _dns_cache[host]
     try: ip = socket.gethostbyname(host)
@@ -326,7 +319,6 @@ def is_russian_ip(ip_or_domain):
     return target_ip.endswith((".ru", ".su", ".by"))
 
 def smart_decode(text):
-    """Распаковывает base64 (включая двойной) и вытаскивает только vless/hy2."""
     result_lines = []
     for line in text.splitlines():
         line = line.strip()
@@ -354,7 +346,7 @@ def smart_decode(text):
 
 def fetch_one(url):
     try:
-        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(url, timeout=HTTP_TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             return smart_decode(r.text.lstrip('\ufeff'))
     except: pass
@@ -377,6 +369,7 @@ def extract_info(line):
     except: return None
 
 def parse_source_text(text, used_keys, is_white_list=False):
+    """Парсит, фильтрует РФ, возвращает ВСЕХ кандидатов (потом случайно выберем 80)."""
     candidates, seen = [], set()
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
@@ -432,37 +425,48 @@ def test_server(item):
     except: return None
 
 def verify_candidates(candidates, need):
+    """Проверяет случайную выборку с ранней остановкой."""
+    # Случайно перемешиваем и берём только MAX_CHECK штук
+    random.shuffle(candidates)
+    to_check = candidates[:MAX_CHECK]
+    
     alive = []
     with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as ex:
-        futures = [ex.submit(test_server, c) for c in candidates[:MAX_CHECK]]
+        futures = [ex.submit(test_server, c) for c in to_check]
         for f in as_completed(futures):
             res = f.result()
             if res:
                 alive.append(res)
-                if len(alive) >= need * 2: break
+                # Ранняя остановка: набрали достаточно — выходим
+                if len(alive) >= need * 2:
+                    # Отменяем оставшиеся
+                    for fut in futures:
+                        fut.cancel()
+                    break
     return alive
 
 def main():
     t_start = time.monotonic()
-    print("[*] Парсер v6: vless+hy2, авто-base64, без кэша")
+    print(f"[*] Парсер v7: БЫСТРЫЙ (200+ источников, выборка {MAX_CHECK})")
     print(f"[*] Источников: {len(URLS_WHITE)} белых, {len(URLS_BLACK)} чёрных, {len(URLS_MIXED)} смешанных")
 
-    print("[*] Скачиваю источники...")
+    print("[*] Параллельно скачиваю все источники (50 потоков)...")
     white_urls = URLS_WHITE + URLS_MIXED
     black_urls = URLS_BLACK + URLS_MIXED
 
+    t_fetch = time.monotonic()
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
         white_text = "\n".join(r for r in ex.map(fetch_one, white_urls) if r)
         black_text = "\n".join(r for r in ex.map(fetch_one, black_urls) if r)
+    print(f"[+] Скачано за {time.monotonic()-t_fetch:.1f}с: белых {len(white_text)} байт, чёрных {len(black_text)} байт")
 
-    print(f"[*] Скачано байт: белых {len(white_text)}, чёрных {len(black_text)}")
     print("[*] Парсинг (только vless + hy2)...")
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
 
-    print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-    print("[*] Проверяю живость (TCP + TLS)...")
+    print(f"[*] Всего кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
+    print(f"[*] Выбираю случайно {MAX_CHECK} из каждого и проверяю (60 потоков)...")
 
     white_alive = verify_candidates(white_c, TARGET_COUNT)
     black_alive = verify_candidates(black_c, TARGET_COUNT)
@@ -475,21 +479,21 @@ def main():
     final_white = [l for l, s, t in white_alive[:TARGET_COUNT]]
     final_black = [l for l, s, t in black_alive[:TARGET_COUNT]]
 
-    if len(final_white) >= 1:
+    if final_white:
         with open("white_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
         print(f"[+] Белый список обновлён: {len(final_white)} серверов")
     else:
         print("[!] Белый список не обновлён — нет живых")
 
-    if len(final_black) >= 1:
+    if final_black:
         with open("black_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
         print(f"[+] Чёрный список обновлён: {len(final_black)} серверов")
     else:
         print("[!] Чёрный список не обновлён — нет живых")
 
-    print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
+    print(f"[*] Общее время: {time.monotonic() - t_start:.1f} сек")
 
 if __name__ == "__main__":
     main()
