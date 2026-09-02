@@ -292,7 +292,7 @@ def verify_real(candidates, need):
     
     results = []
     base_port = 15000
-    for i, (line, has_trusted) in enumerate(to_check):
+    for i, (line, _score, has_trusted) in enumerate(to_check):  # <-- ИСПРАВЛЕНО: 3 значения
         port = base_port + i
         speed, country = real_check_xray(line, port)
         if speed is not None:
@@ -307,10 +307,9 @@ def verify_real(candidates, need):
         if len(good) >= need:
             break
     
-    # Сортировка: приоритетные страны (Германия/Финляндия) первыми, потом по скорости
+    # Сортировка: приоритетные страны первыми, потом по скорости
     results.sort(key=lambda x: (x[4], x[1]))
     
-    # Если приоритетных стран мало, добираем другими
     if len(results) < need:
         print(f"[!] Приоритетных серверов (Германия/Финляндия) мало: {len(results)}")
     
