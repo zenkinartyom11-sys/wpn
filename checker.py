@@ -1,281 +1,38 @@
-import ssl, socket, requests, time, os, base64, re, random
+import ssl, socket, requests, time, base64, re, random
 from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 TARGET_COUNT   = 10
-CHECK_TIMEOUT  = 2      # таймаут TCP+TLS
-MAX_CHECK      = 80     # проверять только 80 случайных серверов из всех
-FETCH_WORKERS  = 50     # потоков на скачивание
-CHECK_WORKERS  = 60     # потоков на проверку
-HTTP_TIMEOUT   = 8      # таймаут на скачивание источника
+CHECK_TIMEOUT  = 2
+MAX_CHECK      = 50
+FETCH_WORKERS  = 10
+CHECK_WORKERS  = 30
+HTTP_TIMEOUT   = 8
 
-# === ВСТАВЬ ВСЕ 400 ССЫЛОК СЮДА ===
-ALL_SOURCES = [
-    "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
-    "https://raw.githubusercontent.com/yitong2333/proxy-minging/refs/heads/main/v2ray.txt",
-    "https://raw.githubusercontent.com/acymz/AutoVPN/refs/heads/main/data/V2.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/YasserDivaR/pr0xy/refs/heads/main/ShadowSocks2021.txt",
-    "https://raw.githubusercontent.com/mohamadfg-dev/telegram-v2ray-configs-collector/refs/heads/main/category/vless.txt",
-    "https://raw.githubusercontent.com/mohamadfg-dev/telegram-v2ray-configs-collector/refs/heads/main/category/vmess.txt",
-    "https://raw.githubusercontent.com/mohamadfg-dev/telegram-v2ray-configs-collector/refs/heads/main/category/trojan.txt",
-    "https://raw.githubusercontent.com/mheidari98/.proxy/refs/heads/main/all",
-    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
-    "https://raw.githubusercontent.com/Kwinshadow/TelegramV2rayCollector/refs/heads/main/sublinks/mix.txt",
-    "https://raw.githubusercontent.com/LalatinaHub/Mineral/refs/heads/master/result/nodes",
-    "https://raw.githubusercontent.com/Pawdroid/Free-servers/refs/heads/main/sub",
-    "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/refs/heads/main/sub/Mix/mix.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/refs/heads/main/sub/mix",
-    "https://raw.githubusercontent.com/Argh94/Proxy-List/refs/heads/main/All_Config.txt",
-    "https://raw.githubusercontent.com/wuqb2i4f/xray-config-toolkit/main/output/base64/mix-uri",
-    "https://raw.githubusercontent.com/AzadNetCH/Clash/refs/heads/main/AzadNet.txt",
-    "https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt",
-    "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt",
-    "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/sub/sub_merge.txt",
-    "https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/refs/heads/main/Best-Results/proxies.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/refs/heads/main/configtg.txt",
-    "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/Hysteria2.txt",
-    "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/Vmess.txt",
-    "https://raw.githubusercontent.com/NiREvil/vless/main/sub/SSTime",
-    "https://raw.githubusercontent.com/Mahdi0024/ProxyCollector/master/sub/proxies.txt",
-    "https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/refs/heads/main/Reality",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/clashmeta.txt",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/clashnode.txt",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/clashstair.txt",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/freeclashnode.txt",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/nodev2ray.txt",
-    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/oneclash.txt",
-    "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/refs/heads/main/server.txt",
-    "https://github.com/mrvcoder/V2rayCollector/raw/refs/heads/main/vless_iran.txt",
-    "https://github.com/vxiaov/free_proxies/raw/refs/heads/main/links.txt",
-    "https://github.com/peasoft/NoMoreWalls/raw/refs/heads/master/list_raw.txt",
-    "https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray/clashnodecc.txt",
-    "https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray/naidounode.txt",
-    "https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray/v2rayshare.txt",
-    "https://raw.githubusercontent.com/chengaopan/AutoMergePublicNodes/refs/heads/master/list_raw.txt",
-    "https://raw.githubusercontent.com/mehran1404/Sub_Link/refs/heads/main/V2RAY-Sub.txt",
-    "https://github.com/nyeinkokoaung404/V2ray-Configs/raw/refs/heads/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vless.txt",
-    "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vmess.txt",
-    "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/trojan.txt",
-    "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/ss.txt",
-    "https://raw.githubusercontent.com/ninjastrikers/v2ray-configs/main/splitted/vmess.txt",
-    "https://raw.githubusercontent.com/ninjastrikers/v2ray-configs/main/splitted/vless.txt",
-    "https://raw.githubusercontent.com/ninjastrikers/v2ray-configs/main/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/ninjastrikers/v2ray-configs/main/splitted/ss.txt",
-    "https://raw.githubusercontent.com/ninjastrikers/v2ray-configs/main/splitted/hysteria.txt",
-    "https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt",
-    "https://raw.githubusercontent.com/rango-cfs/NewCollector/refs/heads/main/v2ray_links.txt",
-    "https://raw.githubusercontent.com/aqayerez/MatnOfficial-VPN/refs/heads/main/MatnOfficial",
-    "https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html",
-    "https://raw.githubusercontent.com/nscl5/5/refs/heads/main/configs/at/all.txt",
-    "https://raw.githubusercontent.com/HosseinKoofi/GO_V2rayCollector/main/mixed_iran.txt",
-    "https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt",
-    "https://raw.githubusercontent.com/55prosek-lgtm/vpn_config_for_russia/refs/heads/main/blacklist.txt",
-    "https://raw.githubusercontent.com/vlesscollector/vlesscollector/refs/heads/main/vless_configs.txt",
-    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/1",
-    "https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/2",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
-    "https://raw.githubusercontent.com/Ai123999/1Mond/refs/heads/main/1Mond_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/2Tues/refs/heads/main/2Tues_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/3Wend/refs/heads/main/3Wend_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/4Thur/refs/heads/main/4Thur_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/5Frid/refs/heads/main/5Frid_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/6Satu/refs/heads/main/6Satu_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/7Sand/refs/heads/main/7Sand_Notorgamers",
-    "https://raw.githubusercontent.com/Ai123999/WhiteeListSub/refs/heads/main/whitelistkeys",
+# === 10 ПРОВЕРЕННЫХ ИСТОЧНИКОВ ===
+URLS_WHITE = [
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
-    "https://raw.githubusercontent.com/ShatakVPN/ConfigForge-V2Ray/main/configs/all.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS%2BAll_RUS.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
-    "https://raw.githubusercontent.com/koteey/Mr.Kerosin-VPN/refs/heads/main/proxies.txt",
-    "https://raw.githubusercontent.com/koteey/Mr.Kerosin-VPN/refs/heads/main/work.proxies.txt",
-    "https://raw.githubusercontent.com/KiryaScript/white-lists/refs/heads/main/githubmirror/26.txt",
-    "https://raw.githubusercontent.com/KiryaScript/white-lists/refs/heads/main/githubmirror/27.txt",
-    "https://raw.githubusercontent.com/KiryaScript/white-lists/refs/heads/main/githubmirror/28.txt",
-    "https://alley.serv00.net/1",
-    "https://alley.serv00.net/2",
-    "https://cdn.jsdelivr.net/gh/EtoNeYaProject/EtoNeYaProject.github.io@refs/heads/main/1",
-    "https://raw.githubusercontent.com/r3zarahimi/tg-v2ray-configs-every2h/main/Config_jo.txt",
     "https://raw.githubusercontent.com/HikaruApps/WhiteLattice/refs/heads/main/subscriptions/main-sub.txt",
-    "https://raw.githubusercontent.com/LimeHi/LimeVPN/refs/heads/main/LimeVPN.txt",
-    "https://raw.githubusercontent.com/FalerChannel/FalerChannel/refs/heads/main/configs",
-    "https://raw.githubusercontent.com/officialdakari/psychic-octo-tribble/refs/heads/main/subwl.txt",
     "https://raw.githubusercontent.com/FLEXIY0/matryoshka-vpn/main/configs/russia_whitelist.txt",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/1Mond",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/2Tues",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/3Wend",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/4Thur",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/5Frid",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/6Satu",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/7Sand",
-    "https://raw.githubusercontent.com/terik21/HiddifySubs-VlessKeys/refs/heads/main/WhiteKeys",
-    "https://raw.githubusercontent.com/gbwltg/gbwl/refs/heads/main/m2EsPqwmlc",
-    "https://sub-001.dns-on-fire.net/api/sub/4z1ggudxMZ4Y8v6s",
-    "https://raw.githubusercontent.com/SilentGhostCodes/WhiteListVpn/refs/heads/main/BlackList.txt",
-    "https://gbr.mydan.online/configs",
-    "https://autosub-config.vercel.app/sub.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/1.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/2.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/3.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/4.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/5.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/6.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/7.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/8.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/9.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/10.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/11.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/12.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/13.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/14.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/15.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/16.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/17.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/18.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/19.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/20.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/21.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/22.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/23.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/24.txt",
-    "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/25.txt",
-    "https://raw.githubusercontent.com/47AgEnT-47/vpn-configs/refs/heads/main/configs.txt",
-    "https://stpcd.link/sub/1ccc074f-b7dc-4dd2-accd-c08653b0fa37#HelloWorld",
-    "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta6.txt",
-    "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta6BL.txt",
-    "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyaktestru.txt",
     "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part1.txt",
-    "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part2.txt",
-    "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part3.txt",
-    "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part4.txt",
-    "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/My_Euro/my_euro_part1.txt",
-    "https://subrostunnel.vercel.app/gen.txt",
-    "https://raw.githubusercontent.com/amindzlvess-boop/SlashVPN/refs/heads/main/vpn.txt",
-    "https://raw.githubusercontent.com/prominbro/KfWL/refs/heads/main/KfWL.txt",
-    "https://raw.githubusercontent.com/prominbro/KfWL/refs/heads/main/KfWLcheck.txt",
-    "https://gitverse.ru/api/repos/kfwlru/base/raw/branch/main/KfWL.txt",
-    "https://gitverse.ru/api/repos/kfwlru/base/raw/branch/main/KfWLcheck.txt",
-    "https://gistpad.com/raw/greywebs-and-vless-vpn-tg-reverse-engineer-s-basement",
-    "https://gistpad.com/raw/mia-vpn-tg-reverse-engineer-s-basement",
-    "https://gitverse.ru/api/repos/bywarm/rser/raw/branch/master/selected.txt",
-    "https://gitverse.ru/api/repos/bywarm/rser/raw/branch/master/merged.txt",
-    "https://raw.githubusercontent.com/prominbro/sub/refs/heads/main/212.txt",
-    "https://obwlsub.vercel.app/wwh",
-    "https://cdn.jsdelivr.net/gh/AbikusSudo/RussiaVPN@main/docs/index.html",
-    "https://alley.serv00.net/other",
-    "https://alley.serv00.net/youtube",
-    "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/main/subscriptions/FreeCFGHub1.txt",
-    "https://gistpad.com/raw/lumar-vpn-all-tg-reverse-engineer-s-basement",
-    "https://raw.githubusercontent.com/StealthNetVPN/StealthNet/refs/heads/main/StealthNetVPN",
-    "https://raw.githubusercontent.com/Mihuil121/vpn-checker-backend-fox/main/checked/My_Euro/euro_black.txt",
-    "https://raw.githubusercontent.com/ArtemAfonasyev/hentai-goida-subscription/refs/heads/main/subscription.txt",
-    "https://raw.githubusercontent.com/ewecrow78-gif/whitelist1/main/list.txt",
-    "https://raw.githubusercontent.com/Temnuk/naabuzil/refs/heads/main/wifi",
-    "https://raw.githubusercontent.com/LimeHi/LimeVPN/refs/heads/main/LimeVPN.txt?v=1",
-    "https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/OutlineVPN%2FOutlineVPN.txt",
-    "https://raw.githubusercontent.com/ShadowException/VPN/refs/heads/main/configs/VPN-cat",
-    "https://raw.githubusercontent.com/luxxuria/harvester/refs/heads/main/non_ru.txt",
-    "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta7.txt",
-    "https://raw.githubusercontent.com/opti4riponty-arch/VLESS-Co/refs/heads/main/VLESS%20%26%20Co",
-    "https://gitverse.ru/api/repos/flaafix/AetrisVPN/raw/branch/master/AetrisVPN.txt",
-    "https://storage.googleapis.com/fptn.org/index.html",
-    "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt",
-    "https://gl.gosapi.com/sub/s_j0kr2PjW0Eow95?providerid=ZOth3lct",
-    "https://sub.new-meme-connet.ru/f088b6f27",
-    "https://app.proxy-slon.shop/v1/service/sub/e754770b-a24c-4093-920a-a22d10b24f75",
-    "https://www.dropbox.com/scl/fi/sk6i6etx9mmx5xm98xu36/VLESS.txt?rlkey=utvnt1nbv07ixxwax6icu7fca&raw=1",
-    "https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/v0id9/vpn-configs/refs/heads/main/vpn.txt",
-    "https://app.proxy-slon.shop/v1/service/sub/eb73dd50-2e6d-447b-baa9-ed6efc81940c",
-    "https://raw.githubusercontent.com/seknei3/psychic-fiestas/refs/heads/main/vpn.txt",
-    "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/hy2.txt",
-    "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/ss.txt",
-    "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/VMESS-DukeMehdi-Configs.txt",
-    "https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/TROJAN-DukeMehdi-Configs.txt",
-    "https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/SS-DukeMehdi-Configs.txt",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/refs/heads/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/Argh73/V2Ray-Vault/refs/heads/main/data/sub/all_configs.txt",
-    "https://raw.githubusercontent.com/kingowow/Kingo-vpn/refs/heads/main/merged_config.txt",
-    "https://raw.githubusercontent.com/redfree8/config-fetcher/refs/heads/main/configs/proxy_configs.txt",
-    "https://gist.githubusercontent.com/pidarasuebisov-afk/e220b44264242d1a97c0908aba091edd/raw/PKN%20cocnyL",
-    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.txt",
-    "https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/Eternity.txt",
-    "https://gist.githubusercontent.com/shirinyannver31-ux/6b16a88d07db0830b49ab8b02536c3b6/raw/VedaVPN.txt",
-    "https://github.com/Delta-Kronecker/V2ray-Config/blob/main/config/all_configs.txt",
-    "https://raw.githubusercontent.com/miladtahanian/V2RayCFGDumper/refs/heads/main/sub.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vless.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vmess.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/ShadowSocks.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Trojan.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Tuic.txt",
-    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Hysteria2.txt",
-    "https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt",
-    "https://cyb-portal.com/CP-001",
-    "https://cyb-portal.com/CP-002",
-    "https://cyb-portal.com/CP-003",
-    "https://cyb-portal.com/CP-005",
-    "https://cyb-portal.com/CP-009",
-    "https://cyb-portal.com/CP-010",
-    "https://cyb-portal.com/CP-012",
-    "https://cyb-portal.com/CP-013",
-    "https://cyb-portal.com/CP-014",
-    "https://cyb-portal.com/CP-015",
-    "https://cyb-portal.com/CP-016",
-    "https://cyb-portal.com/CP-017",
-    "https://cyb-portal.com/CP-018",
-    "https://cyb-portal.com/CP-019",
-    "https://cyb-portal.com/CP-020",
-    "https://cyb-portal.com/CP-021",
-    "https://cyb-portal.com/CP-022",
-    "https://cyb-portal.com/CP-023",
-    "https://cyb-portal.com/CP-024",
-    "https://cyb-portal.com/CP-025",
-    "https://cyb-portal.com/CP-026",
-    "https://cyb-portal.com/CP-027",
-    "https://cyb-portal.com/CP-028",
-    "https://cyb-portal.com/CP-029",
-    "https://cyb-portal.com/CP-030",
-    "https://cyb-portal.com/CP-032",
-    "https://cyb-portal.com/CP-033",
-    "https://cyb-portal.com/CP-034",
-    "https://cyb-portal.com/CP-036",
-    "https://cyb-portal.com/CP-037",
-    "https://cyb-portal.com/CP-039",
-    "https://cyb-portal.com/CP-041",
-    "https://cyb-portal.com/CP-043",
-    "https://cyb-portal.com/CP-044",
 ]
 
-WHITE_KEYWORDS = ["white", "wl", "wbl", "whitelist", "whitelistkeys"]
-BLACK_KEYWORDS = ["black", "bl", "blacklist", "non_ru", "euro"]
-
-URLS_WHITE, URLS_BLACK, URLS_MIXED = [], [], []
-for url in ALL_SOURCES:
-    u = url.lower()
-    is_white = any(k in u for k in WHITE_KEYWORDS)
-    is_black = any(k in u for k in BLACK_KEYWORDS)
-    if is_white and not is_black:    URLS_WHITE.append(url)
-    elif is_black and not is_white:  URLS_BLACK.append(url)
-    else:                            URLS_MIXED.append(url)
+URLS_BLACK = [
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
+    "https://raw.githubusercontent.com/SilentGhostCodes/WhiteListVpn/refs/heads/main/BlackList.txt",
+    "https://raw.githubusercontent.com/Mihuil121/vpn-checker-backend-fox/main/checked/My_Euro/euro_black.txt",
+    "https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt",
+]
 
 TRUSTED_SNIS = [
     "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
     "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
-    "sagepay.co.uk", "klarna.com", "squareupsandbox.com", "shopify.com", "swift.com",
-    "revolut.com", "wise.com", "westernunion.com", "moneygram.com", "n26.com",
-    "plaid.com", "finastra.com", "visa.com", "mastercard.com", "americanexpress.com",
-    "hsbc.com", "jpmorganchase.com", "chase.com", "goldmansachs.com", "morganstanley.com",
-    "citibank.com", "citi.com", "bankofamerica.com", "bofa.com", "barclays.com",
-    "db.com", "bnpparibas.com", "ubs.com", "credit-suisse.com", "binance.com",
-    "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info", "etherscan.io",
+    "klarna.com", "shopify.com", "swift.com", "revolut.com", "wise.com",
+    "visa.com", "mastercard.com", "americanexpress.com", "hsbc.com", "chase.com",
+    "goldmansachs.com", "morganstanley.com", "citibank.com", "bankofamerica.com",
+    "barclays.com", "ubs.com", "binance.com", "coinbase.com", "kraken.com",
 ]
 
 VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
@@ -369,7 +126,6 @@ def extract_info(line):
     except: return None
 
 def parse_source_text(text, used_keys, is_white_list=False):
-    """Парсит, фильтрует РФ, возвращает ВСЕХ кандидатов (потом случайно выберем 80)."""
     candidates, seen = [], set()
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
@@ -425,11 +181,8 @@ def test_server(item):
     except: return None
 
 def verify_candidates(candidates, need):
-    """Проверяет случайную выборку с ранней остановкой."""
-    # Случайно перемешиваем и берём только MAX_CHECK штук
     random.shuffle(candidates)
     to_check = candidates[:MAX_CHECK]
-    
     alive = []
     with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as ex:
         futures = [ex.submit(test_server, c) for c in to_check]
@@ -437,36 +190,30 @@ def verify_candidates(candidates, need):
             res = f.result()
             if res:
                 alive.append(res)
-                # Ранняя остановка: набрали достаточно — выходим
                 if len(alive) >= need * 2:
-                    # Отменяем оставшиеся
-                    for fut in futures:
-                        fut.cancel()
+                    for fut in futures: fut.cancel()
                     break
     return alive
 
 def main():
     t_start = time.monotonic()
-    print(f"[*] Парсер v7: БЫСТРЫЙ (200+ источников, выборка {MAX_CHECK})")
-    print(f"[*] Источников: {len(URLS_WHITE)} белых, {len(URLS_BLACK)} чёрных, {len(URLS_MIXED)} смешанных")
+    print(f"[*] Парсер v8: 10 источников, быстрый режим")
+    print(f"[*] Белых источников: {len(URLS_WHITE)}, чёрных: {len(URLS_BLACK)}")
 
-    print("[*] Параллельно скачиваю все источники (50 потоков)...")
-    white_urls = URLS_WHITE + URLS_MIXED
-    black_urls = URLS_BLACK + URLS_MIXED
-
-    t_fetch = time.monotonic()
+    print("[*] Скачиваю источники...")
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
-        white_text = "\n".join(r for r in ex.map(fetch_one, white_urls) if r)
-        black_text = "\n".join(r for r in ex.map(fetch_one, black_urls) if r)
-    print(f"[+] Скачано за {time.monotonic()-t_fetch:.1f}с: белых {len(white_text)} байт, чёрных {len(black_text)} байт")
+        white_text = "\n".join(r for r in ex.map(fetch_one, URLS_WHITE) if r)
+        black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
 
+    print(f"[+] Скачано: белых {len(white_text)} байт, чёрных {len(black_text)} байт")
     print("[*] Парсинг (только vless + hy2)...")
+    
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
 
-    print(f"[*] Всего кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-    print(f"[*] Выбираю случайно {MAX_CHECK} из каждого и проверяю (60 потоков)...")
+    print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
+    print("[*] Проверяю живость...")
 
     white_alive = verify_candidates(white_c, TARGET_COUNT)
     black_alive = verify_candidates(black_c, TARGET_COUNT)
@@ -482,18 +229,14 @@ def main():
     if final_white:
         with open("white_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
-        print(f"[+] Белый список обновлён: {len(final_white)} серверов")
-    else:
-        print("[!] Белый список не обновлён — нет живых")
+        print(f"[+] Белый список: {len(final_white)} серверов")
 
     if final_black:
         with open("black_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
-        print(f"[+] Чёрный список обновлён: {len(final_black)} серверов")
-    else:
-        print("[!] Чёрный список не обновлён — нет живых")
+        print(f"[+] Чёрный список: {len(final_black)} серверов")
 
-    print(f"[*] Общее время: {time.monotonic() - t_start:.1f} сек")
+    print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
 
 if __name__ == "__main__":
     main()
