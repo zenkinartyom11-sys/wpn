@@ -3,7 +3,7 @@ on:
   push: 
     branches: [main]
   schedule: 
-    - cron: '15 */6 * * *'
+    - cron: '7 * * * *'   # каждый час в :07 минут
   workflow_dispatch:
 
 jobs: 
