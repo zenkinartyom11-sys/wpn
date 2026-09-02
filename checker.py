@@ -3,13 +3,12 @@ from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 TARGET_COUNT   = 10
-CHECK_TIMEOUT  = 2
+CHECK_TIMEOUT  = 3
 MAX_CHECK      = 50
 FETCH_WORKERS  = 10
 CHECK_WORKERS  = 30
 HTTP_TIMEOUT   = 8
 
-# === 10 ПРОВЕРЕННЫХ ИСТОЧНИКОВ ===
 URLS_WHITE = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
@@ -110,6 +109,7 @@ def fetch_one(url):
     return ""
 
 def extract_info(line):
+    """Возвращает (host, port, user, sni, security, typ, path, pbk) или None."""
     try:
         parsed = urlparse(line)
         host, port, user = parsed.hostname, parsed.port, parsed.username
@@ -122,7 +122,10 @@ def extract_info(line):
         q = parse_qs(parsed.query)
         sni = (q.get('sni', ['']) or [''])[0].lower()
         security = (q.get('security', ['']) or [''])[0]
-        return host, port, user, sni, security
+        typ = (q.get('type', ['tcp']) or ['tcp'])[0]
+        path = (q.get('path', ['']) or [''])[0]
+        pbk = (q.get('pbk', ['']) or [''])[0]
+        return host, port, user, sni, security, typ, path, pbk
     except: return None
 
 def parse_source_text(text, used_keys, is_white_list=False):
@@ -132,9 +135,14 @@ def parse_source_text(text, used_keys, is_white_list=False):
         if not any(line.startswith(p) for p in VALID_PROTOCOLS): continue
         info = extract_info(line)
         if not info: continue
-        host, port, user, sni, security = info
+        host, port, user, sni, security, typ, path, pbk = info
         key = (user, host, port)
         if key in seen or key in used_keys: continue
+        
+        # ЖЁСТКИЙ ФИЛЬТР: Reality без ключа = мёртвый, отбрасываем сразу
+        if security == 'reality' and not pbk:
+            continue
+        
         has_trusted = any(t in sni for t in TRUSTED_SNIS)
         if not (is_white_list and has_trusted):
             if is_russian_ip(host): continue
@@ -144,21 +152,61 @@ def parse_source_text(text, used_keys, is_white_list=False):
     return candidates
 
 def test_server(item):
+    """Проверяет живость сервера. Возвращает (ссылка, score, has_trusted) или None."""
     line, has_trusted = item
     try:
         proto = line.split('://', 1)[0]
         info = extract_info(line)
         if not info: return None
-        host, port, user, sni, security = info
+        host, port, user, sni, security, typ, path, pbk = info
         if not host or not port: return None
         sni = sni or host
+        
+        # hy2 работает по UDP, из Python не проверить — низкий приоритет
         if proto in ('hysteria2', 'hy2'):
             if resolve(host) is None: return None
             return (line, 8.0, has_trusted)
+        
+        # Reality без ключа — мёртвый
+        if security == 'reality' and not pbk:
+            return None
+        
         t0 = time.monotonic()
         sock = socket.create_connection((host, port), timeout=CHECK_TIMEOUT)
-        tcp_time = time.monotonic() - t0
-        score = tcp_time + 0.5
+        
+        # Для WS с TLS: проверяем реальный путь через HTTP-запрос
+        if typ == 'ws' and security == 'tls':
+            ws_path = path if path else '/'
+            request = (
+                f"GET {ws_path} HTTP/1.1\r\n"
+                f"Host: {sni}\r\n"
+                f"Upgrade: websocket\r\n"
+                f"Connection: Upgrade\r\n"
+                f"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+                f"Sec-WebSocket-Version: 13\r\n\r\n"
+            )
+            try:
+                sock.sendall(request.encode())
+                sock.settimeout(CHECK_TIMEOUT)
+                response = sock.recv(1024).decode('utf-8', errors='ignore')
+                sock.close()
+                
+                # 404 = путь неверный, сервер мёртв
+                if '404' in response:
+                    return None
+                # 101 или 403 или 400 = сервер жив (может требовать авторизацию)
+                if any(code in response for code in ['101', '403', '400', '200']):
+                    score = time.monotonic() - t0
+                    return (line, score, has_trusted)
+                # Любой другой ответ — мёртвый
+                return None
+            except Exception:
+                try: sock.close()
+                except: pass
+                return None
+        
+        # Для остальных протоколов — стандартный TLS-хендшейк
+        score = time.monotonic() - t0 + 0.5
         if security in ('tls', 'reality', 'xtls'):
             ctx = ssl._create_unverified_context()
             try: ctx.set_ciphers('DEFAULT@SECLEVEL=0')
@@ -168,17 +216,23 @@ def test_server(item):
                 with ctx.wrap_socket(sock, server_hostname=sni):
                     score = time.monotonic() - t0
                 sock = None
-            except:
+            except Exception:
                 if security != 'reality':
                     try: sock.close()
                     except: pass
                     return None
-                score = tcp_time + 2.0
+                score = time.monotonic() - t0 + 2.0
         if sock:
             try: sock.close()
             except: pass
+        
+        # Отбрасываем медленные/перегруженные сервера
+        if score > CHECK_TIMEOUT:
+            return None
+        
         return (line, score, has_trusted)
-    except: return None
+    except Exception:
+        return None
 
 def verify_candidates(candidates, need):
     random.shuffle(candidates)
@@ -197,7 +251,7 @@ def verify_candidates(candidates, need):
 
 def main():
     t_start = time.monotonic()
-    print(f"[*] Парсер v8: 10 источников, быстрый режим")
+    print(f"[*] Парсер v9: жёсткая проверка живости")
     print(f"[*] Белых источников: {len(URLS_WHITE)}, чёрных: {len(URLS_BLACK)}")
 
     print("[*] Скачиваю источники...")
@@ -206,14 +260,14 @@ def main():
         black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
 
     print(f"[+] Скачано: белых {len(white_text)} байт, чёрных {len(black_text)} байт")
-    print("[*] Парсинг (только vless + hy2)...")
+    print("[*] Парсинг (только vless + hy2, отбрасываю Reality без ключа)...")
     
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
 
     print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-    print("[*] Проверяю живость...")
+    print("[*] Проверяю живость (жёсткий режим)...")
 
     white_alive = verify_candidates(white_c, TARGET_COUNT)
     black_alive = verify_candidates(black_c, TARGET_COUNT)
@@ -230,11 +284,15 @@ def main():
         with open("white_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
         print(f"[+] Белый список: {len(final_white)} серверов")
+    else:
+        print("[!] Белый список не обновлён — нет живых")
 
     if final_black:
         with open("black_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
         print(f"[+] Чёрный список: {len(final_black)} серверов")
+    else:
+        print("[!] Чёрный список не обновлён — нет живых")
 
     print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
 
