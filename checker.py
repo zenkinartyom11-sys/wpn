@@ -2,17 +2,16 @@ import ssl, socket, requests, time, base64, re, random, json, subprocess, os, si
 from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# === НАСТРОЙКИ ===
+# === НАСТРОЙКИ (оптимизированы для скорости) ===
 TARGET_COUNT    = 10
 CHECK_TIMEOUT   = 3
 FETCH_WORKERS   = 10
 HANDSHAKE_POOL  = 40
-REAL_CHECK_POOL = 30
-XRAY_TIMEOUT    = 7
-MIN_WORKING     = 3
+REAL_CHECK_POOL = 15      # уменьшено с 20
+XRAY_TIMEOUT    = 5
+XRAY_WORKERS    = 8        # 8 параллельных xray
 PRIORITY_COUNTRIES = {"DE", "FI"}
 
-# === ОБНОВЛЁННЫЕ ИСТОЧНИКИ ===
 URLS_WHITE = [
     "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
@@ -186,7 +185,11 @@ def parse_source_text(text, used_keys, is_white_list=False):
     return candidates
 
 def handshake_check(item):
-    line, has_trusted = item
+    """Быстрая проверка: только хендшейк, без xray. Для старых серверов из файла."""
+    if isinstance(item, tuple):
+        line, has_trusted = item
+    else:
+        line, has_trusted = item, False
     try:
         info = extract_info(line)
         if not info:
@@ -212,16 +215,12 @@ def handshake_check(item):
                 sock = None
             except Exception:
                 if security != 'reality':
-                    try:
-                        sock.close()
-                    except Exception:
-                        pass
+                    try: sock.close()
+                    except: pass
                     return None
         if sock:
-            try:
-                sock.close()
-            except Exception:
-                pass
+            try: sock.close()
+            except: pass
         score = time.monotonic() - t0
         if score > CHECK_TIMEOUT:
             return None
@@ -236,7 +235,6 @@ def vless_to_xray_config(link, local_port):
     port = parsed.port
     q = parse_qs(parsed.query)
     g = lambda k, d="": (q.get(k, [d]) or [d])[0]
-
     security = g("security", "none")
     typ = g("type", "tcp")
     sni = g("sni", host)
@@ -248,18 +246,15 @@ def vless_to_xray_config(link, local_port):
     host_header = g("host", sni)
     service_name = g("serviceName", "")
     encryption = g("encryption", "none")
-
     user_obj = {"id": uuid, "encryption": encryption or "none"}
     if flow:
         user_obj["flow"] = flow
-
     outbound = {
         "protocol": "vless",
         "settings": {"vnext": [{"address": host, "port": port, "users": [user_obj]}]},
         "streamSettings": {"network": typ, "security": security}
     }
     ss = outbound["streamSettings"]
-
     if security == "reality":
         ss["realitySettings"] = {
             "serverName": sni, "fingerprint": fp, "publicKey": pbk,
@@ -267,12 +262,10 @@ def vless_to_xray_config(link, local_port):
         }
     elif security == "tls":
         ss["tlsSettings"] = {"serverName": sni, "allowInsecure": True}
-
     if typ == "ws":
         ss["wsSettings"] = {"path": path, "headers": {"Host": host_header}}
     elif typ == "grpc":
         ss["grpcSettings"] = {"serviceName": service_name}
-
     return {
         "log": {"loglevel": "none"},
         "inbounds": [{
@@ -282,7 +275,7 @@ def vless_to_xray_config(link, local_port):
         "outbounds": [outbound, {"protocol": "freedom", "tag": "direct"}]
     }
 
-def wait_for_port(port, timeout=5):
+def wait_for_port(port, timeout=4):
     start = time.monotonic()
     while time.monotonic() - start < timeout:
         try:
@@ -293,6 +286,7 @@ def wait_for_port(port, timeout=5):
     return False
 
 def real_check_xray(line, local_port, timeout=XRAY_TIMEOUT):
+    """Реальная проверка через xray: поднимает прокси и проверяет трафик."""
     config = vless_to_xray_config(line, local_port)
     config_path = f"/tmp/xray_cfg_{local_port}.json"
     proc = None
@@ -310,126 +304,199 @@ def real_check_xray(line, local_port, timeout=XRAY_TIMEOUT):
             "http": f"http://127.0.0.1:{local_port}",
             "https": f"http://127.0.0.1:{local_port}"
         }
-        speeds = []
-        country = None
-        for attempt in range(2):
-            try:
-                t0 = time.monotonic()
-                r = requests.get("http://ip-api.com/json/?fields=status,countryCode",
-                                 proxies=proxies, timeout=timeout)
-                dt = time.monotonic() - t0
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get("status") == "success":
-                        speeds.append(dt)
-                        country = data.get("countryCode")
-            except Exception:
-                pass
-            time.sleep(0.3)
-        if len(speeds) < 2 or not country:
-            return None, None
-        return sum(speeds) / len(speeds), country
+        try:
+            t0 = time.monotonic()
+            r = requests.get("http://ip-api.com/json/?fields=status,countryCode",
+                             proxies=proxies, timeout=timeout)
+            speed = time.monotonic() - t0
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("status") == "success":
+                    return speed, data.get("countryCode")
+        except Exception:
+            pass
+        return None, None
     except Exception:
         return None, None
     finally:
         if proc:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except Exception:
-                pass
-            try:
-                proc.wait(timeout=2)
-            except Exception:
-                pass
-        try:
-            os.remove(config_path)
-        except Exception:
-            pass
+            try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except: pass
+            try: proc.wait(timeout=1)
+            except: pass
+        try: os.remove(config_path)
+        except: pass
 
-def verify_real(candidates, need):
+def verify_real_parallel(candidates, need):
+    """Параллельная проверка через xray в 8 потоков."""
     random.shuffle(candidates)
     to_check = candidates[:REAL_CHECK_POOL]
     results = []
-    base_port = 15000
-    for i, item in enumerate(to_check):
+    
+    def check_one(item, idx):
         line = item[0]
-        has_trusted = item[2] if len(item) > 2 else False
-        port = base_port + i
+        has_trusted = item[1] if len(item) > 1 else False
+        port = 15000 + idx
         speed, country = real_check_xray(line, port)
-        if speed is not None:
-            priority = 0 if country in PRIORITY_COUNTRIES else 1
-            results.append((line, speed, has_trusted, country, priority))
-            print(f"    [+] {country} | {speed:.2f}s | {line[:55]}...")
-        else:
-            print(f"    [-] МЁРТВ | {line[:55]}...")
-        good = [r for r in results if r[4] == 0]
-        if len(results) >= need * 2 and len(good) >= need:
-            break
+        return (line, speed, has_trusted, country)
+    
+    with ThreadPoolExecutor(max_workers=XRAY_WORKERS) as ex:
+        futures = [ex.submit(check_one, item, i) for i, item in enumerate(to_check)]
+        for f in as_completed(futures):
+            line, speed, has_trusted, country = f.result()
+            if speed is not None:
+                priority = 0 if country in PRIORITY_COUNTRIES else 1
+                results.append((line, speed, has_trusted, country, priority))
+                print(f"    [+] {country} | {speed:.2f}s | {line[:55]}...")
+            else:
+                print(f"    [-] МЁРТВ | {line[:55]}...")
+            good = [r for r in results if r[4] == 0]
+            if len(good) >= need:
+                for fut in futures:
+                    fut.cancel()
+                break
     results.sort(key=lambda x: (x[4], x[1]))
     return results
 
+def read_old_servers(filename):
+    """Читает старые сервера из файла подписки."""
+    if not os.path.exists(filename):
+        return []
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        return [l.strip() for l in lines if l.strip() and not l.startswith("#")]
+    except Exception:
+        return []
+
+def write_subscription(filename, title, servers):
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"#profile-title: {title}\n" + "\n".join(servers))
+
+def merge_new_and_old(new_servers, old_servers, is_white_list):
+    """Объединяет новые рабочие + старые живые. Новые приоритетнее."""
+    if not new_servers and not old_servers:
+        return []
+    
+    # Новые сервера уже отсортированы по (приоритет_страны, скорость)
+    # Берём их как есть
+    new_links = [s[0] for s in new_servers] if new_servers else []
+    new_keys = set()
+    for link in new_links:
+        info = extract_info(link)
+        if info:
+            new_keys.add((info[2], info[0], info[1]))  # (uuid, host, port)
+    
+    # Из старых оставляем только те, которых нет в новых
+    old_to_check = []
+    for link in old_servers:
+        info = extract_info(link)
+        if not info:
+            continue
+        key = (info[2], info[0], info[1])
+        if key in new_keys:
+            continue
+        has_trusted = any(t in info[3] for t in TRUSTED_SNIS) if info[3] else False
+        old_to_check.append((link, has_trusted))
+    
+    # Проверяем старые хендшейком (быстро)
+    print(f"[*] Проверяю {len(old_to_check)} старых серверов из файла (хендшейк)...")
+    old_alive = []
+    if old_to_check:
+        with ThreadPoolExecutor(max_workers=20) as ex:
+            futures = [ex.submit(handshake_check, item) for item in old_to_check]
+            for f in as_completed(futures):
+                r = f.result()
+                if r:
+                    old_alive.append(r)
+    
+    # Сортируем старые по скорости
+    old_alive.sort(key=lambda x: (0 if x[2] else 1, x[1]))
+    old_links = [l for l, s, t in old_alive]
+    
+    print(f"[+] Живых старых: {len(old_links)}")
+    
+    # Объединяем: новые первыми, потом старые живые
+    combined = new_links + old_links
+    
+    # Дедупликация на всякий случай
+    seen, deduped = set(), []
+    for link in combined:
+        info = extract_info(link)
+        if info:
+            key = (info[2], info[0], info[1])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(link)
+    
+    return deduped[:TARGET_COUNT]
+
 def main():
     t_start = time.monotonic()
-    print("[*] Парсер в12: обновлённые источники")
+    print("[*] Парсер в13: параллельный xray + мердж со старыми")
     print("[*] Приоритет: Германия (DE), Финляндия (FI)")
-
+    
     xray_found = os.path.exists(XRAY_PATH) or shutil.which("xray")
     if not xray_found:
-        print("[!] xray не найден — реальная проверка невозможна. Выход.")
+        print("[!] xray не найден. Выход.")
         return
-
+    
     print("[*] Скачиваю источники...")
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
         white_text = "\n".join(r for r in ex.map(fetch_one, URLS_WHITE) if r)
         black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
-
+    
     print("[*] Парсинг...")
     used_keys = set()
     white_c = parse_source_text(white_text, used_keys, is_white_list=True)
     black_c = parse_source_text(black_text, used_keys, is_white_list=False)
     print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-
+    
     print("[*] ЭТАП 1: быстрый отсев хендшейками...")
     white_hs, black_hs = [], []
     with ThreadPoolExecutor(max_workers=30) as ex:
         fw = [ex.submit(handshake_check, c) for c in white_c[:HANDSHAKE_POOL]]
         for f in as_completed(fw):
             r = f.result()
-            if r:
-                white_hs.append(r)
+            if r: white_hs.append(r)
         fb = [ex.submit(handshake_check, c) for c in black_c[:HANDSHAKE_POOL]]
         for f in as_completed(fb):
             r = f.result()
-            if r:
-                black_hs.append(r)
+            if r: black_hs.append(r)
     print(f"[+] Прошли хендшейк: белых {len(white_hs)}, чёрных {len(black_hs)}")
-
-    print("[*] ЭТАП 2: двойная реальная проверка через xray...")
+    
+    print("[*] ЭТАП 2: РЕАЛЬНАЯ проверка через xray (8 потоков параллельно)...")
     print("--- Белые ---")
-    white_real = verify_real(white_hs, TARGET_COUNT)
+    white_real = verify_real_parallel(white_hs, TARGET_COUNT)
     print("--- Чёрные ---")
-    black_real = verify_real(black_hs, TARGET_COUNT)
-
-    final_white = [l for l, s, t, c, p in white_real[:TARGET_COUNT]]
-    final_black = [l for l, s, t, c, p in black_real[:TARGET_COUNT]]
-
-    print(f"\n[+] Найдено рабочих: белых {len(final_white)}, чёрных {len(final_black)}")
-
-    if len(final_white) >= MIN_WORKING:
-        with open("white_subscription.txt", "w", encoding="utf-8") as f:
-            f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
-        print(f"[+] Белый список ОБНОВЛЁН ({len(final_white)} серверов)")
+    black_real = verify_real_parallel(black_hs, TARGET_COUNT)
+    
+    print(f"\n[*] Нашёл новых рабочих: белых {len(white_real)}, чёрных {len(black_real)}")
+    
+    # Читаем старые сервера из файлов
+    old_white = read_old_servers("white_subscription.txt")
+    old_black = read_old_servers("black_subscription.txt")
+    print(f"[*] В файле сейчас: белых {len(old_white)}, чёрных {len(old_black)}")
+    
+    # Мерджим: новые + живые старые
+    print("\n[*] Мердж: новые рабочие + живые старые из файла...")
+    final_white = merge_new_and_old(white_real, old_white, is_white_list=True)
+    final_black = merge_new_and_old(black_real, old_black, is_white_list=False)
+    
+    # ВСЕГДА обновляем файл (даже если новых мало — старые живые дополнят)
+    if final_white:
+        write_subscription("white_subscription.txt", "Белый список (РКН)", final_white)
+        print(f"[+] Белый список ОБНОВЛЁН: {len(final_white)} серверов")
     else:
-        print(f"[!] Белых рабочих < {MIN_WORKING} — файл НЕ обновлён (остались старые)")
-
-    if len(final_black) >= MIN_WORKING:
-        with open("black_subscription.txt", "w", encoding="utf-8") as f:
-            f.write("#profile-title: Чёрный список (РКН)\n" + "\n".join(final_black))
-        print(f"[+] Чёрный список ОБНОВЛЁН ({len(final_black)} серверов)")
+        print("[!] Белый список пуст — нечего записывать")
+    
+    if final_black:
+        write_subscription("black_subscription.txt", "Чёрный список (РКН)", final_black)
+        print(f"[+] Чёрный список ОБНОВЛЁН: {len(final_black)} серверов")
     else:
-        print(f"[!] Чёрных рабочих < {MIN_WORKING} — файл НЕ обновлён (остались старые)")
-
-    print(f"[*] Время: {time.monotonic() - t_start:.1f} сек")
+        print("[!] Чёрный список пуст — нечего записывать")
+    
+    print(f"\n[*] Общее время: {time.monotonic() - t_start:.1f} сек")
 
 if __name__ == "__main__":
     main()
