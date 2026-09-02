@@ -9,21 +9,22 @@ FETCH_WORKERS   = 10
 HANDSHAKE_POOL  = 40
 REAL_CHECK_POOL = 30
 XRAY_TIMEOUT    = 7
-MIN_WORKING     = 3      # минимум рабочих, чтобы обновить файл
+MIN_WORKING     = 3
 PRIORITY_COUNTRIES = {"DE", "FI"}
 
+# === ОБНОВЛЁННЫЕ ИСТОЧНИКИ ===
 URLS_WHITE = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
-    "https://raw.githubusercontent.com/HikaruApps/WhiteLattice/refs/heads/main/subscriptions/main-sub.txt",
+    "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt",
     "https://raw.githubusercontent.com/FLEXIY0/matryoshka-vpn/main/configs/russia_whitelist.txt",
     "https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_part1.txt",
 ]
 URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
-    "https://raw.githubusercontent.com/SilentGhostCodes/WhiteListVpn/refs/heads/main/BlackList.txt",
-    "https://raw.githubusercontent.com/Mihuil121/vpn-checker-backend-fox/main/checked/My_Euro/euro_black.txt",
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/yudou.txt",
+    "https://raw.githubusercontent.com/rango-cfs/NewCollector/refs/heads/main/v2ray_links.txt",
     "https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt",
 ]
 
@@ -184,7 +185,6 @@ def parse_source_text(text, used_keys, is_white_list=False):
         candidates.append((line, has_trusted))
     return candidates
 
-# === ЭТАП 1: быстрый отсев хендшейками ===
 def handshake_check(item):
     line, has_trusted = item
     try:
@@ -229,7 +229,6 @@ def handshake_check(item):
     except Exception:
         return None
 
-# === ЭТАП 2: конвертация в конфиг xray ===
 def vless_to_xray_config(link, local_port):
     parsed = urlparse(link)
     uuid = parsed.username
@@ -293,7 +292,6 @@ def wait_for_port(port, timeout=5):
             time.sleep(0.2)
     return False
 
-# === ЭТАП 3: реальная проверка через xray (двойная) ===
 def real_check_xray(line, local_port, timeout=XRAY_TIMEOUT):
     config = vless_to_xray_config(line, local_port)
     config_path = f"/tmp/xray_cfg_{local_port}.json"
@@ -372,7 +370,7 @@ def verify_real(candidates, need):
 
 def main():
     t_start = time.monotonic()
-    print("[*] Парсер в11: двойная реальная проверка через xray")
+    print("[*] Парсер в12: обновлённые источники")
     print("[*] Приоритет: Германия (DE), Финляндия (FI)")
 
     xray_found = os.path.exists(XRAY_PATH) or shutil.which("xray")
