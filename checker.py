@@ -6,12 +6,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 TARGET_COUNT   = 10    # серверов в каждой подписке
 CHECK_TIMEOUT  = 3     # таймаут на TCP+TLS (сек)
 MAX_CHECK      = 80    # максимум серверов на проверку
-CACHE_HOURS    = 6     # если файлы свежие, пропустить запуск (экономия Actions минут!)
+CACHE_HOURS    = 6     # если файлы свежие, пропустить запуск
 FETCH_WORKERS  = 50    # потоков на скачивание
 CHECK_WORKERS  = 40    # потоков на проверку
 
-# === ВСТАВЬ ВСЕ 400 ССЫЛОК СЮДА ===
-# Код сам разделит их на белые и чёрные по URL
+# === ТВОИ 400 ССЫЛОК (вставь сюда свой массив ALL_SOURCES) ===
 ALL_SOURCES = [
     "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/yitong2333/proxy-minging/refs/heads/main/v2ray.txt",
@@ -254,7 +253,6 @@ ALL_SOURCES = [
     "https://cyb-portal.com/CP-041",
     "https://cyb-portal.com/CP-043",
     "https://cyb-portal.com/CP-044",
-    # Добавляй остальные ссылки сюда по аналогии
 ]
 
 # === Автоматическое распределение по URL ===
@@ -271,9 +269,8 @@ for url in ALL_SOURCES:
     elif is_black and not is_white:
         URLS_BLACK.append(url)
     else:
-        URLS_MIXED.append(url)  # смешанные пойдут в оба списка
+        URLS_MIXED.append(url)
 
-# === Доверенные SNI (банки/крипта) ===
 TRUSTED_SNIS = [
     "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
     "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
@@ -286,7 +283,8 @@ TRUSTED_SNIS = [
     "coinbase.com", "kraken.com", "bitstamp.net", "blockchain.info", "etherscan.io",
 ]
 
-VALID_PROTOCOLS = ("vless://", "vmess://", "hysteria2://", "hy2://", "trojan://", "ss://")
+# !!! ЖЕСТКИЙ ФИЛЬТР: только vless и hysteria2 (hy2) !!!
+VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
 
 RUSSIAN_PREFIXES = [
     "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.",
@@ -305,131 +303,120 @@ RUSSIAN_PREFIXES = [
 _dns_cache = {}
 
 def resolve(host):
-    if host in _dns_cache:
-        return _dns_cache[host]
-    try:
-        ip = socket.gethostbyname(host)
-    except Exception:
-        ip = None
+    if host in _dns_cache: return _dns_cache[host]
+    try: ip = socket.gethostbyname(host)
+    except: ip = None
     _dns_cache[host] = ip
     return ip
 
 def is_russian_ip(ip_or_domain):
-    if not ip_or_domain:
-        return False
+    if not ip_or_domain: return False
     target_ip = ip_or_domain
     if not ip_or_domain.replace('.', '').isdigit():
         target_ip = resolve(ip_or_domain)
-        if not target_ip:
-            return True
-    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES):
-        return True
+        if not target_ip: return True
+    if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES): return True
     try:
         parts = target_ip.split('.')
         if len(parts) >= 4:
             first_octet = int(parts[0])
-            if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195:
-                return True
-            if first_octet == 128 and 68 <= int(parts[1]) <= 75:
-                return True
-    except Exception:
-        pass
+            if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195: return True
+            if first_octet == 128 and 68 <= int(parts[1]) <= 75: return True
+    except: pass
     return target_ip.endswith((".ru", ".su", ".by"))
 
 def smart_decode(text):
-    """Если источник отдаёт base64-подписку — распаковываем."""
-    if any(p in text for p in VALID_PROTOCOLS):
-        return text
-    t = text.strip()
-    for _ in range(2):
-        try:
-            pad = '=' * (-len(t) % 4)
-            dec = base64.b64decode(t + pad).decode('utf-8', errors='ignore')
-            if any(p in dec for p in VALID_PROTOCOLS):
-                return dec
-            t = dec.strip()
-        except Exception:
-            break
-    return text
+    """Распаковывает base64 (включая двойной и склеенные ссылки) и вытаскивает только нужные протоколы."""
+    result_lines = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line: continue
+        
+        # Если строка уже нормальная ссылка
+        if any(line.startswith(p) for p in VALID_PROTOCOLS):
+            result_lines.append(line)
+            continue
+            
+        # Пробуем декодировать как base64
+        t = line
+        decoded = False
+        for _ in range(3):  # защита от двойного кодирования
+            try:
+                pad = '=' * (-len(t) % 4)
+                dec = base64.b64decode(t + pad).decode('utf-8', errors='ignore')
+                if any(p in dec for p in VALID_PROTOCOLS):
+                    result_lines.extend([l.strip() for l in dec.splitlines() if l.strip()])
+                    decoded = True
+                    break
+                t = dec.strip()
+                if not t: break
+            except: break
+                
+        # Если не декодировалось, но внутри есть ссылки (склеенные мусором)
+        if not decoded and "://" in line:
+            matches = re.findall(r'(vless://[^\s<>"\'`,]+|hysteria2://[^\s<>"\'`,]+|hy2://[^\s<>"\'`,]+)', line)
+            result_lines.extend(matches)
+
+    return "\n".join(result_lines)
 
 def fetch_one(url):
     try:
         r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             return smart_decode(r.text.lstrip('\ufeff'))
-    except Exception:
-        pass
+    except: pass
     return ""
 
 def extract_info(line):
-    """Возвращает (host, port, user, sni, security) или None."""
-    proto = line.split('://', 1)[0]
-    if proto == 'vmess':
-        try:
-            b64 = line.split('://', 1)[1].strip()
-            pad = '=' * (-len(b64) % 4)
-            d = json.loads(base64.b64decode(b64 + pad).decode('utf-8', errors='ignore'))
-            return (str(d.get('add', '')), int(d.get('port', 0)), d.get('id', ''),
-                    str(d.get('sni', '') or '').lower(), d.get('tls', ''))
-        except Exception:
-            return None
-    parsed = urlparse(line)
-    host, port, user = parsed.hostname, parsed.port, parsed.username
-    if not host or not port:
-        try:
+    """Упрощенный парсер только для vless и hy2 (убран vmess JSON)."""
+    try:
+        parsed = urlparse(line)
+        host, port, user = parsed.hostname, parsed.port, parsed.username
+        if not host or not port:
             tail = line.split('://', 1)[1]
             user = tail.split('@', 1)[0]
             hostport = tail.split('@', 1)[1].split('/', 1)[0].split('?', 1)[0]
             host, port = hostport.rsplit(':', 1)
             port = int(port)
-        except Exception:
-            return None
-    q = parse_qs(parsed.query)
-    sni = (q.get('sni', ['']) or [''])[0].lower()
-    security = (q.get('security', ['']) or [''])[0]
-    return host, port, user, sni, security
+        q = parse_qs(parsed.query)
+        sni = (q.get('sni', ['']) or [''])[0].lower()
+        security = (q.get('security', ['']) or [''])[0]
+        return host, port, user, sni, security
+    except: return None
 
 def parse_source_text(text, used_keys, is_white_list=False):
     candidates, seen = [], set()
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
+        # Жесткий фильтр: пропускаем всё, что не vless/hy2
         if not any(line.startswith(p) for p in VALID_PROTOCOLS):
             continue
         info = extract_info(line)
-        if not info:
-            continue
+        if not info: continue
         host, port, user, sni, security = info
         key = (user, host, port)
-        if key in seen or key in used_keys:
-            continue
+        if key in seen or key in used_keys: continue
         has_trusted = any(t in sni for t in TRUSTED_SNIS)
-        # Для белого списка доверенный SNI важнее гео-фильтра
         if not (is_white_list and has_trusted):
-            if is_russian_ip(host):
-                continue
+            if is_russian_ip(host): continue
         seen.add(key)
         used_keys.add(key)
         candidates.append((line, has_trusted))
     return candidates
 
 def test_server(item):
-    """TCP connect + TLS хендшейк. Возвращает (ссылка, score, has_trusted) или None."""
     line, has_trusted = item
     try:
         proto = line.split('://', 1)[0]
         info = extract_info(line)
-        if not info:
-            return None
+        if not info: return None
         host, port, user, sni, security = info
-        if not host or not port:
-            return None
+        if not host or not port: return None
         sni = sni or host
 
-        # hysteria2 — UDP/QUIC, без клиента не проверишь.
-        # Просто проверяем, что домен резолвится
+        # hysteria2 работает по UDP, полноценно из Python без клиента не проверить
         if proto in ('hysteria2', 'hy2'):
-            if resolve(host) is None:
-                return None
+            if resolve(host) is None: return None
             return (line, 8.0, has_trusted)
 
         t0 = time.monotonic()
@@ -439,31 +426,24 @@ def test_server(item):
 
         if security in ('tls', 'reality', 'xtls'):
             ctx = ssl._create_unverified_context()
-            try:
-                ctx.set_ciphers('DEFAULT@SECLEVEL=0')
-            except Exception:
-                pass
+            try: ctx.set_ciphers('DEFAULT@SECLEVEL=0')
+            except: pass
             try:
                 sock.settimeout(CHECK_TIMEOUT)
                 with ctx.wrap_socket(sock, server_hostname=sni):
                     score = time.monotonic() - t0
                 sock = None
-            except Exception:
+            except:
                 if security != 'reality':
-                    try:
-                        sock.close()
-                    except Exception:
-                        pass
+                    try: sock.close()
+                    except: pass
                     return None
                 score = tcp_time + 2.0
         if sock:
-            try:
-                sock.close()
-            except Exception:
-                pass
+            try: sock.close()
+            except: pass
         return (line, score, has_trusted)
-    except Exception:
-        return None
+    except: return None
 
 def verify_candidates(candidates, need):
     alive = []
@@ -473,40 +453,31 @@ def verify_candidates(candidates, need):
             res = f.result()
             if res:
                 alive.append(res)
-                if len(alive) >= need * 2:
-                    break
+                if len(alive) >= need * 2: break
     return alive
 
 def files_are_fresh():
     files = ["white_subscription.txt", "black_subscription.txt"]
     for f in files:
-        if not os.path.exists(f):
-            return False
-        if time.time() - os.path.getmtime(f) < CACHE_HOURS * 3600:
-            return True
+        if not os.path.exists(f): return False
+        if time.time() - os.path.getmtime(f) < CACHE_HOURS * 3600: return True
     return False
 
 def main():
-    print("[*] Парсер v4: оптимизация для GitHub Actions (экономия минут)")
+    print("[*] Парсер v5: жесткий фильтр vless+hy2, авто-декод base64")
     print(f"[*] Источников: {len(URLS_WHITE)} белых, {len(URLS_BLACK)} чёрных, {len(URLS_MIXED)} смешанных")
 
-    # Кэш: если файлы свежие — выходим сразу, экономим Actions минуты
     if files_are_fresh():
         print(f"[+] Файлы обновлялись меньше {CACHE_HOURS} часов назад. Пропускаем.")
         return
 
-    # Скачивание всех источников в 50 потоков
     print("[*] Скачиваю источники...")
     white_urls = URLS_WHITE + URLS_MIXED
     black_urls = URLS_BLACK + URLS_MIXED
 
-    white_text, black_text = "", ""
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
-        white_results = list(ex.map(fetch_one, white_urls))
-        black_results = list(ex.map(fetch_one, black_urls))
-
-    white_text = "\n".join(r for r in white_results if r)
-    black_text = "\n".join(r for r in black_results if r)
+        white_text = "\n".join(r for r in ex.map(fetch_one, white_urls) if r)
+        black_text = "\n".join(r for r in ex.map(fetch_one, black_urls) if r)
 
     print("[*] Парсинг и фильтрация...")
     used_keys = set()
@@ -521,14 +492,12 @@ def main():
 
     print(f"[+] Живых: белых {len(white_alive)}, чёрных {len(black_alive)}")
 
-    # Сортировка: доверенные SNI первыми, потом по пингу
     white_alive.sort(key=lambda x: (0 if x[2] else 1, x[1]))
     black_alive.sort(key=lambda x: x[1])
 
     final_white = [l for l, s, t in white_alive[:TARGET_COUNT]]
     final_black = [l for l, s, t in black_alive[:TARGET_COUNT]]
 
-    # Записываем только если есть хотя бы 1 живой сервер (без фолбэка!)
     if len(final_white) >= 1:
         with open("white_subscription.txt", "w", encoding="utf-8") as f:
             f.write("#profile-title: Белый список (РКН)\n" + "\n".join(final_white))
