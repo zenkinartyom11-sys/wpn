@@ -3,16 +3,15 @@ on:
   push: 
     branches: 
       - main
-      # Запуск сразу после сохранения файла 
   schedule: 
-    - cron: '7,22,37,52 * * * *' # Запуск каждые 15 минут в разгруженные минуты серверов 
-  workflow_dispatch: # Кнопка для ручного запуска
+    - cron: '7 */2 * * *'  # Запуск каждые 2 часа в 7 минут (0:07, 2:07, 4:07...)
+  workflow_dispatch:
 jobs: 
   run-parser: 
     name: Run VLESS Parser 
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Даем права на запись файлов в репозиторий 
+      contents: write
     steps: 
       - name: 1. Клонируем ваш репозиторий 
         uses: actions/checkout@v4 
