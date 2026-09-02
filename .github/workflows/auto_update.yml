@@ -1,11 +1,11 @@
 name: Auto Update VLESS Config
 on:  
   push: 
-    branches: 
-      - main
+    branches: [main]
   schedule: 
-    - cron: '7 */2 * * *'  # Запуск каждые 2 часа в 7 минут (0:07, 2:07, 4:07...)
+    - cron: '7 */2 * * *'
   workflow_dispatch:
+
 jobs: 
   run-parser: 
     name: Run VLESS Parser 
@@ -13,29 +13,31 @@ jobs:
     permissions:
       contents: write
     steps: 
-      - name: 1. Клонируем ваш репозиторий 
+      - name: 1. Клонируем репозиторий 
         uses: actions/checkout@v4 
         
-      - name: 2. Включаем Python 
+      - name: 2. Python 
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' 
+          python-version: '3.11' 
           
-      - name: 3. Устанавливаем библиотеку requests
+      - name: 3. Зависимости
         run: pip install requests
         
-      - name: 4. Запуск проверки серверов
+      - name: 4. Устанавливаем xray
         run: |
-          python checker.py || (
-            echo "⚠️ Основной источник недоступен. Переключаемся на резервный..." && \
-            sed -i "s|https://githubusercontent.com|https://githubusercontent.com|g" checker.py && \
-            python checker.py
-          )
+          curl -sL https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
+          unzip -o xray.zip
+          chmod +x xray
+          ./xray version
+          
+      - name: 5. Запуск парсера
+        run: python checker.py
 
-      - name: 5. Сохраняем изменения и пушим в репозиторий
+      - name: 6. Коммит и пуш
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add "*.txt"
-          git commit -m "🤖 Авто-обновление серверов VLESS в subscription.txt" || echo "Изменений нет"
+          git commit -m "🤖 Авто-обновление: рабочие серверы (Германия/Финляндия)" || echo "Изменений нет"
           git push origin main
