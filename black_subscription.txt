@@ -1,14 +1,14 @@
 #profile-title: Чёрный список (РКН)
-#updated: 2026-09-10 12:53 UTC
-#verified: xray+204+telegram-web+content
+#updated: 2026-09-10 13:35 UTC
+#verified: xray+204+telegram-web+content+speed
 
 vless://5fcdc9b7-e70f-4a5c-85c3-e018ad818326@82.24.203.20:2087?encryption=none&path=%2Ffd5ba98a3970&security=none&type=ws#🇩🇪[openproxylist.com] vless-DE
 vless://cec9a167-6381-4752-9828-a92ab6e6ebdd@2.26.0.5:443?mode=multi&security=reality&encryption=none&authority=deliberi.fi&pbk=_syAndJM1Guu8-CkJ48iBXUTe0GxHg3YEN3vz9iPkjo&fp=chrome&type=grpc&serviceName=6b1d23e872422afdd141eba7c94c05e4&sni=deliberi.fi&sid=f44dbbc3#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-5403
 vless://cb2dbb6a-a1ea-4023-9ace-6466cee57241@51.81.203.63:443?security=reality&encryption=none&pbk=nqwCf6oW49tEtmQ0EzxigZ0uu1pg0E30CS54G40Iti0&headerType=none&fp=chrome&spx=%2F&type=tcp&flow=xtls-rprx-vision&sni=www.icloud.com&sid=4477382ff6d3d41c#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-25605
+vless://4f74ff26-25af-41d6-9d39-be46fe8ff1a8@steep-resonance-1ffb.274.workers.dev:8880?type=ws&path=%2Fpyip%3DProxyIP.US.CMLiussss.net&fp=qq#%5BOpenRay%5D%20Dynamic-25588
 vless://1399f473-ffb5-4942-b05c-7dd3fc0007fb@round-truth-dcf1.34-719.workers.dev:8880?security=none&sni=round-truth-dcf1.34-719.workers.dev&type=ws#%5BOpenRay%5D%20Dynamic-27739
+vless://c80a96e8-d4a6-4785-b53b-a475b252c4ed@5.129.210.63:8443?type=grpc&encryption=none&security=reality&pbk=Z5WItgtmxxL_umUUIPO72kSTBGjlGg3sUPigtTG6wlI&sni=sun6-21.userapi.com&sid=ac&spx=/&fp=edge#%21
 vless://d65cc14c-f53f-4fe2-b262-97856601319c@169.40.42.212:443?security=reality&encryption=none&pbk=e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg&headerType=none&type=tcp&flow=xtls-rprx-vision&sni=yahoo.com&sid=c39cc7310a#@Vip_Security
 vless://ca52e2b6-fb9f-4dac-b6dc-49da9923f251@209.200.246.148:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=uTmb-ytXsx8p0fkBz7A76SHpWk7_oVutIA4LGTE8BQk&sid=f98843107912e782&sni=www.cloudflare.com#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28364
-vless://d9d0f208-d582-41d5-bb7b-742671402810@us-main-2.hanvpn.biz:443?security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=PBdrT4IGQ9dXoz3Sb52kGRUb22OoHF4jTtTq_5K3AWc&sid=95f904b1e977e5cb#Бесплатный
 vless://7111212b-6bc3-459a-85b4-3b13038a19f8@cf4.466688.xyz:8880?&fp=chrome&type=ws&headerType=none&host=shrill-fog-67af.235-e6a.workers.dev&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net#%5BOpenRay%5D%20Dynamic-22816
-vless://18805ff3-b420-45de-af18-93be14024ae8@47.251.25.74:443?flow=xtls-rprx-vision&fp=chrome&path=%2FXIXVPN%3Fed%3D2560&pbk=H56cOJhw0xw76lDEpt7IuJJmVGemK6_CK34KtHwDMX8&security=reality&sni=www.amazon.com&type=tcp#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-25727
-vless://568addfa-796a-40f8-820d-a071ee2ca50a@2.27.244.94:443?fp=qq&mode=auto&pbk=sJTPQLMDCyPAbRcaJM-P8Y3_xRVpEEGrvv-kkIuIuQE&security=reality&sni=www.google.com&type=xhttp#🇺🇸 💥Config_jo-214
+vless://d9d0f208-d582-41d5-bb7b-742671402810@us-main-2.hanvpn.biz:443?security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=PBdrT4IGQ9dXoz3Sb52kGRUb22OoHF4jTtTq_5K3AWc&sid=95f904b1e977e5cb#Бесплатный
