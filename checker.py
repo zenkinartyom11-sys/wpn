@@ -1,39 +1,124 @@
-import ssl, socket, requests, time, base64, re, random, json, subprocess, os, signal, shutil
-from urllib.parse import urlparse, parse_qs
+# -*- coding: utf-8 -*-
+"""
+ПАРСЕР v16 — «железобетонная» проверка VLESS-серверов для 2 подписок.
+
+Что исправлено по сравнению с v15 (причины мёртвых серверов в подписке):
+  1. РАНЬШЕ: старые серверы возвращались в файл после одного TCP/TLS хендшейка
+     (merge_new_and_old) — хендшейк НЕ проверяет, что сервер пропускает трафик.
+     ТЕПЕРЬ: старые серверы проходят ПОЛНУЮ проверку заново каждый запуск.
+     Не прошёл — заменяется (рабочие остаются, нерабочие заменяются).
+  2. РАНЬШЕ: новый сервер проверялся 1 раз — флапающий сервер мог пройти 1 раз
+     и висеть в файле час. ТЕПЕРЬ: новый кандидат обязан пройти 3 независимых
+     проверки (HTTP-204 + HTTPS-204 + загрузка реального контента).
+  3. РАНЬШЕ: проверялись только первые 40 кандидатов — если они умирали,
+     дозабора не было, и в файл попадали «старые» по хендшейку.
+     ТЕПЕРЬ: волны дозабора, пока не наберётся нужное число живых.
+  4. РАНЬШЕ: несколько ссылок могли указывать на один IP — умирает IP,
+     умирают 3-4 места сразу. ТЕПЕРЬ: не более 2 серверов на один IP.
+  5. Белые списки: серверы на нестандартных портах не работают в режиме
+     «белых списков» на мобильном интернете — оставляем только 443/80 и
+     Cloudflare-порты; приоритет доверенному SNI и Cloudflare-IP.
+  6. Диагностика: печатается ПРИЧИНА, почему сервер забракован.
+
+Без сторонних сайтов-геолокаторов: страна определяется по имени/SNI.
+Проверка — только xray + реальные запросы через поднятый туннель.
+"""
+
+import ssl, socket, requests, time, base64, re, random, json, subprocess, os, signal, shutil, ipaddress
+from urllib.parse import urlparse, parse_qs, unquote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# === НАСТРОЙКИ ===
-TARGET_COUNT    = 10
-CHECK_TIMEOUT   = 3
-FETCH_WORKERS   = 10
-HANDSHAKE_POOL  = 60
-REAL_CHECK_POOL = 40        # больше кандидатов
-XRAY_TIMEOUT    = 8         # больше таймаут для загрузки реального контента
-XRAY_WORKERS    = 12        # больше потоков (Actions бесплатный)
+# ================== НАСТРОЙКИ ==================
+TARGET_COUNT    = 10          # сколько серверов в каждой подписке
+CHECK_TIMEOUT   = 4           # сек, TCP/TLS хендшейк
+FETCH_WORKERS   = 10          # потоков на скачивание источников
+HS_WORKERS      = 40          # потоков на хендшейки
+REAL_WORKERS    = 10          # xray-инстансов одновременно (Actions: 2 ядра)
+XRAY_START_WAIT = 3           # ждём поднятия inbound (с ранним выходом при ошибке)
+STAGE_TIMEOUT   = 6           # таймаут ОДНОГО запроса через туннель
+MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "100"))  # бюджет: сколько НОВЫХ кандидатов максимум реально проверять на список
+RESERVE_EXTRA   = 4           # проверяем на 4 больше, чем нужно (резерв на выбор по странам)
 
-# Квоты по регионам (сумма = TARGET_COUNT)
-# ВАЖНО: США ограничены, чтобы не заполонить подписку
-PRIORITY_QUOTAS = {
-    "DE": 4,                 # Германия — 4 места
-    "FI": 3,                 # Финляндия — 3 места
-    "US": 1,                 # США — только 1 место!
-    "OTHER": 2,              # Остальные страны — 2 места
-}
+STATE_FILE      = "state.json"          # история проверок (коммитится в репо)
+WHITE_FILE      = "white_subscription.txt"
+BLACK_FILE      = "black_subscription.txt"
 
-# Карты эмодзи флагов и ключевых слов для определения страны
+# Квоты по странам (сумма не обязана быть 10 — добор из OTHER/любых)
+PRIORITY_QUOTAS = {"DE": 4, "FI": 3, "US": 1, "OTHER": 2}
+
+VALID_PROTOCOLS = ("vless://",)
+
+# Доверенные SNI для БЕЛОГО списка: крупные РФ-домены + платёжные/мировые
+TRUSTED_SNIS = [
+    # Россия — основные
+    "yandex.ru", "ya.ru", "mail.ru", "vk.com", "vkontakte.ru", "ok.ru",
+    "sberbank.ru", "sber.ru", "gosuslugi.ru", "mos.ru", "nalog.gov.ru",
+    "vtb.ru", "tbank.ru", "tinkoff.ru", "alfabank.ru", "gazprom.ru",
+    "rbc.ru", "rambler.ru", "dzen.ru", "lenta.ru", "wildberries.ru",
+    "ozon.ru", "avito.ru", "hh.ru", "rutube.ru", "sportmaster.ru",
+    # Платёжные / мировые (обычно в белых списках операторов)
+    "stripe.com", "paypal.com", "checkout.com", "adyen.com",
+    "braintreepayments.com", "worldpay.com", "skrill.com", "neteller.com",
+    "payoneer.com", "authorize.net", "klarna.com", "shopify.com",
+    "swift.com", "revolut.com", "wise.com", "visa.com", "mastercard.com",
+    "americanexpress.com", "hsbc.com", "chase.com", "binance.com",
+    "coinbase.com", "kraken.com", "tesla.com", "apple.com", "icloud.com",
+    "microsoft.com", "samsung.com", "nike.com", "ikea.com",
+]
+
 COUNTRY_PATTERNS = {
-    "DE": ["🇩🇪", "germany", "deutschland", "frankfurt", "munich", "berlin", "hessen", "bayern", ".de"],
-    "FI": ["🇫🇮", "finland", "suomi", "helsinki", "tampere", ".fi"],
-    "US": ["🇺🇸", "usa", "united states", "new york", "california", "texas", "los angeles", "chicago", "miami", "seattle", "san jose", "dallas", ".us"],
-    "NL": ["🇳🇱", "netherlands", "holland", "amsterdam", ".nl"],
-    "SE": ["🇸🇪", "sweden", "stockholm", ".se"],
-    "NO": ["🇳🇴", "norway", "oslo", ".no"],
-    "GB": ["🇬🇧", "uk", "britain", "london", ".uk", ".co.uk"],
-    "FR": ["🇫🇷", "france", "paris", ".fr"],
-    "CA": ["🇨🇦", "canada", "toronto", "vancouver", ".ca"],
-    "PL": ["🇵🇱", "poland", "warsaw", ".pl"],
+    "DE": ["🇩🇪", "germany", "deutschland", "frankfurt", "munich", "münchen", "berlin", "hessen", "bayern", "nürnberg", "dusseldorf", "düsseldorf", "falkenstein", "nuremberg"],
+    "FI": ["🇫🇮", "finland", "suomi", "helsinki", "tampere", "espoo"],
+    "US": ["🇺🇸", "usa", "united states", "united-states", "new york", "new-york", "california", "texas", "los angeles", "chicago", "miami", "seattle", "san jose", "dallas", "ashburn", "virginia", "phoenix", "atlanta"],
+    "NL": ["🇳🇱", "netherlands", "holland", "amsterdam"],
+    "SE": ["🇸🇪", "sweden", "stockholm"],
+    "NO": ["🇳🇴", "norway", "oslo"],
+    "GB": ["🇬🇧", "uk", "britain", "london", "england"],
+    "FR": ["🇫🇷", "france", "paris"],
+    "CA": ["🇨🇦", "canada", "toronto", "vancouver", "montreal"],
+    "PL": ["🇵🇱", "poland", "warsaw", "gdansk"],
+    "LV": ["🇱🇻", "latvia", "riga"],
+    "LT": ["🇱🇹", "lithuania", "vilnius"],
+    "EE": ["🇪🇪", "estonia", "tallinn"],
+    "TR": ["🇹🇷", "turkey", "istanbul"],
+    "KZ": ["🇰🇿", "kazakhstan", "almaty", "astana"],
+    "JP": ["🇯🇵", "japan", "tokyo", "osaka"],
+    "SG": ["🇸🇬", "singapore"],
+    "HK": ["🇭🇰", "hong kong", "hongkong"],
+    "AE": ["🇦🇪", "uae", "dubai"],
+    "CH": ["🇨🇭", "switzerland", "zurich", "zürich"],
+    "AT": ["🇦🇹", "austria", "vienna", "wien"],
 }
 
+# Диапазоны Cloudflare (чтобы узнавать CF-фронт без сторонних сервисов)
+CF_RANGES = [ipaddress.ip_network(n) for n in [
+    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+    "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+    "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+    "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+]]
+
+# Подписка для БЕЛОГО списка: в режиме белых списков реально живут только
+# 443/80; TLS-порты Cloudflare (2053/2083/2087/2096/8443) — только для CF-фронтов
+WHITE_BASE_PORTS   = {443, 80}
+WHITE_CF_PORTS     = {2053, 2083, 2087, 2096, 8443}
+
+# RU-префиксы (для ЧЁРНОГО списка: РФ-выходы не нужны)
+RUSSIAN_PREFIXES = [
+    "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.",
+    "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.",
+    "37.192.", "37.235.", "45.8.", "45.9.", "45.12.", "45.66.", "45.67.", "45.81.", "45.86.",
+    "45.89.", "45.90.", "45.95.", "45.130.", "45.132.", "45.135.", "45.141.", "45.142.", "45.145.",
+    "45.155.", "45.156.", "46.3.", "46.8.", "46.17.", "46.38.", "46.39.", "46.146.", "46.147.",
+    "46.148.", "46.161.", "46.182.", "46.242.", "51.124.", "51.250.", "62.33.", "62.76.", "62.109.",
+    "62.117.", "62.148.", "62.152.", "62.213.", "77.37.", "77.41.", "77.51.", "77.72.", "77.73.",
+    "77.74.", "77.82.", "77.108.", "77.220.", "77.222.", "77.232.", "77.242.", "77.244.", "78.25.",
+    "78.29.", "78.36.", "78.37.", "78.81.", "78.85.", "78.108.", "78.109.", "78.140.", "79.104.",
+    "79.111.", "79.120.", "79.133.", "79.134.", "79.137.", "79.143.", "79.174.", "80.64.", "80.68.",
+    "80.78.", "80.80.", "80.82.", "80.83.", "80.87.", "80.92.", "80.93.",
+]
+
+# ============ ИСТОЧНИКИ ============
 URLS_WHITE = [
     "https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
@@ -46,598 +131,609 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/r3zarahimi/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt",
     "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/refs/heads/main/deploy/subscriptions/11.txt",
     "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/refs/heads/main/deploy/subscriptions/1.txt",
+    # резервные крупные агрегаторы (если основных мало живых)
+    "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
 ]
 
-TRUSTED_SNIS = [
-    "stripe.com", "paypal.com", "checkout.com", "adyen.com", "braintreepayments.com",
-    "worldpay.com", "skrill.com", "neteller.com", "payoneer.com", "authorize.net",
-    "klarna.com", "shopify.com", "swift.com", "revolut.com", "wise.com",
-    "visa.com", "mastercard.com", "americanexpress.com", "hsbc.com", "chase.com",
-    "binance.com", "coinbase.com", "kraken.com",
-]
-
-VALID_PROTOCOLS = ("vless://", "hysteria2://", "hy2://")
-
-RUSSIAN_PREFIXES = [
-    "5.42.", "5.43.", "5.101.", "5.130.", "5.143.", "5.187.", "5.188.", "31.28.", "31.31.", "31.40.",
-    "31.43.", "31.134.", "31.162.", "31.173.", "37.18.", "37.29.", "37.110.", "37.140.", "37.143.",
-    "37.192.", "37.235.", "45.8.", "45.9.", "45.12.", "45.66.", "45.67.", "45.81.", "45.86.",
-    "45.89.", "45.90.", "45.95.", "45.130.", "45.132.", "45.135.", "45.141.", "45.142.", "45.145.",
-    "45.155.", "45.156.", "46.3.", "46.8.", "46.17.", "46.38.", "46.39.", "46.146.", "46.147.",
-    "46.148.", "46.161.", "46.182.", "46.242.", "51.124.", "51.250.", "62.33.", "62.76.", "62.109.",
-    "62.117.", "62.148.", "62.152.", "62.213.", "77.37.", "77.41.", "77.51.", "77.72.", "77.73.",
-    "77.74.", "77.82.", "77.108.", "77.220.", "77.222.", "77.232.", "77.242.", "77.244.", "78.25.",
-    "78.29.", "78.36.", "78.37.", "78.46.", "78.47.", "78.81.", "78.85.", "78.108.", "78.109.",
-    "78.140.", "79.104.", "79.111.", "79.120.", "79.133.", "79.134.", "79.137.", "79.143.", "79.174.",
-    "80.64.", "80.68.", "80.78.", "80.80.", "80.82.", "80.83.", "80.87.", "80.92.", "80.93.",
-]
-
-XRAY_PATH = "./xray" if os.path.exists("./xray") else "xray"
+XRAY_PATH = os.environ.get("XRAY_PATH", "./xray" if os.path.exists("./xray") else "xray")
 
 _dns_cache = {}
 def resolve(host):
     if host in _dns_cache:
         return _dns_cache[host]
+    ip = None
     try:
-        ip = socket.gethostbyname(host)
+        if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", host):
+            ip = host
+        else:
+            ip = socket.gethostbyname(host)
     except Exception:
         ip = None
     _dns_cache[host] = ip
     return ip
 
+def is_cf_ip(ip):
+    try:
+        a = ipaddress.ip_address(ip)
+        return any(a in n for n in CF_RANGES)
+    except Exception:
+        return False
+
 def is_russian_ip(ip_or_domain):
     if not ip_or_domain:
         return False
-    target_ip = ip_or_domain
-    if not ip_or_domain.replace('.', '').isdigit():
-        target_ip = resolve(ip_or_domain)
-        if not target_ip:
-            return True
+    target_ip = resolve(ip_or_domain)
+    if not target_ip:
+        return True  # не резолвится — не рискуем
     if any(target_ip.startswith(p) for p in RUSSIAN_PREFIXES):
         return True
     try:
-        parts = target_ip.split('.')
-        if len(parts) >= 4:
-            first_octet = int(parts[0])
-            if 91 <= first_octet <= 95 or first_octet in (176, 178, 185, 188, 212, 213) or 193 <= first_octet <= 195:
-                return True
-            if first_octet == 128 and 68 <= int(parts[1]) <= 75:
-                return True
+        parts = target_ip.split(".")
+        first = int(parts[0])
+        if 91 <= first <= 95 or first in (176, 178, 185, 188, 212, 213) or 193 <= first <= 195:
+            return True
     except Exception:
         pass
-    return target_ip.endswith((".ru", ".su", ".by"))
+    return ip_or_domain.endswith((".ru", ".su", ".by", ".рф"))
 
 def detect_country(link, sni=""):
-    """Определяет страну по имени ссылки (#комментарий) и SNI домену. Без сторонних сервисов."""
-    # Смотрим часть после #
-    fragment = ""
-    if "#" in link:
-        fragment = link.split("#", 1)[1].lower()
-    
-    # Смотрим SNI
-    check_texts = [fragment, sni.lower() if sni else ""]
-    
+    fragment = link.split("#", 1)[1].lower() if "#" in link else ""
+    fragment = unquote(fragment)
+    texts = [fragment, (sni or "").lower()]
     for country, patterns in COUNTRY_PATTERNS.items():
         for pattern in patterns:
-            for text in check_texts:
-                if pattern in text:
-                    return country
+            if any(pattern in t for t in texts if t):
+                return country
     return "OTHER"
 
+# ================== ПАРСИНГ ИСТОЧНИКОВ ==================
 def smart_decode(text):
-    result_lines = []
+    out = []
     for line in text.splitlines():
         line = line.strip()
-        if not line:
+        if not line or line.startswith(("#", "//")):
             continue
         if any(line.startswith(p) for p in VALID_PROTOCOLS):
-            result_lines.append(line)
+            out.append(line)
             continue
         t = line
         decoded = False
         for _ in range(3):
             try:
-                pad = '=' * (-len(t) % 4)
-                dec = base64.b64decode(t + pad).decode('utf-8', errors='ignore')
-                if any(p in dec for p in VALID_PROTOCOLS):
-                    result_lines.extend([l.strip() for l in dec.splitlines() if l.strip()])
-                    decoded = True
-                    break
-                t = dec.strip()
-                if not t:
-                    break
+                pad = "=" * (-len(t) % 4)
+                dec = base64.b64decode(t + pad).decode("utf-8", errors="ignore")
             except Exception:
                 break
+            if not dec:
+                break
+            found = re.findall(r"(?:vless)://[^\s<>\"'`,]+", dec)
+            if found:
+                out.extend(x.strip() for x in found)
+                decoded = True
+                break
+            t = dec.strip()
+            if not t:
+                break
         if not decoded and "://" in line:
-            matches = re.findall(r'(vless://[^\s<>"\'`,]+|hysteria2://[^\s<>"\'`,]+|hy2://[^\s<>"\'`,]+)', line)
-            result_lines.extend(matches)
-    return "\n".join(result_lines)
+            out.extend(re.findall(r"vless://[^\s<>\"'`,]+", line))
+    return "\n".join(out)
 
 def fetch_one(url):
     try:
-        r = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
-            return smart_decode(r.text.lstrip('\ufeff'))
+            return smart_decode(r.text[:3_000_000].lstrip("\ufeff"))
     except Exception:
         pass
     return ""
+
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 def extract_info(line):
     try:
         parsed = urlparse(line)
         host, port, user = parsed.hostname, parsed.port, parsed.username
         if not host or not port:
-            tail = line.split('://', 1)[1]
-            user = tail.split('@', 1)[0]
-            hostport = tail.split('@', 1)[1].split('/', 1)[0].split('?', 1)[0]
-            host, port = hostport.rsplit(':', 1)
+            tail = line.split("://", 1)[1]
+            user = tail.split("@", 1)[0]
+            hostport = tail.split("@", 1)[1].split("/", 1)[0].split("?", 1)[0]
+            host, port = hostport.rsplit(":", 1)
             port = int(port)
         q = parse_qs(parsed.query)
-        sni = (q.get('sni', ['']) or [''])[0].lower()
-        security = (q.get('security', ['']) or [''])[0]
-        typ = (q.get('type', ['tcp']) or ['tcp'])[0]
-        path = (q.get('path', ['']) or [''])[0]
-        pbk = (q.get('pbk', ['']) or [''])[0]
-        return host, port, user, sni, security, typ, path, pbk
+        g = lambda k, d="": (q.get(k, [d]) or [d])[0]
+        return {
+            "host": host, "port": int(port), "uuid": user or "",
+            "sni": g("sni").lower(), "security": g("security", "none"),
+            "net": g("type", "tcp"), "path": unquote(g("path", "/")),
+            "host_header": g("host", ""), "pbk": g("pbk"), "sid": g("sid"),
+            "fp": g("fp", "chrome"), "flow": g("flow"),
+            "serviceName": g("serviceName"), "alpn": g("alpn"),
+        }
     except Exception:
         return None
 
-def parse_source_text(text, used_keys, is_white_list=False):
+def server_key(info):
+    return f"{info['uuid']}|{info['host']}|{info['port']}"
+
+def white_ok(info):
+    """Белый список: доверенный SNI ИЛИ Cloudflare-фронт.
+    Порты: 443/80 — всегда; 2053/2083/2087/2096/8443 — только Cloudflare."""
+    if info["port"] in WHITE_BASE_PORTS:
+        pass
+    elif info["port"] in WHITE_CF_PORTS:
+        ip = resolve(info["host"])
+        if not (ip and is_cf_ip(ip)):
+            return False
+    else:
+        return False
+    sni = info["sni"] or info["host_header"] or ""
+    if any(t in sni for t in TRUSTED_SNIS):
+        return True
+    ip = resolve(info["host"])
+    return bool(ip and is_cf_ip(ip))
+
+def parse_sources(texts, used_keys, ip_count, subnet_count, is_white):
     candidates, seen = [], set()
-    for line in text.splitlines():
-        line = line.strip().lstrip('\ufeff')
-        if not any(line.startswith(p) for p in VALID_PROTOCOLS):
-            continue
-        proto = line.split('://', 1)[0]
-        if proto in ('hysteria2', 'hy2'):
+    for line in text_join(texts).splitlines():
+        line = line.strip()
+        if not line.startswith(VALID_PROTOCOLS):
             continue
         info = extract_info(line)
         if not info:
             continue
-        host, port, user, sni, security, typ, path, pbk = info
-        key = (user, host, port)
+        if not UUID_RE.fullmatch(info["uuid"]):
+            continue
+        if not info["host"] or not (0 < info["port"] < 65536):
+            continue
+        if info["security"] == "reality" and (not info["pbk"] or len(info["pbk"]) < 40):
+            continue
+        if is_white:
+            if not white_ok(info):
+                continue
+        else:
+            if is_russian_ip(info["host"]):
+                continue
+        key = server_key(info)
         if key in seen or key in used_keys:
             continue
-        if security == 'reality' and not pbk:
+        ip = resolve(info["host"]) or info["host"]
+        if ip_count.get(ip, 0) >= 2:      # не больше 2 серверов на один IP
             continue
-        has_trusted = any(t in sni for t in TRUSTED_SNIS) if sni else False
-        
-        if is_white_list:
-            if not has_trusted:
-                continue
-        else:
-            if is_russian_ip(host):
-                continue
-        
-        # Определяем страну сразу при парсинге
-        country = detect_country(line, sni)
-        
-        seen.add(key)
-        used_keys.add(key)
-        candidates.append((line, has_trusted, country))
+        subnet = ".".join(ip.split(".")[:3]) + ".x" if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", ip) else ip
+        if subnet_count.get(subnet, 0) >= 4:   # и не больше 4 на подсеть /24
+            continue
+        seen.add(key); used_keys.add(key)
+        ip_count[ip] = ip_count.get(ip, 0) + 1
+        subnet_count[subnet] = subnet_count.get(subnet, 0) + 1
+        candidates.append({
+            "line": line, "info": info, "key": key,
+            "has_trusted": any(t in (info["sni"] or "") for t in TRUSTED_SNIS),
+            "country": detect_country(line, info["sni"]),
+        })
     return candidates
 
-def handshake_check(item):
-    line, has_trusted, country = item
+def text_join(texts):
+    return "\n".join(t for t in texts if t)
+
+# ================== ЭТАП 1: ХЕНДШЕЙК ==================
+def handshake_check(cand):
+    info = cand["info"]
     try:
-        info = extract_info(line)
-        if not info:
-            return None
-        host, port, user, sni, security, typ, path, pbk = info
-        if not host or not port:
-            return None
-        sni = sni or host
-        if security == 'reality' and not pbk:
-            return None
         t0 = time.monotonic()
-        sock = socket.create_connection((host, port), timeout=CHECK_TIMEOUT)
-        if security in ('tls', 'reality', 'xtls'):
+        sock = socket.create_connection((info["host"], info["port"]), timeout=CHECK_TIMEOUT)
+        if info["security"] in ("tls", "reality", "xtls"):
             ctx = ssl._create_unverified_context()
             try:
-                ctx.set_ciphers('DEFAULT@SECLEVEL=0')
+                ctx.set_ciphers("DEFAULT@SECLEVEL=0")
             except Exception:
                 pass
+            sock.settimeout(CHECK_TIMEOUT)
             try:
-                sock.settimeout(CHECK_TIMEOUT)
-                with ctx.wrap_socket(sock, server_hostname=sni):
-                    pass
-                sock = None
+                ctx.wrap_socket(sock, server_hostname=info["sni"] or info["host"]).close()
             except Exception:
-                if security != 'reality':
-                    try: sock.close()
-                    except: pass
-                    return None
-        if sock:
-            try: sock.close()
-            except: pass
+                if info["security"] != "reality":
+                    return None   # reality может не отвечать на «пустой» TLS — не бракуем
         score = time.monotonic() - t0
-        if score > CHECK_TIMEOUT:
-            return None
-        return (line, score, has_trusted, country)
+        cand["hs_score"] = score
+        return cand
     except Exception:
         return None
 
-def vless_to_xray_config(link, local_port):
-    parsed = urlparse(link)
-    uuid = parsed.username
-    host = parsed.hostname
-    port = parsed.port
-    q = parse_qs(parsed.query)
-    g = lambda k, d="": (q.get(k, [d]) or [d])[0]
-    security = g("security", "none")
-    typ = g("type", "tcp")
-    sni = g("sni", host)
-    pbk = g("pbk")
-    sid = g("sid")
-    fp = g("fp", "chrome")
-    flow = g("flow")
-    path = g("path", "/")
-    host_header = g("host", sni)
-    service_name = g("serviceName", "")
-    encryption = g("encryption", "none")
-    user_obj = {"id": uuid, "encryption": encryption or "none"}
-    if flow:
-        user_obj["flow"] = flow
+# ================== ЭТАП 2: xray-КОНФИГ И РЕАЛЬНАЯ ПРОВЕРКА ==================
+def vless_to_xray_config(info, local_port):
+    user_obj = {"id": info["uuid"], "encryption": "none"}
+    if info["flow"]:
+        user_obj["flow"] = info["flow"]
     outbound = {
         "protocol": "vless",
-        "settings": {"vnext": [{"address": host, "port": port, "users": [user_obj]}]},
-        "streamSettings": {"network": typ, "security": security}
+        "settings": {"vnext": [{"address": info["host"], "port": info["port"], "users": [user_obj]}]},
+        "streamSettings": {"network": info["net"] or "tcp", "security": info["security"] or "none"},
     }
     ss = outbound["streamSettings"]
-    if security == "reality":
+    if info["security"] == "reality":
         ss["realitySettings"] = {
-            "serverName": sni, "fingerprint": fp, "publicKey": pbk,
-            "shortId": sid, "spiderX": "/"
+            "serverName": info["sni"] or info["host"], "fingerprint": info["fp"] or "chrome",
+            "publicKey": info["pbk"], "shortId": info["sid"] or "", "spiderX": "/",
         }
-    elif security == "tls":
-        ss["tlsSettings"] = {"serverName": sni, "allowInsecure": True}
-    if typ == "ws":
-        ss["wsSettings"] = {"path": path, "headers": {"Host": host_header}}
-    elif typ == "grpc":
-        ss["grpcSettings"] = {"serviceName": service_name}
+    elif info["security"] in ("tls",):
+        # ВАЖНО: без allowInsecure — новые Xray-core (25+) его удалили,
+        # конфиг с ним отвергается ЦЕЛИКОМ (раньше это ломало массу проверок)
+        ss["tlsSettings"] = {"serverName": info["sni"] or info["host"],
+                             "fingerprint": info["fp"] or "chrome"}
+    if (info["net"] or "tcp") == "ws":
+        ss["wsSettings"] = {"path": info["path"] or "/",
+                            "headers": {"Host": info["host_header"] or info["sni"] or info["host"]}}
+    elif info["net"] == "grpc":
+        ss["grpcSettings"] = {"serviceName": info["serviceName"]}
     return {
         "log": {"loglevel": "none"},
-        "inbounds": [{
-            "listen": "127.0.0.1", "port": local_port,
-            "protocol": "http", "settings": {"allowTransparent": False}
-        }],
-        "outbounds": [outbound, {"protocol": "freedom", "tag": "direct"}]
+        # ВАЖНО: без "settings" — новые Xray-core (25+) отвергают allowTransparent
+        "inbounds": [{"listen": "127.0.0.1", "port": local_port, "protocol": "http"}],
+        "outbounds": [outbound, {"protocol": "freedom", "tag": "direct"}],
     }
 
-def wait_for_port(port, timeout=4):
+def wait_for_port(port, proc, timeout):
     start = time.monotonic()
     while time.monotonic() - start < timeout:
+        if proc.poll() is not None:      # xray упал (битый конфиг) — не ждём
+            return False
         try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            with socket.create_connection(("127.0.0.1", port), timeout=0.4):
                 return True
         except Exception:
-            time.sleep(0.2)
+            time.sleep(0.15)
     return False
 
-def real_check_strict(line, local_port, is_white_list, timeout=XRAY_TIMEOUT):
-    """
-    ЖЕЛЕЗОБЕТОННАЯ проверка через загрузку реального контента.
-    - Для белых списков: грузим instagram.com (разрешён в РФ)
-    - Для чёрных: грузим youtube.com (разблокирован через прокси)
-    """
-    config = vless_to_xray_config(line, local_port)
-    config_path = f"/tmp/xray_cfg_{local_port}.json"
+# Цели загрузки контента: (url, обязательный маркер, минимальный размер)
+BLACK_TARGETS = [
+    ("https://www.youtube.com/", b"<title>YouTube</title>", 15000),
+    ("https://www.wikipedia.org/", b"wikimedia", 5000),
+]
+WHITE_TARGETS = [
+    ("https://www.instagram.com/", b"instagram", 8000),
+    ("https://github.com/", b"GitHub", 5000),
+]
+BLOCK_MARKERS = [b"access denied", b"forbidden", b"unavailable for legal reasons",
+                 "заблокирован".encode(), "доступ ограничен".encode()]
+
+def _proxies(port):
+    p = f"http://127.0.0.1:{port}"
+    return {"http": p, "https": p}
+
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
+
+def real_check(cand, local_port, is_white, light=False):
+    """Проверка через реальный туннель.
+    light=True  — для старых (инкумбентов): HTTPS-204 + контент (2 проверки).
+    light=False — для новых: +HTTP-204 (3 независимые проверки подряд).
+    Возвращает (ok, latency, kbps, причина_отказа)."""
+    info = cand["info"]
+    cfg = vless_to_xray_config(info, local_port)
+    cfg_path = f"/tmp/xray_cfg_{local_port}.json"
     proc = None
     try:
-        with open(config_path, "w") as f:
-            json.dump(config, f)
-        proc = subprocess.Popen(
-            [XRAY_PATH, "run", "-c", config_path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid
-        )
-        if not wait_for_port(local_port, timeout=4):
-            return None, 0
-        
-        proxies = {
-            "http": f"http://127.0.0.1:{local_port}",
-            "https": f"http://127.0.0.1:{local_port}"
-        }
-        
-        # Выбираем целевой сайт для проверки
-        if is_white_list:
-            # Instagram работает через белые списки в РФ
-            # Если через прокси грузится — сервер рабочий
-            target_url = "https://www.instagram.com/"
-            min_size = 10000  # минимум 10KB настоящей HTML
-            forbidden_markers = [b"<title>Instagram</title>"]  # должно быть в ответе
-        else:
-            # YouTube проверяет черный список
-            target_url = "https://www.youtube.com/"
-            min_size = 15000
-            forbidden_markers = [b"<title>YouTube</title>"]
-        
-        # === ОСНОВНАЯ ПРОВЕРКА: загрузка реального сайта ===
+        with open(cfg_path, "w") as f:
+            json.dump(cfg, f)
+        proc = subprocess.Popen([XRAY_PATH, "run", "-c", cfg_path],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                preexec_fn=os.setsid)
+        if not wait_for_port(local_port, proc, XRAY_START_WAIT):
+            reason = "xray_error (битый конфиг)" if proc.poll() is not None else "xray не поднял порт"
+            return False, None, 0, reason
+
+        # --- Проверка 1: HTTP через туннель (generate_204) — только для новых ---
+        if not light:
+            try:
+                r = requests.get("http://www.gstatic.com/generate_204", proxies=_proxies(local_port),
+                                 timeout=STAGE_TIMEOUT, headers=UA)
+                if r.status_code != 204:
+                    return False, None, 0, f"http204 -> {r.status_code}"
+            except Exception as e:
+                return False, None, 0, f"http204 fail ({type(e).__name__})"
+
+        # --- Проверка 2: HTTPS через туннель + замер скорости (generate_204) ---
+        t0 = time.monotonic()
         try:
-            t0 = time.monotonic()
-            r = requests.get(target_url, proxies=proxies, timeout=timeout,
-                             headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120"})
-            elapsed = time.monotonic() - t0
-            if r.status_code != 200:
-                return None, 0
-            content = r.content
-            # Заглушки обычно очень маленькие (<5KB)
-            if len(content) < min_size:
-                return None, 0
-            # Проверяем что это настоящий сайт, а не страница блокировки
-            if not any(marker in content for marker in forbidden_markers):
-                return None, 0
-            # Исключаем страницы с "доступ запрещён", "заблокировано"
-            block_markers = [b"forbidden", b"access denied", b"blocked", 
-                             b"403", b"451", b"unavailable for legal reasons",
-                             b"\xd0\xb7\xd0\xb0\xd0\xb1\xd0\xbb\xd0\xbe\xd0\xba"]  # "заблок" в UTF-8
-            for marker in block_markers:
-                if marker in content.lower():
-                    return None, 0
-            return elapsed, len(content) / elapsed / 1024  # КБ/с
-        except Exception:
-            return None, 0
-            
-    except Exception:
-        return None, 0
+            r = requests.get("https://www.gstatic.com/generate_204", proxies=_proxies(local_port),
+                             timeout=STAGE_TIMEOUT, headers=UA)
+        except Exception as e:
+            return False, None, 0, f"https204 fail ({type(e).__name__})"
+        if r.status_code != 204:
+            return False, None, 0, f"https204 -> {r.status_code}"
+        latency = time.monotonic() - t0
+
+        # --- Проверка 3: загрузка РЕАЛЬНОГО контента ---
+        targets = WHITE_TARGETS if is_white else BLACK_TARGETS
+        kbps = 0.0
+        content_ok = False
+        last_reason = "content fail"
+        for url, marker, min_size in targets:
+            try:
+                t1 = time.monotonic()
+                r = requests.get(url, proxies=_proxies(local_port), timeout=STAGE_TIMEOUT + 3, headers=UA)
+                dt = time.monotonic() - t1
+                if r.status_code != 200:
+                    last_reason = f"{url.split('/')[2]} -> {r.status_code}"
+                    continue
+                content = r.content
+                low = content[:200000].lower()
+                if len(content) < min_size:
+                    last_reason = f"{url.split('/')[2]} мал ({len(content)}B)"
+                    continue
+                if marker.lower() not in low:
+                    last_reason = f"{url.split('/')[2]} нет маркера"
+                    continue
+                if any(b in low for b in BLOCK_MARKERS):
+                    last_reason = f"{url.split('/')[2]} страница блокировки"
+                    continue
+                kbps = max(kbps, len(content) / 1024 / max(dt, 0.01))
+                content_ok = True
+                break
+            except Exception as e:
+                last_reason = f"{url.split('/')[2]} fail ({type(e).__name__})"
+        if not content_ok:
+            return False, None, 0, last_reason
+
+        return True, latency, kbps, ""
+    except Exception as e:
+        return False, None, 0, f"exc ({type(e).__name__})"
     finally:
         if proc:
             try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except: pass
+            except Exception: pass
             try: proc.wait(timeout=1)
-            except: pass
-        try: os.remove(config_path)
-        except: pass
+            except Exception: pass
+        try: os.remove(cfg_path)
+        except Exception: pass
 
-def verify_real_strict(candidates, need, is_white_list):
-    random.shuffle(candidates)
-    to_check = candidates[:REAL_CHECK_POOL]
-    results = []
-    
-    def check_one(item, idx):
-        line = item[0]
-        has_trusted = item[1]
-        country = item[2]
-        port = 15000 + idx
-        elapsed, speed_kbps = real_check_strict(line, port, is_white_list)
-        return (line, elapsed, has_trusted, country, speed_kbps)
-    
-    with ThreadPoolExecutor(max_workers=XRAY_WORKERS) as ex:
-        futures = [ex.submit(check_one, item, i) for i, item in enumerate(to_check)]
-        for f in as_completed(futures):
-            line, elapsed, has_trusted, country, speed_kbps = f.result()
-            if country is not None and elapsed is not None:
-                results.append((line, elapsed, has_trusted, country, speed_kbps))
-                print(f"    [+] {country:3s} | {speed_kbps:7.1f} KB/s | {elapsed:.2f}s | {line[:40]}...")
-            else:
-                print(f"    [-] МЁРТВ | {line[:55]}...")
-    
-    return results
+# ================== ВОЛНЫ ПРОВЕРОК ==================
+def verify_candidates(cands, is_white, diag, light=False, limit=None, stop_when=None):
+    """Волны по 2*REAL_WORKERS, пока не кончатся кандидаты или лимит проверок.
+    Возвращает (verified, checked): verified — прошедшие, checked — все проверенные."""
+    verified, checked = [], []
+    checks = 0
+    wave_size = REAL_WORKERS * 2
+    pool = list(cands)
+    while pool:
+        if stop_when is not None and len(verified) >= stop_when:
+            print(f"    [*] Достаточно проверенных ({len(verified)}) — дозабор остановлен.")
+            break
+        if limit is not None and checks >= limit:
+            break
+        wave, pool = pool[:wave_size], pool[wave_size:]
+        if limit is not None:
+            wave = wave[:limit - checks]
+        if not wave:
+            break
+        checks += len(wave)
+        def one(idx_item):
+            idx, cand = idx_item
+            ok, latency, kbps, reason = real_check(cand, 15000 + idx, is_white, light=light)
+            return cand, ok, latency, kbps, reason
+        with ThreadPoolExecutor(max_workers=REAL_WORKERS) as ex:
+            for cand, ok, latency, kbps, reason in ex.map(one, enumerate(wave)):
+                checked.append(cand)
+                if ok:
+                    verified.append({**cand, "latency": latency, "kbps": kbps})
+                    print(f"    [+] {cand['country']:3s} | {kbps:7.1f} KB/s | {latency:4.2f}s | {cand['info']['host']}:{cand['info']['port']}")
+                else:
+                    tag = reason.split(" ")[0].split("(")[0]
+                    diag[tag] = diag.get(tag, 0) + 1
+                    print(f"    [-] {cand['country']:3s} | {reason} | {cand['info']['host']}:{cand['info']['port']}")
+    return verified, checked
 
-def select_balanced(results, need):
-    """Умные квоты: если страны нет, её квота идёт в OTHER (НЕ в США)."""
+# ================== СОСТОЯНИЕ (ИСТОРИЯ ПРОВЕРОК) ==================
+def load_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"white": {}, "black": {}}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=1)
+
+def bump_entry(state_list, cand, ok, kbps=None):
+    key = cand["key"]
+    e = state_list.get(key) or {
+        "link": cand["line"], "country": cand["country"],
+        "passes": 0, "fails": 0, "streak": 0, "best_kbps": 0.0,
+        "last_ok": 0, "last_fail": 0,
+    }
+    e["link"] = cand["line"]; e["country"] = cand["country"]
+    if ok:
+        e["passes"] += 1; e["streak"] += 1
+        e["last_ok"] = int(time.time())
+        if kbps: e["best_kbps"] = round(max(e["best_kbps"], kbps), 1)
+    else:
+        e["fails"] += 1; e["streak"] = 0
+        e["last_fail"] = int(time.time())
+    state_list[key] = e
+    return e
+
+# ================== ВЫБОР ПО КВОТАМ ==================
+def score_of(v, streak):
+    base = 100.0 / (0.4 + v["latency"])          # быстрее = выше
+    if v.get("kbps"): base += min(v["kbps"] / 50.0, 6.0)
+    if v.get("has_trusted"): base += 2.0          # белый список: доверенный SNI
+    if v["info"]["port"] == 443: base += 1.0
+    base *= (0.92 ** min(streak, 5))              # проверенный временем чуть выше
+    return base
+
+def select_balanced(verified, state_list, need):
     by_country = {}
-    for r in results:
-        c = r[3]
-        if c not in by_country:
-            by_country[c] = []
-        by_country[c].append(r)
-    
-    # Сортируем внутри страны по скорости
+    for v in verified:
+        by_country.setdefault(v["country"], []).append(v)
     for c in by_country:
-        by_country[c].sort(key=lambda x: x[1])
-    
-    selected = []
-    used = set()
-    
-    quotas = PRIORITY_QUOTAS.copy()
-    
-    # 1. Забираем по квотам из приоритетных стран (DE, FI, US)
-    for country in ["DE", "FI", "US"]:
-        quota = quotas.get(country, 0)
-        if country in by_country:
-            taken = 0
-            for r in by_country[country]:
-                if r[0] not in used and taken < quota:
-                    selected.append(r)
-                    used.add(r[0])
-                    taken += 1
-    
-    # 2. OTHER — все остальные страны (включая NL, SE, GB и т.д.)
-    # ВАЖНО: США сюда НЕ попадает, только остальные
-    other_quota = quotas.get("OTHER", 0)
-    other_taken = 0
-    all_other = []
-    for country, servers in by_country.items():
-        if country in {"DE", "FI", "US", "OTHER"}:
-            continue
-        all_other.extend(servers)
-    # OTHER из самой категории OTHER
-    if "OTHER" in by_country:
-        all_other.extend(by_country["OTHER"])
-    all_other.sort(key=lambda x: x[1])
-    for r in all_other:
-        if r[0] not in used and other_taken < other_quota:
-            selected.append(r)
-            used.add(r[0])
-            other_taken += 1
-    
-    # 3. Если не набрали need — добиваем ЛЮБЫМИ оставшимися (по скорости)
-    # Но СНАЧАЛА добиваем из DE/FI/NL (хорошие страны), потом из остальных
+        by_country[c].sort(key=lambda v: -score_of(v, state_list.get(v["key"], {}).get("streak", 0)))
+    selected, used = [], set()
+    def take(c, n):
+        taken = 0
+        for v in by_country.get(c, []):
+            if v["key"] in used: continue
+            if taken >= n: break
+            selected.append(v); used.add(v["key"]); taken += 1
+        return taken
+    for c in ("DE", "FI", "US"):
+        take(c, PRIORITY_QUOTAS.get(c, 0))
+    take("OTHER", PRIORITY_QUOTAS.get("OTHER", 0))
+    # добор ЛЮБЫМИ недостающими (сначала приличные страны), по скорости
     if len(selected) < need:
-        priority_fill = []
-        other_fill = []
-        for country, servers in by_country.items():
-            for r in servers:
-                if r[0] not in used:
-                    if country in {"DE", "FI", "NL", "SE", "NO", "GB"}:
-                        priority_fill.append(r)
-                    else:
-                        other_fill.append(r)
-        priority_fill.sort(key=lambda x: x[1])
-        other_fill.sort(key=lambda x: x[1])
-        for r in priority_fill + other_fill:
-            if len(selected) >= need:
-                break
-            if r[0] not in used:
-                selected.append(r)
-                used.add(r[0])
-    
-    # Сортируем финальный список по скорости
-    selected.sort(key=lambda x: x[1])
+        rest = [v for vs in by_country.values() for v in vs if v["key"] not in used]
+        rest.sort(key=lambda v: -score_of(v, state_list.get(v["key"], {}).get("streak", 0)))
+        for v in rest:
+            if len(selected) >= need: break
+            selected.append(v); used.add(v["key"])
     return selected[:need]
 
+# ================== ФАЙЛЫ ==================
 def read_old_servers(filename):
     if not os.path.exists(filename):
         return []
     try:
         with open(filename, "r", encoding="utf-8") as f:
-            lines = f.read().splitlines()
-        return [l.strip() for l in lines if l.strip() and not l.startswith("#")]
+            return [l.strip() for l in f.read().splitlines()
+                    if l.strip() and not l.startswith("#")]
     except Exception:
         return []
 
 def write_subscription(filename, title, servers):
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"#profile-title: {title}\n" + "\n".join(servers))
+        f.write(f"#profile-title: {title}\n#updated: {time.strftime('%Y-%m-%d %H:%M')} UTC\n"
+                "#verified: xray+http204+https204+real-content\n\n" + "\n".join(servers) + "\n")
 
-def merge_new_and_old(new_results, old_servers, is_white_list):
-    if not new_results and not old_servers:
-        return []
-    
-    new_links = [r[0] for r in new_results] if new_results else []
-    new_keys = set()
-    for link in new_links:
-        info = extract_info(link)
-        if info:
-            new_keys.add((info[2], info[0], info[1]))
-    
-    old_to_check = []
-    for link in old_servers:
-        info = extract_info(link)
-        if not info:
-            continue
-        key = (info[2], info[0], info[1])
-        if key in new_keys:
-            continue
-        has_trusted = any(t in info[3] for t in TRUSTED_SNIS) if info[3] else False
-        sni = info[3] if info else ""
-        country = detect_country(link, sni)
-        old_to_check.append((link, has_trusted, country))
-    
-    print(f"[*] Проверяю {len(old_to_check)} старых серверов (хендшейк)...")
-    old_alive = []
-    if old_to_check:
-        with ThreadPoolExecutor(max_workers=20) as ex:
-            futures = [ex.submit(handshake_check, item) for item in old_to_check]
-            for f in as_completed(futures):
-                r = f.result()
-                if r:
-                    old_alive.append(r)
-    
-    old_alive.sort(key=lambda x: x[1])
-    old_links = [l for l, s, t, c in old_alive]
-    print(f"[+] Живых старых: {len(old_links)}")
-    
-    combined = new_links + old_links
-    seen, deduped = set(), []
-    for link in combined:
-        info = extract_info(link)
-        if info:
-            key = (info[2], info[0], info[1])
-            if key not in seen:
-                seen.add(key)
-                deduped.append(link)
-    return deduped[:TARGET_COUNT]
+# ================== ОСНОВНОЙ ЦИКЛ ПО СПИСКУ ==================
+def process_list(is_white, state, t_start):
+    name = "БЕЛЫЙ" if is_white else "ЧЁРНЫЙ"
+    urls = URLS_WHITE if is_white else URLS_BLACK
+    sub_file = WHITE_FILE if is_white else BLACK_FILE
+    print(f"\n{'='*60}\n[*] {name} СПИСОК\n{'='*60}")
 
-def print_distribution(results):
-    counts = {}
-    for r in results:
-        c = r[3]
-        counts[c] = counts.get(c, 0) + 1
-    parts = [f"{c}:{n}" for c, n in sorted(counts.items())]
-    print(f"    Распределение по странам: {', '.join(parts) if parts else 'нет данных'}")
-
-def main():
-    t_start = time.monotonic()
-    print("[*] Парсер v15: определение страны по имени + загрузка реального контента")
-    print(f"[*] Квоты: {PRIORITY_QUOTAS} (США ограничено!)")
-    
-    xray_found = os.path.exists(XRAY_PATH) or shutil.which("xray")
-    if not xray_found:
-        print("[!] xray не найден. Выход.")
-        return
-    
+    # --- 1. Качаем источники ---
     print("[*] Скачиваю источники...")
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
-        white_text = "\n".join(r for r in ex.map(fetch_one, URLS_WHITE) if r)
-        black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
-    
-    print("[*] Парсинг (РАЗДЕЛЬНЫЕ пулы, с определением страны)...")
-    white_keys = set()
-    black_keys = set()
-    white_c = parse_source_text(white_text, white_keys, is_white_list=True)
-    black_c = parse_source_text(black_text, black_keys, is_white_list=False)
-    print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
-    
-    # Показываем распределение по странам ДО проверки
-    print("\n[*] Распределение кандидатов по странам:")
-    white_countries = {}
-    for _, _, c in white_c:
-        white_countries[c] = white_countries.get(c, 0) + 1
-    print(f"    Белые: {', '.join(f'{c}:{n}' for c, n in sorted(white_countries.items()))}")
-    black_countries = {}
-    for _, _, c in black_c:
-        black_countries[c] = black_countries.get(c, 0) + 1
-    print(f"    Чёрные: {', '.join(f'{c}:{n}' for c, n in sorted(black_countries.items()))}")
-    
-    print("\n[*] ЭТАП 1: хендшейк...")
-    white_hs, black_hs = [], []
-    with ThreadPoolExecutor(max_workers=30) as ex:
-        fw = [ex.submit(handshake_check, c) for c in white_c[:HANDSHAKE_POOL]]
-        for f in as_completed(fw):
-            r = f.result()
-            if r: white_hs.append(r)
-        fb = [ex.submit(handshake_check, c) for c in black_c[:HANDSHAKE_POOL]]
-        for f in as_completed(fb):
-            r = f.result()
-            if r: black_hs.append(r)
-    print(f"[+] Прошли хендшейк: белых {len(white_hs)}, чёрных {len(black_hs)}")
-    
-    print("\n[*] ЭТАП 2: ЖЕЛЕЗОБЕТОННАЯ проверка (загрузка instagram.com / youtube.com)...")
-    print("--- Белые (грузим instagram.com) ---")
-    white_real = verify_real_strict(white_hs, TARGET_COUNT, is_white_list=True)
-    print_distribution(white_real)
-    print("--- Чёрные (грузим youtube.com) ---")
-    black_real = verify_real_strict(black_hs, TARGET_COUNT, is_white_list=False)
-    print_distribution(black_real)
-    
-    print("\n[*] ЭТАП 3: выбор по квотам...")
-    white_selected = select_balanced(white_real, TARGET_COUNT)
-    black_selected = select_balanced(black_real, TARGET_COUNT)
-    print(f"[+] Отобрано по квотам: белых {len(white_selected)}, чёрных {len(black_selected)}")
-    print_distribution(white_selected)
-    
-    old_white = read_old_servers("white_subscription.txt")
-    old_black = read_old_servers("black_subscription.txt")
-    
-    print("\n[*] Мердж: новые + живые старые...")
-    final_white = merge_new_and_old(white_selected, old_white, is_white_list=True)
-    final_black = merge_new_and_old(black_selected, old_black, is_white_list=False)
-    
-    if final_white:
-        write_subscription("white_subscription.txt", "Белый список (РКН)", final_white)
-        print(f"[+] Белый список ОБНОВЛЁН: {len(final_white)} серверов")
+        texts = list(ex.map(fetch_one, urls))
+    good = sum(1 for t in texts if t)
+    print(f"[+] Источников ответило: {good}/{len(urls)}")
+
+    # --- 2. Парсим кандидатов ---
+    used_keys, ip_count, subnet_count = set(), {}, {}
+    candidates = parse_sources(texts, used_keys, ip_count, subnet_count, is_white)
+    print(f"[+] Кандидатов после фильтров: {len(candidates)}")
+    if not candidates:
+        print("[!] Кандидатов нет — файл не трогаю.")
+        return
+
+    # --- 3. Инкумбенты: старые серверы из файла проходят ПОЛНУЮ проверку ---
+    old_lines = read_old_servers(sub_file)
+    old_cands = []
+    seen_old = set()
+    for line in old_lines:
+        info = extract_info(line)
+        if not info or not UUID_RE.fullmatch(info["uuid"] or ""):
+            continue
+        k = server_key(info)
+        if k in seen_old: continue
+        seen_old.add(k)
+        match = next((c for c in candidates if c["key"] == k), None)
+        if match:
+            old_cands.append(match)
+        else:
+            ip = resolve(info["host"]) or info["host"]
+            if ip_count.get(ip, 0) < 2 and (not is_white or white_ok(info)) and (is_white or not is_russian_ip(info["host"])):
+                old_cands.append({"line": line, "info": info, "key": k,
+                                  "has_trusted": any(t in (info["sni"] or "") for t in TRUSTED_SNIS),
+                                  "country": detect_country(line, info["sni"])})
+                ip_count[ip] = ip_count.get(ip, 0) + 1
+
+    state_list = state["white"] if is_white else state["black"]
+    print(f"\n[*] ЭТАП 1: перепроверяю {len(old_cands)} старых серверов (полная проверка, НЕ хендшейк)...")
+    old_verified, old_checked = verify_candidates(old_cands, is_white, {}, light=True)
+    for c in old_cands:
+        bump_entry(state_list, c, any(v["key"] == c["key"] for v in old_verified))
+    print(f"[+] Старых живых: {len(old_verified)} (мёртвые будут заменены)")
+
+    # --- 4. Хендшейк всех кандидатов (быстрый отсев) ---
+    old_keys = {v["key"] for v in old_verified}
+    rest = [c for c in candidates if c["key"] not in old_keys]
+    random.shuffle(rest)                          # случайно, а не «первые 40 из файла»
+    print(f"\n[*] ЭТАП 2: хендшейк {min(len(rest), 150)} новых кандидатов...")
+    hs_pool = rest[:150]
+    hs_passed = []
+    with ThreadPoolExecutor(max_workers=HS_WORKERS) as ex:
+        for r in ex.map(handshake_check, hs_pool):
+            if r: hs_passed.append(r)
+    hs_passed.sort(key=lambda c: c.get("hs_score", 9))
+    print(f"[+] Прошли хендшейк: {len(hs_passed)}")
+
+    need_new = max(0, TARGET_COUNT + RESERVE_EXTRA - len(old_verified))
+
+    # КУЛДАУН: кто умер 2+ раза подряд в прошлых запусках — пропускаем (если есть кем заменить)
+    def on_cooldown(c):
+        e = state_list.get(c["key"])
+        return bool(e and e.get("streak", 0) == 0 and e.get("fails", 0) >= 2)
+    hot = [c for c in hs_passed if not on_cooldown(c)]
+    cooled = len(hs_passed) - len(hot)
+    if cooled:
+        print(f"[*] Кулдаун: пропускаю {cooled} давно умерших (economia бюджета)")
+    hs_passed = hot if len(hot) >= need_new * 2 else hs_passed
+
+    # --- 5. Волны полной (тройной) проверки новых, пока не наберём ---
+    new_verified = []
+    if need_new > 0:
+        budget = MAX_REAL_CHECKS
+        print(f"[*] Нужно новых: {need_new}, бюджет полных проверок: {budget}")
+        new_verified, new_checked = verify_candidates(hs_passed, is_white, {}, light=False,
+                                                          limit=budget, stop_when=need_new + 2)
+        vkeys = {v["key"] for v in new_verified}
+        for c in new_checked:                     # историю пишем только КТО ПРОВЕРЯЛСЯ
+            if c["key"] in vkeys:
+                bump_entry(state_list, c, True,
+                           next((v["kbps"] for v in new_verified if v["key"] == c["key"]), None))
+            else:
+                bump_entry(state_list, c, False)
     else:
-        print("[!] Белый список пуст")
-    
-    if final_black:
-        write_subscription("black_subscription.txt", "Чёрный список (РКН)", final_black)
-        print(f"[+] Чёрный список ОБНОВЛЁН: {len(final_black)} серверов")
+        print("[*] Дозабор новых не нужен.")
+
+    # --- 6. Выбор по квотам: живые старые + проверенные новые ---
+    all_verified = old_verified + [v for v in new_verified if v["key"] not in {o["key"] for o in old_verified}]
+    selected = select_balanced(all_verified, state_list, TARGET_COUNT)
+    print(f"\n[+] Итог {name}: {len(selected)} серверов")
+    dist = {}
+    for v in selected: dist[v["country"]] = dist.get(v["country"], 0) + 1
+    print(f"    Распределение: {', '.join(f'{c}:{n}' for c, n in sorted(dist.items())) or '—'}")
+
+    if selected:
+        write_subscription(sub_file,
+                           "Белый список (РКН)" if is_white else "Чёрный список (РКН)",
+                           [v["line"] for v in selected])
+        print(f"[+] {sub_file} ЗАПИСАН ({len(selected)} проверенных серверов)")
     else:
-        print("[!] Чёрный список пуст")
-    
-    print(f"\n[*] Общее время: {time.monotonic() - t_start:.1f} сек")
+        print(f"[!] Ни одного живого — {sub_file} НЕ трогаю (старый файл сохранён).")
+
+# ================== MAIN ==================
+def main():
+    t0 = time.monotonic()
+    print("[*] Парсер v16: полная перепроверка старых + тройная проверка новых + история в state.json")
+    if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
+        print("[!] xray не найден — выход.")
+        return
+    state = load_state()
+    try:
+        process_list(True, state, t0)     # белый
+        process_list(False, state, t0)    # чёрный
+    finally:
+        # чистим историю: мёртвые точки старше 7 дней больше не нужны
+        cutoff = time.time() - 7 * 86400
+        for lst in (state.get("white", {}), state.get("black", {})):
+            for k in [k for k, e in lst.items() if e.get("streak", 0) == 0 and e.get("last_fail", 0) < cutoff]:
+                lst.pop(k, None)
+        save_state(state)
+    print(f"\n[*] Общее время: {time.monotonic() - t0:.1f} сек")
 
 if __name__ == "__main__":
     main()
