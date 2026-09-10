@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v19 — «железобетонная» проверка для 2 подписок.
+ПАРСЕР v20 — «железобетонная» проверка для 2 подписок.
+СТРАНЫ: в обоих списках ТОЛЬКО Финляндия / Нидерланды / США / Германия
+(определение по имени сервера и SNI, без сторонних геосервисов; чужие страны
+отбрасываются до проверок). Чёрный: квоты DE:3/FI:3/NL:2/US:2 + добор по скорости.
+Белый: топ-10 быстрых из разрешённых стран (hysteria2/Reality/CF-443).
 БЕЛЫЙ (полностью новая логика): источники — специализированные белые списки
 (Subzio, zieng2/wl, igareck). Классы: hysteria2 с белым SNI (проверка через
 sing-box), vless Reality с белым SNI (.ru и крупные мировые) на 443, запас —
@@ -203,14 +207,18 @@ def is_russian_ip(ip_or_domain):
         pass
     return ip_or_domain.endswith((".ru", ".su", ".by", ".рф"))
 
+_CODE_RE = re.compile(r"(?:^|[^a-zа-я])(fi|nl|us|de)(?:[^a-zа-я]|$)")
+
 def detect_country(link, sni=""):
-    fragment = link.split("#", 1)[1].lower() if "#" in link else ""
-    fragment = unquote(fragment)
+    fragment = unquote(link.split("#", 1)[1].lower()) if "#" in link else ""
     texts = [fragment, (sni or "").lower()]
+    # сперва слова/эмодзи (точнее), затем 2-буквенные коды: "FI-1234", "US 5474", "#NL"
     for country, patterns in COUNTRY_PATTERNS.items():
-        for pattern in patterns:
-            if any(pattern in t for t in texts if t):
-                return country
+        if any(p in t for t in texts if t for p in patterns):
+            return country
+    m = _CODE_RE.search(fragment)
+    if m:
+        return m.group(1).upper()
     return "OTHER"
 
 # ================== ПАРСИНГ ИСТОЧНИКОВ ==================
@@ -711,9 +719,8 @@ def select_balanced(verified, state_list, need):
             if taken >= n: break
             selected.append(v); used.add(v["key"]); taken += 1
         return taken
-    for c in ("DE", "FI", "US"):
+    for c in ("DE", "FI", "NL", "US"):
         take(c, PRIORITY_QUOTAS.get(c, 0))
-    take("OTHER", PRIORITY_QUOTAS.get("OTHER", 0))
     # добор ЛЮБЫМИ недостающими (сначала приличные страны), по скорости
     if len(selected) < need:
         rest = [v for vs in by_country.values() for v in vs if v["key"] not in used]
@@ -780,8 +787,11 @@ def process_list(is_white, state, t_start):
     used_keys, ip_count, subnet_count = set(), {}, {}
     candidates = parse_sources(texts, used_keys, ip_count, subnet_count, is_white)
     print(f"[+] Кандидатов после фильтров: {len(candidates)}")
+    before = len(candidates)
+    candidates = [c for c in candidates if c["country"] in ALLOWED_COUNTRIES]
+    print(f"[*] Только {','.join(sorted(ALLOWED_COUNTRIES))}: {len(candidates)} из {before}")
     if not candidates:
-        print("[!] Кандидатов нет — файл не трогаю.")
+        print("[!] Кандидатов нужных стран нет — файл не трогаю.")
         return
 
     # --- 3. Инкумбенты: старые серверы из файла проходят ПОЛНУЮ проверку ---
@@ -794,6 +804,8 @@ def process_list(is_white, state, t_start):
             continue
         if info["proto"] == "vless" and not UUID_RE.fullmatch(info["uuid"] or ""):
             continue
+        if detect_country(line, info["sni"]) not in ALLOWED_COUNTRIES:
+            continue                      # сервер чужой страны — вон из подписки
         if line.startswith(HY2_PREFIXES):
             try:
                 info["proto"] = "hy2"
@@ -912,7 +924,7 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v19: белый = hysteria2/Reality(белый SNI)/CF-443 + скорость + fm=; чёрный = v17")
+    print("[*] Парсер v20: ТОЛЬКО FI/NL/US/DE в обоих списках + полная проверка + скорость")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход.")
         return
