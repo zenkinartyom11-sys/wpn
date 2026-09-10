@@ -1,4 +1,4 @@
-name: Auto Update VLESS Config
+name: Auto Update VLESS Confi
 on:
   push:
     branches: [main]
