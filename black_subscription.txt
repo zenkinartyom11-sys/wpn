@@ -1,11 +1,14 @@
 #profile-title: Чёрный список (РКН)
-vless://6202b230-417c-4d8e-b624-0f71afa9c75d@63.141.128.30:8880?encryption=none&security=none&type=ws&host=vms.lifetime42.workers.dev&path=%2F#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://fb5058f5-a9ed-424e-9ed7-33d455438286@104.27.82.154:8880?encryption=none&security=none&type=ws&host=old-violet-a5ce.29-440.workers.dev&path=%2Fpyip%3DProxyIP.SG.CMLiussss.net#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://e382b6dd-2dac-49c5-b16f-1cd0a6b73bf2@50.62.195.4:80?encryption=none&security=none&type=ws&host=raspy-feather-12ec.137-257.workers.dev&path=%2F#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://6202b230-417c-4d8e-b624-0f71afa9c75d@155.46.167.30:8880?encryption=none&security=none&type=ws&host=vms.lifetime50.workers.dev&path=%2F#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://45643c5f-ffc2-46f3-b82c-329aea9962d4@172.67.153.109:8080?encryption=none&security=none&type=ws&host=server10.sotowoy673.workers.dev&path=%2FeyJqdW5rIjoiQkRZWDhCN01sIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcmVmaXgiLCJwYW5lbElQcyI6WyJbMmEwMjo4OTg6MTQ2OjY0OjpdIl19%3Fed%3D2560#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%85%8D%E8%B4%B9%E8%8A%82%E7%82%B9%29
-vless://6202b230-417c-4d8e-b624-0f71afa9c75d@45.40.149.50:8880?encryption=none&security=none&type=ws&host=vms.lifetime39.workers.dev&path=%2F#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://6202b230-417c-4d8e-b624-0f71afa9c75d@50.62.198.30:8880?encryption=none&security=none&type=ws&host=vms.lifetime39.workers.dev&path=%2F#%E7%BE%8E%E5%9B%BD%28yudou789.top%20%E7%8E%89%E8%B1%86%E5%88%86%E4%BA%AB%29
-vless://6429d27e-a7d4-4e04-ae57-e88243fbbfe3@2.26.178.129:443?security=reality&encryption=none&pbk=F2VfBr2UmjDTErB_oruvW5aIvzH_xGfM2AW5_w-DF0I&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=localhost#🇺🇸 💥Config_jo-220
+#updated: 2026-09-10 12:21 UTC
+#verified: xray+http204+https204+real-content
+
+vless://cec9a167-6381-4752-9828-a92ab6e6ebdd@2.26.0.5:443?mode=multi&security=reality&encryption=none&authority=deliberi.fi&pbk=_syAndJM1Guu8-CkJ48iBXUTe0GxHg3YEN3vz9iPkjo&fp=chrome&type=grpc&serviceName=6b1d23e872422afdd141eba7c94c05e4&sni=deliberi.fi&sid=f44dbbc3#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-5403
 vless://568addfa-796a-40f8-820d-a071ee2ca50a@2.27.244.94:443?fp=qq&mode=auto&pbk=sJTPQLMDCyPAbRcaJM-P8Y3_xRVpEEGrvv-kkIuIuQE&security=reality&sni=www.google.com&type=xhttp#🇺🇸 💥Config_jo-214
-vless://6429d27e-a7d4-4e04-ae57-e88243fbbfe3@brightharbor.download:443?security=reality&encryption=none&pbk=F2VfBr2UmjDTErB_oruvW5aIvzH_xGfM2AW5_w-DF0I&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=localhost#🇺🇸 💥Config_jo-221
+vless://7111212b-6bc3-459a-85b4-3b13038a19f8@cf4.466688.xyz:8880?&fp=chrome&type=ws&headerType=none&host=shrill-fog-67af.235-e6a.workers.dev&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net#%5BOpenRay%5D%20Dynamic-22816
+vless://d9d0f208-d582-41d5-bb7b-742671402810@us-main-2.hanvpn.biz:443?security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=PBdrT4IGQ9dXoz3Sb52kGRUb22OoHF4jTtTq_5K3AWc&sid=95f904b1e977e5cb#Бесплатный
+vless://f5c47e9c-914a-4a91-a81e-a5a77bc10fc1@ov-france1.09vpn.com:80?path=/vless/&security=none&encryption=none&type=ws#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%B7%20FR-4639
+vless://edde565e-41f5-400e-84ea-7b87a3e84488@152.53.1.40:443?security=reality&type=tcp&sni=at.quattro-tech.ru&fp=qq&flow=xtls-rprx-vision&sid=43dcff53849b81e6&pbk=10rVZPoOUP1TlQviIAsQ_jAROX0fRQxH0C92nq_zGQc&encryption=none#%5BOpenRay%5D%20%F0%9F%87%A6%F0%9F%87%B9%20AT-431
+vless://cd3bb7d9-7df3-4644-ac05-c260990ac277@50.7.248.234:443?&security=tls&flow=xtls-rprx-vision&fp=firefox&alpn=h2&sni=viper-22.moriarty-web.com&type=tcp&headerType=none&path=%2F#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2423
+vless://6429d27e-a7d4-4e04-ae57-e88243fbbfe3@2.26.178.129:443?security=reality&encryption=none&pbk=F2VfBr2UmjDTErB_oruvW5aIvzH_xGfM2AW5_w-DF0I&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=localhost#🇺🇸 💥Config_jo-220
+vless://ca19c24a-e5ec-45f8-8cd1-c97d84da5e35@45.129.186.205:443?flow=xtls-rprx-vision&fp=firefox&pbk=ntzKs0FMUCLOwBKYNbvzf9FZKEL6tZP6BXccNKJCcF8&security=reality&sni=ru.oblaco.bet#%5BOpenRay%5D%20%F0%9F%87%A7%F0%9F%87%BE%20BY-14
+vless://b8201bab-fa6c-4f6e-b289-b5da660c6f69@202.155.11.249:8443?encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=uVW6pjY6WG6jPC_epzHcYIxZ4ImBppCUvms76MBd9RA&security=reality&sid=85bce767f30aa92a&sni=www.wikipedia.org&type=tcp#Бесплатный
