@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v20 — «железобетонная» проверка для 2 подписок.
-СТРАНЫ: в обоих списках ТОЛЬКО Финляндия / Нидерланды / США / Германия
-(определение по имени сервера и SNI, без сторонних геосервисов; чужие страны
-отбрасываются до проверок). Чёрный: квоты DE:3/FI:3/NL:2/US:2 + добор по скорости.
-Белый: топ-10 быстрых из разрешённых стран (hysteria2/Reality/CF-443).
+ПАРСЕР v21 — «железобетонная» проверка для 2 подписок.
+PROVEN: файл proven.txt (корень репо) — серверы, проверенные вручную на телефоне.
+Они всегда проходят полную проверку и идут в подписку ПЕРВЫМИ; ссылки из proven.txt
+не модифицируются. Фильтр стран: выключен по умолчанию (на МТС жёсткий FI/NL/US/DE
+дал 0 рабочих), квоты стран работают как приоритет при выборе.
 БЕЛЫЙ (полностью новая логика): источники — специализированные белые списки
 (Subzio, zieng2/wl, igareck). Классы: hysteria2 с белым SNI (проверка через
 sing-box), vless Reality с белым SNI (.ru и крупные мировые) на 443, запас —
@@ -53,10 +53,14 @@ RESERVE_EXTRA   = 4           # проверяем на 4 больше, чем �
 STATE_FILE      = "state.json"          # история проверок (коммитится в репо)
 WHITE_FILE      = "white_subscription.txt"
 BLACK_FILE      = "black_subscription.txt"
+PROVEN_FILE     = "proven.txt"     # серверы, проверенные ВРУЧНУЮ на телефоне — приоритет №1
 
-# ========== СТРАНЫ (жёсткий фильтр, v20) ==========
-# В ОБОИХ подписках только эти страны. Остальные отбрасываются ДО проверок.
-ALLOWED_COUNTRIES = {"FI", "NL", "US", "DE"}
+# ========== СТРАНЫ ==========
+# ЖЁСТКИЙ фильтр: впиши страны, и все остальные будут отбрасываться до проверок.
+# ПУСТО = фильтр выключен. На МТС жёсткий "FI/NL/US/DE по имени" дал 0 рабочих
+# (именованные страны в публичных списках — самые заблокированные IP), поэтому
+# по умолчанию выключен; квоты ниже продолжают работать как ПРИОРИТЕТ.
+ALLOWED_COUNTRIES = set()
 
 # Квоты для ЧЁРНОГО списка (раскладка 10 мест; недобор добирается из
 # оставшихся разрешённых стран по скорости). Белый: просто топ по скорости.
@@ -760,14 +764,18 @@ def ensure_fragment(link):
     head = head + ("&" if "?" in head else "?") + payload
     return head + (("#" + frag) if frag else "")
 
-def write_subscription(filename, title, servers, is_white=False):
+def write_subscription(filename, title, servers, is_white=False, protected=None):
+    protected = protected or set()
     if is_white:
         out = []
         for l in servers:
-            is_hy2 = l.startswith(HY2_PREFIXES)          # hy2 — UDP, фрагментация не нужна
+            if l in protected:                # proven-ссылки не изменяем никогда
+                out.append(l)
+                continue
+            is_hy2 = l.startswith(HY2_PREFIXES)
             i = extract_info(l)
             if (not is_hy2) and i and i["security"] != "reality":
-                l = ensure_fragment(l)      # фрагментация только обычному TLS за CF
+                l = ensure_fragment(l)
             out.append(l)
         servers = out
     with open(filename, "w", encoding="utf-8") as f:
@@ -793,8 +801,9 @@ def process_list(is_white, state, t_start):
     candidates = parse_sources(texts, used_keys, ip_count, subnet_count, is_white)
     print(f"[+] Кандидатов после фильтров: {len(candidates)}")
     before = len(candidates)
-    candidates = [c for c in candidates if c["country"] in ALLOWED_COUNTRIES]
-    print(f"[*] Только {','.join(sorted(ALLOWED_COUNTRIES))}: {len(candidates)} из {before}")
+    if ALLOWED_COUNTRIES:
+        candidates = [c for c in candidates if c["country"] in ALLOWED_COUNTRIES]
+        print(f"[*] Только {','.join(sorted(ALLOWED_COUNTRIES))}: {len(candidates)} из {before}")
     if not candidates:
         print("[!] Кандидатов нужных стран нет — файл не трогаю.")
         return
@@ -809,8 +818,8 @@ def process_list(is_white, state, t_start):
             continue
         if info["proto"] == "vless" and not UUID_RE.fullmatch(info["uuid"] or ""):
             continue
-        if detect_country(line, info["sni"]) not in ALLOWED_COUNTRIES:
-            continue                      # сервер чужой страны — вон из подписки
+        if ALLOWED_COUNTRIES and detect_country(line, info["sni"]) not in ALLOWED_COUNTRIES:
+            continue                      # жёсткий фильтр стран включён — чужие вон
         if line.startswith(HY2_PREFIXES):
             try:
                 info["proto"] = "hy2"
@@ -895,7 +904,54 @@ def process_list(is_white, state, t_start):
         print("[*] Дозабор новых не нужен.")
 
     # --- 6. Выбор по квотам: живые старые + проверенные новые ---
-    all_verified = old_verified + [v for v in new_verified if v["key"] not in {o["key"] for o in old_verified}]
+    # --- 5b. PROVEN: серверы из proven.txt (проверены тобой на телефоне) ---
+    proven_verified, proven_lines_set = [], set()
+    if os.path.exists(PROVEN_FILE):
+        try:
+            with open(PROVEN_FILE, "r", encoding="utf-8") as f:
+                plines = [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
+        except Exception:
+            plines = []
+        pseen, proven_cands = set(), []
+        for line in plines:
+            info = extract_info(line)
+            if not info:
+                continue
+            if info["proto"] == "vless" and not UUID_RE.fullmatch(info["uuid"] or ""):
+                continue
+            if line.startswith(HY2_PREFIXES):
+                info["proto"] = "hy2"; info["security"] = "hy2"
+                try:
+                    info["uuid"] = unquote(line.split("://", 1)[1].split("@", 1)[0])
+                except Exception:
+                    continue
+            k = server_key(info)
+            if k in pseen:
+                continue
+            pseen.add(k)
+            proven_lines_set.add(line)
+            # Country-фильтры к proven НЕ применяем: телефон важнее эвристики
+            proven_cands.append({"line": line, "info": info, "key": k,
+                                 "has_trusted": True,
+                                 "country": detect_country(line, info["sni"])})
+        if proven_cands:
+            print(f"\n[*] PROVEN: перепроверяю {len(proven_cands)} серверов из proven.txt...")
+            proven_verified, pchecked = verify_candidates(proven_cands, is_white, {}, light=True)
+            pvk = {v["key"] for v in proven_verified}
+            for c in proven_cands:
+                bump_entry(state_list, c, c["key"] in pvk)
+            print(f"[+] PROVEN живых: {len(proven_verified)} — идут в файл первыми")
+
+    # --- 6. Выбор: proven -> инкумбенты/новые по квотам/тирам ---
+    pv_keys = {v["key"] for v in proven_verified}
+    seen_keys, pool = set(), []
+    for v in old_verified + new_verified:
+        if v["key"] in seen_keys or v["key"] in pv_keys:
+            continue
+        seen_keys.add(v["key"])
+        pool.append(v)
+    slots = max(0, TARGET_COUNT - len(proven_verified))
+    all_verified = pool
     if is_white:
         # БЕЛЫЙ v19: сначала «родные» классы (hysteria2, Reality+белый SNI),
         # самые быстрые по замеру; свободные места — быстрые CF+443
@@ -910,9 +966,9 @@ def process_list(is_white, state, t_start):
                     key=lambda v: -(v.get("kbps") or 0))
         t2 = sorted((v for v in all_verified if white_tier(v) == 2),
                     key=lambda v: -(v.get("kbps") or 0))
-        selected = (t1 + t2)[:TARGET_COUNT]
+        selected = (proven_verified + (t1 + t2)[:slots])[:TARGET_COUNT]
     else:
-        selected = select_balanced(all_verified, state_list, TARGET_COUNT)
+        selected = (proven_verified + select_balanced(pool, state_list, slots))[:TARGET_COUNT]
     print(f"\n[+] Итог {name}: {len(selected)} серверов")
     dist = {}
     for v in selected: dist[v["country"]] = dist.get(v["country"], 0) + 1
@@ -921,7 +977,8 @@ def process_list(is_white, state, t_start):
     if selected:
         write_subscription(sub_file,
                            "Белый список (РКН)" if is_white else "Чёрный список (РКН)",
-                           [v["line"] for v in selected], is_white)
+                           [v["line"] for v in selected], is_white,
+                           protected=proven_lines_set)
         print(f"[+] {sub_file} ЗАПИСАН ({len(selected)} проверенных серверов)")
     else:
         print(f"[!] Ни одного живого — {sub_file} НЕ трогаю (старый файл сохранён).")
@@ -929,7 +986,7 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v20: ТОЛЬКО FI/NL/US/DE в обоих списках + полная проверка + скорость")
+    print("[*] Парсер v21: proven.txt (твои рабочие) в приоритете + фильтр стран выкл (квоты как приоритет)")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход.")
         return
