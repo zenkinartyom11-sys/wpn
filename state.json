@@ -803,11 +803,11 @@
   "729dd5f2-f5ff-4070-8c10-863eceded0b1|195.123.235.177|443": {
    "link": "vless://729dd5f2-f5ff-4070-8c10-863eceded0b1@195.123.235.177:443?encryption=none&flow=xtls-rprx-vision&fp=&pbk=5B83otQ5ZQwtBFhR7xzsGJRXflkFKRJpQguYbE5JWGI&security=reality&sid=c85d029f5e8eb393&sni=gateway.icloud.com&type=tcp#%F0%9F%87%BA%F0%9F%87%B8%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%96199%20822KB%2Fs%20365ms",
    "country": "US",
-   "passes": 5,
+   "passes": 6,
    "fails": 0,
-   "streak": 5,
+   "streak": 6,
    "best_kbps": 2181.5,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "65c56e1f-5c41-40bc-b0b5-9346772476ca|xmm5.130209.xyz|8443": {
@@ -943,11 +943,11 @@
   "44ae52b9-76fc-444d-8e43-186b4384b80a|86.54.28.75|443": {
    "link": "vless://44ae52b9-76fc-444d-8e43-186b4384b80a@86.54.28.75:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=PryGoq51ilG0eLUPl9i0xCvmk1xpwkyFSr_tG4GNLlU&sid=1d86d17709852910&sni=www.apple.com#%F0%9F%87%B3%F0%9F%87%B1%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%96441%20410KB%2Fs%20622ms",
    "country": "NL",
-   "passes": 5,
+   "passes": 6,
    "fails": 0,
-   "streak": 5,
+   "streak": 6,
    "best_kbps": 829.3,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "63f96e98-f83f-48d0-9cd0-f31e8071f67f|5.253.59.220|443": {
@@ -973,11 +973,11 @@
   "44ae52b9-76fc-444d-8e43-186b4384b80a|free-amsterdam-node-1.cloudwidecdn.com|443": {
    "link": "vless://44ae52b9-76fc-444d-8e43-186b4384b80a@free-amsterdam-node-1.cloudwidecdn.com:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.apple.com&fp=chrome&pbk=PryGoq51ilG0eLUPl9i0xCvmk1xpwkyFSr_tG4GNLlU&sid=1d86d17709852910&type=tcp&headerType=none#%F0%9F%87%B3%F0%9F%87%B1%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%96430%20417KB%2Fs%20691ms",
    "country": "NL",
-   "passes": 5,
+   "passes": 6,
    "fails": 0,
-   "streak": 5,
+   "streak": 6,
    "best_kbps": 721.2,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "50414e45-4c5f-5a45-5553-4bd4a58ae838|www.asahse.ir|443": {
@@ -1133,11 +1133,11 @@
   "4e4f1f70-5e56-4a76-bb9d-db087f4690c4|172.67.217.240|443": {
    "link": "vless://4e4f1f70-5e56-4a76-bb9d-db087f4690c4@172.67.217.240:443?security=tls&type=ws&path=%2Ftyxyws&host=jp3.yohototo.top&packetEncoding=xudp&sni=jp3.yohototo.top&fp=chrome#t.me%2FNotorgames_0 - 179 %F0%9F%87%AF%F0%9F%87%B5",
    "country": "JP",
-   "passes": 0,
+   "passes": 1,
    "fails": 1,
-   "streak": 0,
-   "best_kbps": 0.0,
-   "last_ok": 0,
+   "streak": 1,
+   "best_kbps": 73.5,
+   "last_ok": 1789054169,
    "last_fail": 1789044556
   },
   "6992f972-39ab-41e3-9d2e-39efc00ced3d|104.17.121.37|2096": {
@@ -1584,11 +1584,11 @@
    "link": "hysteria2://68b4b16e-2759-47a4-8a69-33118edf5ce6@ned.leontunel.ru:443?sni=ned.leontunel.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Dronten%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "H7mP2xY9kJ4nQ8wR5tF6vB3z|18.118.193.169|443": {
    "link": "hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@18.118.193.169:443?sni=vk.com#7261",
@@ -1604,11 +1604,11 @@
    "link": "hysteria2://9dada88d-f8f8-459d-8a4f-4df2c973fe43@216.57.111.222:8443?sni=h2.ecliptic-it.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%F0%9F%8C%90%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "44eae030-290b-4083-8102-6f8bab05701b|104.21.33.59|443": {
    "link": "vless://44eae030-290b-4083-8102-6f8bab05701b@104.21.33.59:443?encryption=none&security=tls&type=ws&host=cfvvv-ev1.pages.dev&path=/&sni=cfvvv-ev1.pages.dev&fp=unsafe&cs=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256&fm={\"tcp\": [{\"type\": \"fragment\", \"settings\": {\"packets\": \"tlshello\", \"lengths\": [\"5\", \"94\", \"1\"], \"delays\": [\"0\"], \"maxSplit\": \"0\"}},{\"type\": \"fragment\", \"settings\": {\"packets\": \"1-1\", \"lengths\": [\"109\", \"1\"], \"delays\": [\"1\"], \"maxSplit\": \"355\"}}]}#🇺🇸 3041 - US - VLESS/WS/TLS/UTLS - 443",
@@ -1644,11 +1644,11 @@
    "link": "hysteria2://belgium_hysteria2_fastlane_a118d9y0r%3AmbZQuQoMqSphFg1FAhfonbRpduFn69k8@113.30.152.25:1935?sni=be1.h.fastlanehosting.ru#%F0%9F%87%A7%F0%9F%87%AA%20Belgium%2C%20Brussels%20%7C%20%5BBL%5D",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "8be461cb-a0df-47cf-bc0d-4d9e6a22fa74|ccs2g.pai50288.uk|443": {
    "link": "vless://8be461cb-a0df-47cf-bc0d-4d9e6a22fa74@ccs2g.pai50288.uk:443?path=/pai50288&security=tls&alpn=h2,http/1.1,h3&encryption=none&insecure=0&fp=chrome&type=ws&allowInsecure=0&sni=ccs2g.pai50288.uk#🇺🇸 6653 - US - VLESS/WS/TLS/UTLS - 443",
@@ -1713,22 +1713,22 @@
   "394101ef-7a56-4407-bb85-f46f37b08ef4|38.209.125.45|443": {
    "link": "vless://394101ef-7a56-4407-bb85-f46f37b08ef4@38.209.125.45:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=tht0aIcfnLJR3pYz5ulOaV-HFR1gj6PjIKFBMPpHSAo&sid=ce4fcc97d5bf5023&sni=www.apple.com#%F0%9F%87%BA%F0%9F%87%B8%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%9666%205.4MB%2Fs%20133ms",
    "country": "US",
-   "passes": 3,
+   "passes": 4,
    "fails": 0,
-   "streak": 3,
+   "streak": 4,
    "best_kbps": 1111.4,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "67a1454f-5a95-4e30-9723-1ffcbe7e97f9|taga10.api3-max.ru|443": {
    "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@taga10.api3-max.ru:443?sni=taga10.api3-max.ru#4172",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "838de912-398a-4c0e-9228-0fd44b0d1f8b|157.173.27.146|443": {
    "link": "vless://838de912-398a-4c0e-9228-0fd44b0d1f8b@157.173.27.146:443?flow=xtls-rprx-vision&fp=firefox&pbk=KP-P4zenuMuYe3UxPCjDEVmgqI4GiRZ95UbsAfmL71g&security=reality&sid=970098f31b96a3e8&sni=travel.yandex.ru&type=tcp# By EbraSha",
@@ -1764,11 +1764,11 @@
    "link": "hysteria2://hysteria2_fastlane_qsf4v6mt0%3A8rPEjLjgG1Rt9gV7EcmqqtLbZcS77Zvv@144.31.134.98:1935?sni=nl1.h.smartaisupport.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%28Amsterdam-Centrum%29%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "38009570-f150-4ebd-9517-cdcb8a1e7cff|gpt-plus.vepene.site|443": {
    "link": "vless://38009570-f150-4ebd-9517-cdcb8a1e7cff@gpt-plus.vepene.site:443?security=reality&type=tcp&headerType=&path=&host=&flow=xtls-rprx-vision&sni=api-maps.yandex.ru&fp=chrome&pbk=BgH8ba_xaAeLa5pyvwwJp6HT7i09aNoiAsE1HgTXXkU&sid=3275b9d98d3b69fc#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%9A%D0%B0%D1%80%D1%82%D1%8B%20%5BV.O.I.D%5D",
@@ -1824,11 +1824,11 @@
    "link": "hysteria2://austria_hysteria2_fastlane_l3b35d5dy%3AnYN3oTyCgUyrBTOwuW9uX9hDq5SmKVFx@130.49.219.99:1935?sni=at3.h.fastlanehosting.ru#%F0%9F%87%A6%F0%9F%87%B9%20Austria%2C%20Liezen%20District%20%7C%20%5BBL%5D",
    "country": "AT",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "b56b0646-6f2f-45e1-9c9b-cd98dd1ad2dd|144.31.90.161|443": {
    "link": "vless://b56b0646-6f2f-45e1-9c9b-cd98dd1ad2dd@144.31.90.161:443?encryption=none&flow=xtls-rprx-vision&fp=&pbk=My4NYF1x_I4nnRhgQXjpKl6BQVtgBWklHP6a3ejmOxU&security=reality&sid=1a66e6ad&sni=vk.com&type=tcp# By EbraSha",
@@ -1944,11 +1944,11 @@
    "link": "hysteria2://b268a3a1-3826-44a3-9ffb-3ac2095300ca@se2.hambot.ru:443?sni=se2.hambot.ru#%F0%9F%87%B8%F0%9F%87%AA%20Sweden%2C%20Stockholm%20%7C%20%5BBL%5D",
    "country": "SE",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "1c39f7af-2f6b-4869-a3be-d6fbffd174f3|188.225.74.242|443": {
    "link": "vless://1c39f7af-2f6b-4869-a3be-d6fbffd174f3@188.225.74.242:443?type=tcp&security=reality&sni=eh.vk.com&fp=randomized&flow=xtls-rprx-vision&pbk=8_eCxkrzPtoxZKM05euCs664cL_knpqvbr-KTlnHVmw&sid=17a729f0cd30b6a7#TCP, VK [V.O.I.D]",
@@ -2004,11 +2004,11 @@
    "link": "hysteria2://Telegram@vpnjey@77.110.96.201:36264?sni=vk.com&obfs=salamander&obfs-password=Telegram@vpnjey#4321",
    "country": "OTHER",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "11aabba0-5fd1-4f15-8068-74c1a466cefc|193.163.203.170|443": {
    "link": "vless://11aabba0-5fd1-4f15-8068-74c1a466cefc@193.163.203.170:443?type=tcp&security=reality&flow=xtls-rprx-vision&sni=yandex.ru&fp=firefox&pbk=GCCZ1ZZjB_nj7yxqFi22bIIWWr_G6rnWUzDcssN_40o&sid=b28db60d77c50b4f#🇸🇪 Join+Telegram:@SolVPN 🇸🇪%20t.me%2Frjsxrd",
@@ -2024,31 +2024,31 @@
    "link": "hysteria2://ac7fb60f-0b7a-465d-a002-05160ec04ed6@pov6.api3-max.ru:443?sni=pov6.api3-max.ru#6230",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "01129d85-3b52-4703-85b6-81ad9d32f81c|217.199.252.113|443": {
    "link": "vless://01129d85-3b52-4703-85b6-81ad9d32f81c@217.199.252.113:443?type=tcp&security=reality&sni=max.ru&fp=random&flow=xtls-rprx-vision&pbk=TGCn_54sGMSXxlj9IpG8NCcxUlqBrUDzt-5vNwYNXhU&sid=b2a6e3d42f05c3d1#TCP, Max [V.O.I.D]",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "1c8206c7-231c-41a8-b807-ad23a354cc69|edge.nordcache.ru|9443": {
    "link": "hysteria2://1c8206c7-231c-41a8-b807-ad23a354cc69@edge.nordcache.ru:9443?sni=edge.nordcache.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%28Innenstadt%20I%29%20%7C%20%5BBL%5D",
    "country": "DE",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "8212df93-b748-430c-8099-ba49d56d2570|84.201.180.91|443": {
    "link": "vless://8212df93-b748-430c-8099-ba49d56d2570@84.201.180.91:443?flow=xtls-rprx-vision&fp=firefox&pbk=n995xG00VmlZ2j_SIka7jUo8_jKQO8gIQU5FQaU-0AA&security=reality&sid=743cdafc&sni=api-maps.yandex.ru&type=tcp# By EbraSha",
@@ -2064,11 +2064,11 @@
    "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@taga5.api3-max.ru:443?sni=taga5.api3-max.ru#",
    "country": "OTHER",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "2c5268a3-4d6b-43ec-8930-a5de3d3cbbb7|91.218.231.130|443": {
    "link": "vless://2c5268a3-4d6b-43ec-8930-a5de3d3cbbb7@91.218.231.130:443?flow=xtls-rprx-vision&encryption=none&type=raw&security=reality&fp=firefox&sni=max.ru&pbk=maEcFG2CQupwOGLZQfCreUqukBqbcvog67-zVx9exB0# By EbraSha",
@@ -2174,11 +2174,11 @@
    "link": "hysteria2://2_hysteria2_fastlane_g7i07kqdf:chCiPld0Fx05IfYXfn3WiWt5Vy44Ghkx@138.124.64.30:1935/?sni=pl2.h.fastlanehosting.ru&insecure=0#%F0%9F%87%B5%F0%9F%87%B1%20Poland%2C%20Warsaw%20%7C%20%5BBL%5D",
    "country": "PL",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "0b9bcbc1-b289-4a64-86fa-a5b731b65384|185.159.108.42|443": {
    "link": "vless://0b9bcbc1-b289-4a64-86fa-a5b731b65384@185.159.108.42:443?security=reality&encryption=none&pbk=QocXHwad0mV7WA5jSAcqDac3uuVBEp1WF775-CilniE&host=v2rayNplus--v2rayNplus--v2rayNplus&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=web.max.ru&sid=45ba18f429ad1f28#TCP, Max [V.O.I.D]",
@@ -2204,21 +2204,21 @@
    "link": "vless://64aafe63-ef36-4da5-8bf9-838d767bfe74@51.250.90.103:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=api-maps.yandex.ru&fp=chrome&pbk=FkmYFobwxLMLEktYXywmjthuEYCZggITsxwPNasTKUg&sid=6354585c37827955&spx=/&type=tcp&headerType=none# By EbraSha",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "2_hysteria2_fastlane_2ryj5iceo:4hB1GRZV7SWk5Vz61kPY8Caug4WqiVHQ|45.140.205.5|1935": {
    "link": "hysteria2://2_hysteria2_fastlane_2ryj5iceo%3A4hB1GRZV7SWk5Vz61kPY8Caug4WqiVHQ@45.140.205.5:1935?sni=ch2.h.fastlanehosting.ru&fp=chrome#%F0%9F%87%A8%F0%9F%87%AD%20Switzerland%2C%20Zurich%20%7C%20%5BBL%5D",
    "country": "CH",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "146eb6cf-a99c-4022-85ca-022cf81502dc|195.74.93.254|443": {
    "link": "vless://146eb6cf-a99c-4022-85ca-022cf81502dc@195.74.93.254:443/?type=tcp&encryption=none&flow=xtls-rprx-vision&sni=web.max.ru&fp=chrome&security=reality&pbk=7ReQIe2kMtP4rCrptgH5glkOM-JGcSAPzHNxOED-Z0s&sid=247fd6dab1a34a48#%40Ap_Ir6%20%288%29",
@@ -2274,11 +2274,11 @@
    "link": "hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@13.124.233.211:443?sni=vk.com#5484",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "92089155-6602-4122-86d4-fe6de20e8c4d|78.159.247.214|443": {
    "link": "vless://92089155-6602-4122-86d4-fe6de20e8c4d@78.159.247.214:443?encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=NsTRRl4ofT64w0VwmkpOWE8yfiXLcEqgwgi-9SGnXTA&security=reality&sid=a1b2c3d4&sni=kinopoisk.ru&type=raw#%F0%9F%87%A8%F0%9F%87%BF%20Czechia%20%E2%80%94%20%2313",
@@ -2354,11 +2354,11 @@
    "link": "hysteria2://ac7fb60f-0b7a-465d-a002-05160ec04ed6@pov7.api3-max.ru:443?sni=pov7.api3-max.ru#1608",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "a704443d-655e-4d9f-8ce6-12eeb17a9a08|tr.alertyagency.com|443": {
    "link": "vless://a704443d-655e-4d9f-8ce6-12eeb17a9a08@tr.alertyagency.com:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DAdWhCSXRRcho_XopxBKq2-KDupbSY_i2r-FJCy58kY&sid=5a3874f1&sni=api-maps.yandex.ru#%5BOpenRay%5D%20%F0%9F%87%B9%F0%9F%87%B7%20TR-1627",
@@ -2454,11 +2454,11 @@
    "link": "hysteria2://8569e507-8ef7-481d-9108-6bc7f040c2ff@new.klzvezdi.ru:9443?sni=new.klzvezdi.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%28Innenstadt%20I%29%20%7C%20%5BBL%5D",
    "country": "DE",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "3fddc64c-8248-40c0-8980-5cf5f3581baf|217.16.27.113|443": {
    "link": "vless://3fddc64c-8248-40c0-8980-5cf5f3581baf@217.16.27.113:443?encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=AiG06E-jizo9xtBbulKQvdQqhZfobZJBTQIKkaDjaiU&security=reality&sid=a1b2c3d4e5&sni=max.ru&type=raw#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%20%E2%80%94%20%2372",
@@ -2474,11 +2474,11 @@
    "link": "hysteria2://042a1881-44e4-4781-bd40-bf75164faf4f@144.31.224.81:443/?sni=nland1.noesissite.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "a98f627f-99ff-44fc-89fc-b5aed8db49f9|95.163.232.98|443": {
    "link": "vless://a98f627f-99ff-44fc-89fc-b5aed8db49f9@95.163.232.98:443?encryption=none&fp=firefox&mode=gun&pbk=ZgSVwP_wlM4-oG8E03W3cMqK_VrS8oHXF4wzyBkISWo&security=reality&sid=a1b2c3d4&sni=max.ru&type=grpc#AetrisVPN White list   SNI: max.ru",
@@ -2523,22 +2523,22 @@
   "99e5e9a0-1c6b-4cb0-805d-a810fd47eb15|31.56.189.147|443": {
    "link": "vless://99e5e9a0-1c6b-4cb0-805d-a810fd47eb15@31.56.189.147:443?mode=multi&security=reality&encryption=none&pbk=gyVm1AWjn649wcSvTmyS12lsmecJFjm51BjUSWOjkxM&fp=firefox&type=grpc&serviceName=grpc&sni=max.ru&sid=35debf0dc757d053#ProxyMtpVPN-274",
    "country": "OTHER",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 6853.6,
-   "last_ok": 1789050971,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "f4ae05bcb9528779a8469ee5d352a817|34.80.120.225|50160": {
    "link": "hysteria2://f4ae05bcb9528779a8469ee5d352a817@34.80.120.225:50160?sni=vk.com&type=tcp&upmbps=10&downmbps=50#7419",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047106
+   "last_fail": 1789054169
   },
   "aeb9d636-75a2-5742-9778-e999b6290bab|185.236.20.129|443": {
    "link": "vless://aeb9d636-75a2-5742-9778-e999b6290bab@185.236.20.129:443?encryption=none&flow=xtls-rprx-vision&fp=&pbk=mRPsim0tDEXMIT7YXC1GetstcvR_zUxOS9aO3amQpXI&security=reality&sid=ffffffffff&sni=vk.com&type=tcp# By EbraSha",
@@ -2614,11 +2614,11 @@
    "link": "vless://c4edb87e-8544-4fa4-bd1c-b0cda9a34b46@104.16.10.185:443?encryption=none&security=tls&sni=a.cwvps.eu.org&fp=unsafe&cs=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256&fm={\"tcp\":[{\"type\":\"fragment\",\"settings\":{\"packets\":\"tlshello\",\"lengths\":[\"0\",\"104\",\"1\"],\"delays\":[\"0\"],\"maxSplit\":\"0\"}},{\"type\":\"fragment\",\"settings\":{\"packets\":\"1-1\",\"lengths\":[\"114\",\"1\"],\"delays\":[\"1\"],\"maxSplit\":\"11\"}}]}&type=ws&host=a.cwvps.eu.org&path=/ws#🇺🇸 9623 - US - VLESS/WS/TLS/UTLS - 443",
    "country": "US",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "b2f2f9f2-1864-48ea-839b-22815faff1f1|stf839dvvyog9d2qa4-b8z6ahgn7b7qi.pages.dev|443": {
    "link": "vless://b2f2f9f2-1864-48ea-839b-22815faff1f1@stf839dvvyog9d2qa4-b8z6ahgn7b7qi.pages.dev:443?encryption=none&security=tls&type=ws#🇺🇸 8941 - US - VLESS/WS/TLS - 443",
@@ -2704,11 +2704,11 @@
    "link": "hysteria2://netherlands_hysteria2_fastlane_zffh8t4xf%3AG6GPmEXH4wZiyAA9wY1kG0wFwyIy0MKf@77.238.250.4:1935?sni=nl8.h.fastlanehosting.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "c4edb87e-8544-4fa4-bd1c-b0cda9a34b46|104.21.33.59|443": {
    "link": "vless://c4edb87e-8544-4fa4-bd1c-b0cda9a34b46@104.21.33.59:443?security=tls&type=ws&host=a.cwvps.eu.org&path=/ws&sni=a.cwvps.eu.org&fp=unsafe&cs=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256&fm={\"tcp\": [{\"type\": \"fragment\", \"settings\": {\"packets\": \"tlshello\", \"lengths\": [\"5\", \"94\", \"1\"], \"delays\": [\"0\"], \"maxSplit\": \"0\"}},{\"type\": \"fragment\", \"settings\": {\"packets\": \"1-1\", \"lengths\": [\"109\", \"1\"], \"delays\": [\"1\"], \"maxSplit\": \"355\"}}]}&headerType=none#🇺🇸 9624 - US - VLESS/WS/TLS/UTLS - 443",
@@ -2723,11 +2723,11 @@
   "1f8cf47a-b66a-4916-979f-26edfcf44eea|185.95.231.156|443": {
    "link": "vless://1f8cf47a-b66a-4916-979f-26edfcf44eea@185.95.231.156:443?type=raw&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=8eXftARun6KH38UZhuqIfPR1VF2DLS9RMBZEnF5k6To&sid=a3a578ab&sni=www.apple.com#%F0%9F%87%BA%F0%9F%87%B8%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%96196%20832KB%2Fs%20344ms",
    "country": "US",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 22352.2,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "75bc1bab-ff62-4c7c-a946-ec49fd53f89f|node3.jjjjjj.eu.cc|443": {
@@ -2744,11 +2744,11 @@
    "link": "hysteria2://netherlands_3_hysteria2_fastlane_xr3nai71s%3AlOl51uJxl0RytJXnkz0lXF88XFVmNoJk@91.84.119.49:1935?sni=nl4.h.fastlanehosting.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "042a1881-44e4-4781-bd40-bf75164faf4f|178.215.238.30|443": {
    "link": "hysteria2://042a1881-44e4-4781-bd40-bf75164faf4f@178.215.238.30:443/?sni=germany1.noesissite.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%7C%20%5BBL%5D",
@@ -2784,11 +2784,11 @@
    "link": "hysteria2://netherlands_2_hysteria2_fastlane_2024vcg4k:m1i77DnTa9eS3uVX4LEmduJ5wfjFRaAv@147.45.50.168:1935/?sni=nl3.h.fastlanehosting.ru&insecure=0#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "kVfzhSpshc|hys1.wba-pn.ru|443": {
    "link": "hysteria2://kVfzhSpshc@hys1.wba-pn.ru:443?insecure=0&security=tls&sni=hys1.wba-pn.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
@@ -2863,32 +2863,32 @@
   "cb2dbb6a-a1ea-4023-9ace-6466cee57241|51.81.203.63|443": {
    "link": "vless://cb2dbb6a-a1ea-4023-9ace-6466cee57241@51.81.203.63:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=nqwCf6oW49tEtmQ0EzxigZ0uu1pg0E30CS54G40Iti0&sid=4477382ff6d3d41c&sni=www.icloud.com#%F0%9F%87%BA%F0%9F%87%B8%20%D0%91%D0%A1%20%F0%9F%93%8B%E2%9C%93%20%E2%84%9698%203.8MB%2Fs%20125ms",
    "country": "US",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 9323.9,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "423b1d79-08c4-403f-9d5e-c541f791b55f|144.31.168.95|443": {
    "link": "vless://423b1d79-08c4-403f-9d5e-c541f791b55f@144.31.168.95:443?encryption=none&flow=xtls-rprx-vision&pbk=b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI&security=reality&sid=00bca5982f82d083&sni=eu-central.cendora.ru&type=tcp#🇩🇪 2985 - DE - VLESS/REALITY/PBK/SID/VISION - 443",
    "country": "DE",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 5234.3,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "hysteria2_fastlane_0w714uuli:4VnAvMp3WwKxTciga4mV7PRitYxAHDFc|84.23.54.203|1935": {
    "link": "hysteria2://hysteria2_fastlane_0w714uuli%3A4VnAvMp3WwKxTciga4mV7PRitYxAHDFc@84.23.54.203:1935?sni=ru2.h.smartaisupport.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D%20VK",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "acc50200-7f21-4f90-9cca-0057efcbf042|93.123.85.75|443": {
    "link": "vless://acc50200-7f21-4f90-9cca-0057efcbf042@93.123.85.75:443?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=tszWkJf8EdAkXhxvD-T_xA08SjU_x7lf15lXrPCLVn8&sid=3c88b649989ffa95&sni=www.ya.ru#[29676][DE][0][VLESS][None][ext_raw.githubusercontent.com][2026-08-16][2026-08-16 00:34]",
@@ -2914,11 +2914,11 @@
    "link": "vless://7d40449f-92df-4256-9607-679241455d49@95.85.239.102:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=qq&pbk=JCY4HTvbv3PLZV8lBETziQpoU-DK-FSUp5qK-vCnDwQ&sid=d534122e6a18eb59&sni=drive.yandex.ru&path=&host=#%F0%9F%87%A9%F0%9F%87%AA%20DE%20%7C%20%E2%80%94%20%7C%2011%20%7C%20%40ByeWhiteLists2",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049171
+   "last_fail": 1789054169
   },
   "9dada88d-f8f8-459d-8a4f-4df2c973fe43|h2.ecliptic-it.ru|8443": {
    "link": "hysteria2://9dada88d-f8f8-459d-8a4f-4df2c973fe43@h2.ecliptic-it.ru:8443?sni=h2.ecliptic-it.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%F0%9F%8C%90%20%7C%20%5BBL%5D",
@@ -2944,11 +2944,11 @@
    "link": "hysteria2://042a1881-44e4-4781-bd40-bf75164faf4f@nl1.noesissite.ru:443/?sni=nl1.noesissite.ru#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
    "country": "NL",
    "passes": 0,
-   "fails": 2,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "3ef19710-5053-4a6a-9c5d-dd7f501327a4|freev2.cloudflare.182682.xyz|443": {
    "link": "vless://3ef19710-5053-4a6a-9c5d-dd7f501327a4@freev2.cloudflare.182682.xyz:443?encryption=none&security=tls&sni=se-sto.xhs152.shop&fp=random&type=ws&host=se-sto.xhs152.shop&path=/announcement?ed=2048#🇺🇸 2788 - US - VLESS/WS/TLS/UTLS - 443",
@@ -2973,11 +2973,11 @@
   "5234b2b7-5e07-422c-8159-d62a676c00c6|138.124.180.137|443": {
    "link": "vless://5234b2b7-5e07-422c-8159-d62a676c00c6@138.124.180.137:443?flow=xtls-rprx-vision&fp=chrome&pbk=GBdkyDLfr0LIZo_94Xv8ycAKOmkjArYzwJAEMhuXX2c&security=reality&sid=33acba1b&sni=www.apple.com&type=tcp#🇺🇸 3911 - US - VLESS/REALITY/PBK/SID/VISION/UTLS - 443",
    "country": "US",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 3773.9,
-   "last_ok": 1789050916,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "hysteria2_fastlane_bimanlaw9:7e61fJIsxj8EdGj1sz0EwPFHM2tXz62d|2.27.28.106|1935": {
@@ -2994,11 +2994,11 @@
    "link": "hysteria2://GSPOBvG-ZwYcBFMr0ekFGO_Zga3wK6v_@hy2-switzerlandgopota.unlimited-access.ru:443?sni=hy2-switzerlandgopota.unlimited-access.ru&fp=chrome&alpn=h3#%F0%9F%87%A8%F0%9F%87%AD%20Switzerland%2C%20Zurich%20%7C%20%5BBL%5D",
    "country": "CH",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "67a1454f-5a95-4e30-9723-1ffcbe7e97f9|taga1.api3-max.ru|443": {
    "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@taga1.api3-max.ru:443?sni=taga1.api3-max.ru#",
@@ -3154,11 +3154,11 @@
    "link": "vless://3d243df5-9cda-4aac-89d5-354de77d79e2@144.31.129.45:443?encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=IarU4xicX8qiVO5nqzeHc6MK9A_Vw9YaAtnPHB4DswU&security=reality&sid=916a&sni=mirror.yandex.ru&type=tcp# By EbraSha",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "hysteria2_fastlane_fyo5j4e7k:AF4HTpKlMZdNBsrVhdwr4GCHNptUaVT0|91.132.160.243|1935": {
    "link": "hysteria2://hysteria2_fastlane_fyo5j4e7k:AF4HTpKlMZdNBsrVhdwr4GCHNptUaVT0@91.132.160.243:1935/?sni=de6.h.fastlanehosting.ru&insecure=0#%F0%9F%87%AC%F0%9F%87%A7%20United%20Kingdom%2C%20London%20%7C%20%F0%9F%8C%90%20%7C%20%5BBL%5D",
@@ -3224,11 +3224,11 @@
    "link": "hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-ca-001.fastervpn.world:443?sni=vk.com#0111",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "1a691969-4037-49f7-8767-772a9bdaee09|185.86.144.101|443": {
    "link": "vless://1a691969-4037-49f7-8767-772a9bdaee09@185.86.144.101:443?encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=CF49-iS9dsHBwvqYFoDs_T3Me8TT0FpNW2kibGBkVXY&security=reality&sni=yandex.ru&type=raw#Reality%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
@@ -3254,21 +3254,21 @@
    "link": "vless://d6200bab-deab-4182-8d87-6ff30d3ba7dd@62.152.60.56:443?type=raw&security=reality&sni=max.ru&fp=firefox&flow=xtls-rprx-vision&pbk=na5nUX4PTmfcZ3tkSopLj96017evhUILnN825TOeZBw&sid=0afc69a960c8e0e3#Reality, Max [V.O.I.D]",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "da20450f-c96d-467d-a5e4-4814402bcf9e|193.233.249.18|443": {
    "link": "vless://da20450f-c96d-467d-a5e4-4814402bcf9e@193.233.249.18:443?type=raw&security=reality&flow=xtls-rprx-vision&sni=eh.vk.com%3A443&fp=firefox&pbk=YpcvMn5qyBuqOg0yBnJlbzcROJAz4T164xXQghB7ey8&sid=eb0cca73# By EbraSha",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "a704443d-655e-4d9f-8ce6-12eeb17a9a08|torrent.alertyagency.com|443": {
    "link": "vless://a704443d-655e-4d9f-8ce6-12eeb17a9a08@torrent.alertyagency.com:443?Telegram=%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad&security=reality&encryption=none&pbk=RTJejnFwln1GAFLeyZ4NRcMpvsRiL1Yu-WFRy8NtIwU&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=api-maps.yandex.ru&sid=a0a5d889#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%9A%D0%B0%D1%80%D1%82%D1%8B%20%5BV.O.I.D%5D",
@@ -3284,11 +3284,11 @@
    "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@wopa3.api3-max.ru:443?sni=wopa3.api3-max.ru#",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "a8957892-6db0-4310-983b-6f3f5146a584|185.86.147.210|443": {
    "link": "vless://a8957892-6db0-4310-983b-6f3f5146a584@185.86.147.210:443?flow=xtls-rprx-vision&encryption=none&type=raw&security=reality&fp=qq&sni=download.max.ru&pbk=uAEnruG3uui3vI_hofiVrBFbRiLM-DKKWYTnZdj8lDE&sid=3ea6f2ac82ac2f60# By EbraSha",
@@ -3314,11 +3314,11 @@
    "link": "hysteria2://890aade8-4034-4372-9776-793e9acd1e94@kum.tokervpn.ru:443?sni=kum.tokervpn.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%5B%2ACIDR%5D",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "16ab4d4a-fd81-4535-9b7b-346677226ce8|95.181.213.1|443": {
    "link": "vless://16ab4d4a-fd81-4535-9b7b-346677226ce8@95.181.213.1:443?encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=kQnmL_D7qUBBEhMt0y9m1C7FGM_rHJnf-Co5M1AryhE&security=reality&sid=fbe37eb3d3&sni=ya.ru&type=tcp# By EbraSha",
@@ -3344,11 +3344,11 @@
    "link": "hysteria2://ac7fb60f-0b7a-465d-a002-05160ec04ed6@dora3.api3-max.ru:443?sni=dora3.api3-max.ru#0024",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "7d3aad33-021a-40f7-981b-7ec29d7fc159|150.241.74.149|443": {
    "link": "vless://7d3aad33-021a-40f7-981b-7ec29d7fc159@150.241.74.149:443?type=tcp&security=reality&sni=market.yandex.ru&fp=chrome&flow=xtls-rprx-vision&pbk=gYLRvAfMAg-ZYgdtA2F_rgV151csPl9z6AJTbwhqz0w&sid=a1335752e0d0969a#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
@@ -3374,11 +3374,11 @@
    "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@wopa6.api3-max.ru:443?sni=wopa6.api3-max.ru#",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "fa98f221-29e1-4a7e-8797-3bf294aeda35|31.76.5.19|443": {
    "link": "vless://fa98f221-29e1-4a7e-8797-3bf294aeda35@31.76.5.19:443?type=grpc&security=reality&fp=firefox&pbk=ne8wv6o6AYcQoVvz30PiTjSxviGa3_Kw5ClIEDdg-3A&sid=6ba85179e30d4fc2&sni=360.yandex.ru&serviceName=grpc#gRPC%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
@@ -3474,11 +3474,11 @@
    "link": "hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@202.146.222.29:443?sni=vk.com#7576",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "ff58c891-0b00-4d61-9ffe-e788303b2e58|138.128.244.170|443": {
    "link": "vless://ff58c891-0b00-4d61-9ffe-e788303b2e58@138.128.244.170:443?type=grpc&security=reality&fp=chrome&pbk=cjaz-DI_Gl0Nqh905w5LdKHZ_gJ5ucshQpSAURVvYFc&sid=642797e96a93&sni=ok.ru&mode=gun&serviceName=ok.ru# By EbraSha",
@@ -3504,11 +3504,11 @@
    "link": "hysteria2://gf1:gfhysteria2024@66.94.121.46:443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#4624",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 3,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "3f3da036-ab8f-405e-a5fd-e7223cb39866|h1.fogplay-mts.ru|443": {
    "link": "hysteria2://3f3da036-ab8f-405e-a5fd-e7223cb39866@h1.fogplay-mts.ru:443?sni=h1.fogplay-mts.ru#1398",
@@ -3563,11 +3563,11 @@
   "5c02ab88-7b9c-11ea-8fc9-f23c913c8d2b|b83281e0-tlheo0-tvvhcz-tl32.hk3.hyhuawei.com|443": {
    "link": "vless://5c02ab88-7b9c-11ea-8fc9-f23c913c8d2b@b83281e0-tlheo0-tvvhcz-tl32.hk3.hyhuawei.com:443?fp=chrome&pbk=bE6ws6dFPflj8WVJMGwtso0WOaiSmBOHM2muQO2Uul4&security=reality&sni=updates.cdn-apple.com&type=tcp#🇭🇰 4476 - HK - VLESS/REALITY/PBK/UTLS - 443",
    "country": "HK",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
+   "streak": 2,
    "best_kbps": 362.9,
-   "last_ok": 1789050971,
+   "last_ok": 1789054088,
    "last_fail": 0
   },
   "hysteria2_fastlane_7hcemeub4:JHUDk9kNXVxQjHSzYHJrW2eR77PzrHEF|64.188.74.69|1935": {
@@ -3594,11 +3594,11 @@
    "link": "hysteria2://042a1881-44e4-4781-bd40-bf75164faf4f@germany1.noesissite.ru:443/?sni=germany1.noesissite.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%7C%20%5BBL%5D",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "419e8d73-db47-4614-b54b-e707cf7df35c|5.180.43.242|443": {
    "link": "vless://419e8d73-db47-4614-b54b-e707cf7df35c@5.180.43.242:443?type=tcp&security=reality&sni=ya.ru&fp=firefox&flow=xtls-rprx-vision&pbk=k7dworBISiOlCzqSKN29SWJoYDLN71QT6uS14v86pEo&sid=a1b2c3d4#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
@@ -3624,21 +3624,21 @@
    "link": "vless://32d86e35-68c8-43d8-821a-0510c04d4601@185.22.235.181:443?encryption=none&fp=firefox&mode=gun&pbk=1vSZjvhZO01oAEH3b7eebR1qF5dLU1Dq2E7xu8pwGSs&security=reality&serviceName=grpc-vk&sid=428ef87fd47a3a33&sni=api-maps.yandex.ru&spx=%2F&type=grpc#%F0%9F%87%AC%F0%9F%87%A7%20United%20Kingdom%20%E2%80%94%20%2353",
    "country": "GB",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "qQe1z5kU8kN6SlKnDt9Ru3Qp|47.129.185.226|443": {
    "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@47.129.185.226:443?sni=vk.com#1988",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789050971
+   "last_fail": 1789054169
   },
   "a704443d-655e-4d9f-8ce6-12eeb17a9a08|5.180.42.103|443": {
    "link": "vless://a704443d-655e-4d9f-8ce6-12eeb17a9a08@5.180.42.103:443?security=reality&flow=xtls-rprx-vision&sni=api-maps.yandex.ru&type=tcp&fp=firefox&pbk=vsDwubDjDjfLpWAHRNFGVfmC8hLiXDablO1iOOXdUhQ&sid=01e4de88#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%9A%D0%B0%D1%80%D1%82%D1%8B%20%5BV.O.I.D%5D",
@@ -3729,6 +3729,566 @@
    "best_kbps": 0.0,
    "last_ok": 0,
    "last_fail": 1789050971
+  },
+  "4e4f1f70-5e56-4a76-bb9d-db087f4690c4|172.67.156.147|443": {
+   "link": "vless://4e4f1f70-5e56-4a76-bb9d-db087f4690c4@172.67.156.147:443?path=/tyxyws&security=tls&encryption=none&insecure=0&host=jp3.yohototo.top&fp=chrome&type=ws&allowInsecure=0&sni=jp3.yohototo.top#t.me%2FNotorgames_0 - 145 %F0%9F%8F%B3%EF%B8%8F",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "gf1:gfhysteria2024|5.129.235.85|443": {
+   "link": "hysteria2://gf1:gfhysteria2024@5.129.235.85:443?sni=vk.com#1931",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 2,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "75bc1bab-ff62-4c7c-a946-ec49fd53f89f|node1.jjjjjj.eu.cc|443": {
+   "link": "vless://75bc1bab-ff62-4c7c-a946-ec49fd53f89f@node1.jjjjjj.eu.cc:443?encryption=none&type=ws&host=jpb2.jjjjjj.eu.cc&path=%2Fjige%3Fed%3D2048&security=tls&fp=chrome&sni=jpb2.jjjjjj.eu.cc#%F0%9F%87%A7%F0%9F%87%AC%20%5BVL%5D%20%D0%91%D0%BE%D0%BB%D0%B3%D0%B0%D1%80%D0%B8%D1%8F%20%2312409%20%7C%20%D0%A0%D0%BE%D1%81%D0%A2%D1%83%D0%BD%D0%BD%D0%B5%D0%BB%D1%8C%20t.me%2Frjsxrd",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|54.213.89.22|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@54.213.89.22:443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#4549",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "1f11b5cd-7651-492c-9dbd-4f9bad6acd20|205.237.105.80|443": {
+   "link": "vless://1f11b5cd-7651-492c-9dbd-4f9bad6acd20@205.237.105.80:443?type=tcp&security=reality&sni=dev.max.ru&fp=firefox&flow=xtls-rprx-vision&pbk=r77nilacD34SeLmghmchRKuNiUL0xzh-pK87Ux58dzI&sid=d0a1665d1b96515e#TCP, Max [V.O.I.D]",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "netherlands_2_hysteria2_fastlane_9lbx1u4qs:ma7CkoWGB3DsU5dLtTFXStRp5pbj2KFD|138.124.67.62|1935": {
+   "link": "hysteria2://netherlands_2_hysteria2_fastlane_9lbx1u4qs%3Ama7CkoWGB3DsU5dLtTFXStRp5pbj2KFD@138.124.67.62:1935?sni=nl3.h.fastlanehosting.ru&insecure=0#%F0%9F%87%B3%F0%9F%87%B1%20The%20Netherlands%2C%20Amsterdam%20%7C%20%5BBL%5D",
+   "country": "NL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "0f6c83bc-34ba-4ca1-96e6-08b3620cbce5|145.223.69.171|443": {
+   "link": "vless://0f6c83bc-34ba-4ca1-96e6-08b3620cbce5@145.223.69.171:443?encryption=none&security=reality&sni=www.vk.com&fp=firefox&pbk=JQHrZXZRnkZUOMdNHS7X1fPyMDqKjiQWlfTdntIOqzg&sid=a6b92e23&spx=%2F&type=tcp&headerType=none#TCP, VK [V.O.I.D]",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "74b6eee7-898d-4f32-9987-a035210ec5e2|217.13.104.148|443": {
+   "link": "vless://74b6eee7-898d-4f32-9987-a035210ec5e2@217.13.104.148:443?encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=FkmYFobwxLMLEktYXywmjthuEYCZggITsxwPNasTKUg&security=reality&sid=6354585c37827955&sni=travel.yandex.ru&type=tcp#Reality%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%9F%D1%83%D1%82%D0%B5%D1%88%D0%B5%D1%81%D1%82%D0%B2%D0%B8%D1%8F%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "england_2_hysteria2_fastlane_35xzvlgum:fFOxlPsMH7zt0oMwFS4VAFw4LYxKxbRl|46.226.162.109|1935": {
+   "link": "hysteria2://england_2_hysteria2_fastlane_35xzvlgum%3AfFOxlPsMH7zt0oMwFS4VAFw4LYxKxbRl@46.226.162.109:1935?sni=gb2.h.fastlanehosting.ru#%F0%9F%87%AC%F0%9F%87%A7%20United%20Kingdom%2C%20London%20%7C%20%5BBL%5D",
+   "country": "GB",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "d9c1a649-1cbe-42c7-a619-af38c944fa72|5.175.178.155|443": {
+   "link": "vless://d9c1a649-1cbe-42c7-a619-af38c944fa72@5.175.178.155:443?encryption=none&flow=xtls-rprx-vision&fp=&pbk=ss02uq_fJvSOaFODaNs9xywXPhxRBXZdBUiazqhY1wM&security=reality&sid=e5758e5f&sni=vk.com&type=tcp#Reality, VK [V.O.I.D]",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "b83df10b-dca1-4289-a17a-564e67389d15|46.246.92.249|443": {
+   "link": "vless://b83df10b-dca1-4289-a17a-564e67389d15@46.246.92.249:443?security=reality&encryption=none&pbk=iANCShq476FCHBlNqkHoapBt8quqmm1wiKLwuCQeMAI&headerType=&fp=chrome&spx=%2F&type=tcp&flow=xtls-rprx-vision&sni=ya.ru&sid=89466f13a0fbc98f#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "35b9becb-2488-447c-ad69-e839f2fc13c1|95.85.253.87|443": {
+   "link": "vless://35b9becb-2488-447c-ad69-e839f2fc13c1@95.85.253.87:443?encryption=none&fp=chrome&pbk=G1QPj-IQQVssEsfjld6gGOlxhgXDYdg56cYdweymLy0&security=reality&sid=3ef8cdbc&sni=eh.vk.com&type=grpc# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|54.255.1.222|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@54.255.1.222:443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#3278",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "a704443d-655e-4d9f-8ce6-12eeb17a9a08|95.173.199.110|443": {
+   "link": "vless://a704443d-655e-4d9f-8ce6-12eeb17a9a08@95.173.199.110:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DxMGwax3l0UxFYZE349Fs15huyc4Jwzj6MG7Qrj0HQ0&sid=735093d7&sni=api-maps.yandex.ru#%5BOpenRay%5D%20%F0%9F%87%B7%F0%9F%87%B4%20RO-68",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "69a2af58-d74a-44ca-864a-e09b493f4274|5.23.48.135|443": {
+   "link": "vless://69a2af58-d74a-44ca-864a-e09b493f4274@5.23.48.135:443?security=reality&encryption=none&pbk=bMdCj0kTMpTngZhGEQ-fbfcDlbn-j8Jm2NXdnfis6g8&headerType=&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.ya.ru&sid=9b551b69# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "H7mP2xY9kJ4nQ8wR5tF6vB3z|vpn-in-001.fastervpn.world|443": {
+   "link": "hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-in-001.fastervpn.world:443?sni=vk.com#4592",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "71031aa1-067e-425e-97f5-37875f838a10|51.250.38.137|443": {
+   "link": "vless://71031aa1-067e-425e-97f5-37875f838a10@51.250.38.137:443?encryption=none&security=reality&sni=ads.x5.ru&fp=chrome&pbk=2W9bsI7dX2ryZNdv_GLh3YuO2ynFGsdu3Iz3fgWU5CQ&sid=cee8&type=tcp&headerType=none#256.%20VLESS%20%7C%20SNI%3A%20ads.x5.ru%20%7C%20CIDR%3A%20Yandex%20%7C%20TG%3A%20%40wlrustg",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "603e192aa740396fcae361bdd146b8c1|179.255.158.151|50160": {
+   "link": "hysteria2://603e192aa740396fcae361bdd146b8c1@179.255.158.151:50160?sni=vk.com&type=tcp&upmbps=10&downmbps=50#5461",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "b7c9e2f1-4d83-42a1-9e5f-sg2026proxy|209.74.81.28|8443": {
+   "link": "hysteria2://b7c9e2f1-4d83-42a1-9e5f-sg2026proxy@209.74.81.28:8443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#3673",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "b4b5d9e7-9d47-4501-8188-ba8cdd5f90cf|51.250.119.97|443": {
+   "link": "vless://b4b5d9e7-9d47-4501-8188-ba8cdd5f90cf@51.250.119.97:443?flow=xtls-rprx-vision&sni=x5.ru&security=reality&pbk=Dc5spCHr4NRRKKX3QnLIV4BITNP_QInqFb6bU0gZHFM&sid=ae2e179e&fp=chrome#1098.%20%F0%9F%87%AB%F0%9F%87%B2%20VLESS%20%7C%20SNI%3A%20x5.ru%20%7C%20CIDR%3A%20Yandex%20%7C%20TG%3A%20%40wlrustg",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "4054fdc2-ee80-4419-8a8e-d937df4719e2|78.159.250.214|443": {
+   "link": "vless://4054fdc2-ee80-4419-8a8e-d937df4719e2@78.159.250.214:443?security=reality&encryption=none&pbk=drY21DHNOr6ezJLA2B10mzTExeJ9-gVBfTBNLwVBtWI&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=ads.x5.ru#1462.%20VLESS%20%7C%20SNI%3A%20ads.x5.ru%20%7C%20CIDR%3A%20%3F%20%7C%20TG%3A%20%40wlrustg",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "896002a8-3afc-49e6-8fac-5129fb717b49|latvia.koalaexpress.ru|2443": {
+   "link": "hysteria2://896002a8-3afc-49e6-8fac-5129fb717b49@latvia.koalaexpress.ru:2443?sni=latvia.koalaexpress.ru#%F0%9F%87%B1%F0%9F%87%B9%20Lithuania%2C%20%C5%A0iauliai%20%7C%20%5BBL%5D",
+   "country": "LV",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "ad8a53f2-b109-4873-9156-fc3bcb0d7fe4|62.60.255.11|443": {
+   "link": "vless://ad8a53f2-b109-4873-9156-fc3bcb0d7fe4@62.60.255.11:443/?type=tcp&encryption=none&flow=xtls-rprx-vision&sni=ya.ru&fp=firefox&security=reality&pbk=nPcUKydxoRI66O3tT9O4QCZpLjOBvkGsiXG7pDX1BBw&sid=6ba85179e30d4fc2#%40nekopingbot_8031",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|18.141.233.65|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@18.141.233.65:443?sni=vk.com#6128",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "07a91c4d-600d-4d4e-beb4-07fbe2b44477|83.166.252.117|443": {
+   "link": "vless://07a91c4d-600d-4d4e-beb4-07fbe2b44477@83.166.252.117:443?type=tcp&security=reality&sni=rbc.ru&fp=random&flow=xtls-rprx-vision&pbk=7zd9mJilgjOrg_ohtw23Vmio-pdnYqeP_r-kiWt87Cg&sid=2715592069f36fe7#TCP%2C%20%D0%A0%D0%91%D0%9A%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "55556b1f-7b61-49ee-bfcc-10ed900f1b61|91.219.227.22|443": {
+   "link": "vless://55556b1f-7b61-49ee-bfcc-10ed900f1b61@91.219.227.22:443?security=reality&encryption=none&pbk=10rVZPoOUP1TlQviIAsQ_jAROX0fRQxH0C92nq_zGQc&headerType=none&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com&sid=43dcff53849b81e6# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "ebdf87e8-4f75-4b84-94e0-65ce4894993a|168.222.143.254|443": {
+   "link": "vless://ebdf87e8-4f75-4b84-94e0-65ce4894993a@168.222.143.254:443?security=reality&encryption=none&pbk=3_Qy1SAtWfbiQbznyhlXxJtqB-5QQ46VF1Uz2h5A7Q4&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=st.avito.ru&sid=2dc17935#@Vip_Security join us - 2083",
+   "country": "US",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "29aab552-bfbb-07d0-b22a-9a9c58c84811|37.139.34.90|443": {
+   "link": "vless://29aab552-bfbb-07d0-b22a-9a9c58c84811@37.139.34.90:443?encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=4CH3o5zOMcFNMbnwXnkAg0FFepmsc0QzhahXkUzb1ik&security=reality&sid=d8c6b58bcbb0c323&sni=max.ru&type=tcp# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "b6a08f9c-908b-46df-ab9c-c95d0cb8d7af|185.91.53.4|443": {
+   "link": "vless://b6a08f9c-908b-46df-ab9c-c95d0cb8d7af@185.91.53.4:443?type=grpc&security=reality&sni=360.yandex.ru&fp=firefox&pbk=VaKp9XjMqT7lA4F3b6hpdF6fmsiY4B_hz6MzT6fv938#gRPC%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "da20450f-c96d-467d-a5e4-4814402bcf9e|5.42.102.103|443": {
+   "link": "vless://da20450f-c96d-467d-a5e4-4814402bcf9e@5.42.102.103:443?encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=YpcvMn5qyBuqOg0yBnJlbzcROJAz4T164xXQghB7ey8&security=reality&sid=eb0cca73&sni=eh.vk.com:443&type=tcp# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|47.129.9.33|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@47.129.9.33:443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#2058",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "H7mP2xY9kJ4nQ9wR5tF6vB3z|vpn-sg-002.fastervpn.world|443": {
+   "link": "hysteria2://H7mP2xY9kJ4nQ9wR5tF6vB3z@vpn-sg-002.fastervpn.world:443?sni=vk.com#2628",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "af9c2bcf-fe68-4379-9c78-6e5f1b4af0e2|217.16.31.162|443": {
+   "link": "vless://af9c2bcf-fe68-4379-9c78-6e5f1b4af0e2@217.16.31.162:443?security=reality&encryption=none&pbk=SHIYN7zN9aFVxwKK-bIvDbhUgtHvlBhDi1qSl2sWwRw&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=max.ru&sid=e7#TCP, Max [V.O.I.D]",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "441afe11-a180-4516-bb80-80a8a6b38705|bl3fk52.sysopnova.art|443": {
+   "link": "vless://441afe11-a180-4516-bb80-80a8a6b38705@bl3fk52.sysopnova.art:443?security=reality&type=tcp&packetEncoding=xudp&sni=yandex.ru&fp=firefox&flow=xtls-rprx-vision&sid=5ee019e02e6ed99a&pbk=gE8LUmGFXik94SoDXNiAG5KprGyhjoRwDuhGebgAVWk#SNi yandex.ru 🇷🇺%20t.me%2Frjsxrd",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 366.4,
+   "last_ok": 1789054169,
+   "last_fail": 0
+  },
+  "13b54a52-a29f-4737-9941-26f54a4f87c4|144.31.76.150|443": {
+   "link": "vless://13b54a52-a29f-4737-9941-26f54a4f87c4@144.31.76.150:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=ZKd5bjQ8ACciPQo_0ol7WEkUYUjGXaK9fMciQkFurF4&sid=b4c823&sni=www.yandex.ru#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "hysteria2_fastlane_h43dvv57b:BFhT1zI613GtDOzp0kdvMdgJRMroi7mZ|2.27.28.106|1935": {
+   "link": "hysteria2://hysteria2_fastlane_h43dvv57b:BFhT1zI613GtDOzp0kdvMdgJRMroi7mZ@2.27.28.106:1935?sni=de8.h.fastlanehosting.ru#%F0%9F%87%AB%F0%9F%87%B7%20France%2C%20Paris%20%7C%20%F0%9F%8C%90%20%7C%20%5BBL%5D",
+   "country": "FR",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "6f2648cf-4c53-4a61-adf7-d07d2ab068ba|176.108.251.61|443": {
+   "link": "vless://6f2648cf-4c53-4a61-adf7-d07d2ab068ba@176.108.251.61:443?&security=reality&flow=xtls-rprx-vision&pbk=nDq00UeDI5TKKFipI6rgdVCqiTO98ncHKn90Qp3EsBE&sid=f2b78452f9233f26&fp=firefox&sni=zoo.vprok.ru&type=tcp&headerType=none&host=zoo.vprok.ru&path=%2F# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "e05cb81b-5288-41d6-ad4a-fb4016cccb27|84.201.143.90|443": {
+   "link": "vless://e05cb81b-5288-41d6-ad4a-fb4016cccb27@84.201.143.90:443?security=reality&type=tcp&headerType=none&path=&host=&flow=xtls-rprx-vision&sni=sso.passport.yandex.ru&fp=chrome&pbk=1t6VzxMzjuTsiwc-4wux1dNa1WZcANF2cluIa5sWnTA&sid=f24fffeb33ff57e0&spx=%2F#TCP%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "67a1454f-5a95-4e30-9723-1ffcbe7e97f9|taga2.api3-max.ru|443": {
+   "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@taga2.api3-max.ru:443?sni=taga2.api3-max.ru#",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "c7fc6e44-d57b-49b9-9ff2-a4e0aa9e9b8c|pp.alertyagency.com|443": {
+   "link": "vless://c7fc6e44-d57b-49b9-9ff2-a4e0aa9e9b8c@pp.alertyagency.com:443?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=kUuy5M4V5bfjri7m_XBryv1YTLLlPLPIwPotJJgpgEc&sid=87922049&sni=api-maps.yandex.ru#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B9%20PT-6",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "84124a40-4b02-4762-a3a6-6cf43f297724|ltmain.fgnconnection.life|443": {
+   "link": "vless://84124a40-4b02-4762-a3a6-6cf43f297724@ltmain.fgnconnection.life:443?security=reality&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com&pbk=H46I56wuurV9oQyn2irq5ZleWz_FBpHWmWoqz1Hc-Qc&sid=53c8004fa34e8724#TCP, VK [V.O.I.D]",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "48139d20-931e-4e2b-83f5-8ea97d226c18|aestheticperforator.ru|8443": {
+   "link": "hysteria2://48139d20-931e-4e2b-83f5-8ea97d226c18@aestheticperforator.ru:8443?sni=aestheticperforator.ru&alpn=h3&insecure=0#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%AC%F0%9F%87%A7%20%F0%9F%87%B8%F0%9F%87%AA%20%7C%20%5BBL%5D",
+   "country": "SE",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "c8d7057d-5f8f-407e-b706-ca5355d62869|213.226.112.98|443": {
+   "link": "vless://c8d7057d-5f8f-407e-b706-ca5355d62869@213.226.112.98:443?type=raw&security=reality&sni=api-maps.yandex.ru&fp=firefox&flow=xtls-rprx-vision&pbk=dA5LR27yLUWVKSHhvN2pI69mTNVXyfGzAXjhha_QU04&sid=13375a162630e39e#Reality%2C%20%D0%AF%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%20%D0%9A%D0%B0%D1%80%D1%82%D1%8B%20%5BV.O.I.D%5D",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "ac7fb60f-0b7a-465d-a002-05160ec04ed6|gora3.api3-max.ru|443": {
+   "link": "hysteria2://ac7fb60f-0b7a-465d-a002-05160ec04ed6@gora3.api3-max.ru:443?sni=gora3.api3-max.ru#2019",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "2c5268a3-4d6b-43ec-8930-a5de3d3cbbb7|147.45.214.49|443": {
+   "link": "vless://2c5268a3-4d6b-43ec-8930-a5de3d3cbbb7@147.45.214.49:443?&security=reality&flow=xtls-rprx-vision&pbk=jLhDMzZ4obrkCzrYJzXUrxN2Zs1YS-hLfjpbh324vHs&fp=firefox&sni=max.ru&type=tcp&headerType=none&host=max.ru&path=%2F# By EbraSha",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "3f3da036-ab8f-405e-a5fd-e7223cb39866|72.56.22.209|443": {
+   "link": "hysteria2://3f3da036-ab8f-405e-a5fd-e7223cb39866@72.56.22.209:443?sni=h1.fogplay-mts.ru#5638",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|13.228.168.117|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@13.228.168.117:443?sni=vk.com#7094",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "099830134df5ac3a04a4b21d39b8c395|163.192.14.135|50160": {
+   "link": "hysteria2://099830134df5ac3a04a4b21d39b8c395@163.192.14.135:50160?sni=vk.com#3079",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "gf1:gfhysteria2024|185.156.44.99|443": {
+   "link": "hysteria2://gf1:gfhysteria2024@185.156.44.99:443?sni=vk.com&type=tcp&upmbps=10&downmbps=50#%5BOpenRay%5D%20%F0%9F%87%B7%F0%9F%87%B4%20RO-56",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "67a1454f-5a95-4e30-9723-1ffcbe7e97f9|taga4.api3-max.ru|443": {
+   "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@taga4.api3-max.ru:443?sni=taga4.api3-max.ru#%F0%9F%87%B9%F0%9F%87%B7%E5%9C%9F%E8%80%B3%E5%85%B6",
+   "country": "TR",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "67a1454f-5a95-4e30-9723-1ffcbe7e97f9|107.181.155.125|443": {
+   "link": "hysteria2://67a1454f-5a95-4e30-9723-1ffcbe7e97f9@107.181.155.125:443?sni=taga9.api3-max.ru#",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "qQe1z5kU8kN6SlKnDt9Ru3Qp|54.254.241.184|443": {
+   "link": "hysteria2://qQe1z5kU8kN6SlKnDt9Ru3Qp@54.254.241.184:443?sni=vk.com#1749",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "8569e507-8ef7-481d-9108-6bc7f040c2ff|newos.klzvezdi.ru|9443": {
+   "link": "hysteria2://8569e507-8ef7-481d-9108-6bc7f040c2ff@newos.klzvezdi.ru:9443?sni=newos.klzvezdi.ru#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%28Innenstadt%20I%29%20%7C%20%5BBL%5D",
+   "country": "DE",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "137f3b50-a6ba-40e7-b537-e37fab064097|latvia.koalaexpress.ru|2443": {
+   "link": "hysteria2://137f3b50-a6ba-40e7-b537-e37fab064097@latvia.koalaexpress.ru:2443?sni=latvia.koalaexpress.ru#%F0%9F%87%B1%F0%9F%87%B9%20Lithuania%2C%20%C5%A0iauliai%20%7C%20%5BBL%5D",
+   "country": "LV",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "2_hysteria2_fastlane_i010fok4p:6UtDu2vqMwoUVYvz1lrKGQ1lfVMKZmCo|138.124.64.30|1935": {
+   "link": "hysteria2://2_hysteria2_fastlane_i010fok4p:6UtDu2vqMwoUVYvz1lrKGQ1lfVMKZmCo@138.124.64.30:1935?sni=pl2.h.fastlanehosting.ru#%F0%9F%87%B5%F0%9F%87%B1%20Poland%2C%20Warsaw%20%7C%20%5BBL%5D",
+   "country": "PL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
+  },
+  "b268a3a1-3826-44a3-9ffb-3ac2095300ca|sc.hambot.ru|4500": {
+   "link": "hysteria2://b268a3a1-3826-44a3-9ffb-3ac2095300ca@sc.hambot.ru:4500?sni=sc.hambot.ru#6872",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054169
   }
  },
  "black": {
@@ -4006,11 +4566,11 @@
    "link": "vless://5d8eb33a-2166-4daf-88fe-4be5799c493b@141.101.114.8:443?encryption=none&security=tls&sni=noisy-term-e657.airdrop2014aa5168.workers.dev&fp=chrome&insecure=0&allowInsecure=0&type=ws&host=noisy-term-e657.airdrop2014aa5168.workers.dev&path=%2F#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-18613",
    "country": "US",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789042912
+   "last_fail": 1789054440
   },
   "a9fb0f8c-89e9-44ee-9574-a310c5bd259c|autumn-leaf-eefd.119-38e.workers.dev|8880": {
    "link": "vless://a9fb0f8c-89e9-44ee-9574-a310c5bd259c@autumn-leaf-eefd.119-38e.workers.dev:8880?type=ws&amp;path=%2Fpyip%3DProxyIP.US.CMLiussss.net#%5BOpenRay%5D%20Dynamic-26679",
@@ -4295,11 +4855,11 @@
   "cec9a167-6381-4752-9828-a92ab6e6ebdd|2.26.0.5|443": {
    "link": "vless://cec9a167-6381-4752-9828-a92ab6e6ebdd@2.26.0.5:443?mode=multi&security=reality&encryption=none&authority=deliberi.fi&pbk=_syAndJM1Guu8-CkJ48iBXUTe0GxHg3YEN3vz9iPkjo&fp=chrome&type=grpc&serviceName=6b1d23e872422afdd141eba7c94c05e4&sni=deliberi.fi&sid=f44dbbc3#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-5403",
    "country": "FI",
-   "passes": 5,
+   "passes": 6,
    "fails": 0,
-   "streak": 5,
+   "streak": 6,
    "best_kbps": 1139.5,
-   "last_ok": 1789051171,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "0718d4d6-42ea-4388-a41c-2069a49761f5|152.233.53.7|443": {
@@ -4385,11 +4945,11 @@
   "d56624b2-35bb-468c-9b2a-e0b0df7230c1|154.31.114.248|50159": {
    "link": "vless://d56624b2-35bb-468c-9b2a-e0b0df7230c1@154.31.114.248:50159?&security=reality&flow=xtls-rprx-vision&pbk=j4QXngGuJkUGwRj4XIrfHRohYYuEfnJlX4cvCE-WklA&sid=091e1c5db8451757&fp=chrome&sni=www.cloudflare.com&type=tcp&headerType=&host=www.cloudflare.com&path=%2F#%5BOpenRay%5D%20%F0%9F%87%AF%F0%9F%87%B5%20JP-4438",
    "country": "JP",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
-   "best_kbps": 630.6,
-   "last_ok": 1789042912,
+   "streak": 2,
+   "best_kbps": 3207.2,
+   "last_ok": 1789054440,
    "last_fail": 0
   },
   "7b102311-43fd-4e8f-877e-8090623c101d|134.122.164.41|443": {
@@ -4736,11 +5296,11 @@
    "link": "vless://47fcef29-ab4e-4aa6-932b-d95a18f28a4e@172.64.229.2:2052?security=none&type=ws&path=%2F%3Fed%3D2560security%3Dtls&host=8nj2r.2k8t.f88.hh.vavava.kdns.fr&sni=8nj2r.2k8t.f88.hh.vavava.kdns.fr#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28479",
    "country": "CA",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047355
+   "last_fail": 1789054440
   },
   "e74e8806-06b5-4fb0-a89e-cf79d88cfd02|104.18.28.234|8880": {
    "link": "vless://e74e8806-06b5-4fb0-a89e-cf79d88cfd02@104.18.28.234:8880?encryption=none&type=ws&host=wild-frog-54a9.170-dcc.workers.dev&path=%2Fpyip&security=none#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29163",
@@ -4826,11 +5386,11 @@
    "link": "vless://86c50e3a-5b87-49dd-bd20-03c7f2735e40@104.16.249.249:2095?security=none&type=ws&path=/&host=fangbinxingnmsl.fuckingnigga.eu.cc#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29310",
    "country": "CA",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047355
+   "last_fail": 1789054440
   },
   "928e6cce-8ced-4243-9a48-a6642edd09b0|38.180.242.205|13779": {
    "link": "vless://928e6cce-8ced-4243-9a48-a6642edd09b0@38.180.242.205:13779?&security=reality&flow=xtls-rprx-vision&pbk=llTyp52oRXnJmQ3I9UUrmlwbMA79B-wLCRHCu-8dLGg&sid=af1bdd293097b664&fp=chrome&sni=tesla.com&type=tcp&headerType=none&host=tesla.com&path=%2F#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-24878",
@@ -4975,11 +5535,11 @@
   "d4b08cd6-0903-411a-9dac-45dbdf5c9712|57.131.38.163|2053": {
    "link": "vless://d4b08cd6-0903-411a-9dac-45dbdf5c9712@57.131.38.163:2053?type=tcp&security=reality&encryption=none&fp=firefox&pbk=Ej2H5ucT7qKegYcT8wODdlxa-cLHr7F4hDVUHzAhcnc&sid=5b8a942318178e7b&sni=www.apple.com#%5BOpenRay%5D%20%F0%9F%87%AE%F0%9F%87%B9%20IT-813",
    "country": "OTHER",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
-   "best_kbps": 5465.0,
-   "last_ok": 1789047355,
+   "streak": 2,
+   "best_kbps": 5807.5,
+   "last_ok": 1789054440,
    "last_fail": 0
   },
   "8c64cae9-a513-4e37-a68c-980bcaf2c591|150.241.72.43|443": {
@@ -5016,11 +5576,11 @@
    "link": "vless://056d58b7-2577-4f82-b7a8-2473202419c2@199.232.173.242:443?path=%2Fws&security=tls&alpn=h3%2Ch2%2Chttp%2F1.1&encryption=none&insecure=0&host=adheres-scruple.quick-cdn.net&fp=firefox&type=ws&allowInsecure=0&sni=adheres-scruple.quick-cdn.net#%5BOpenRay%5D%20%F0%9F%87%B8%F0%9F%87%AA%20SE-2350",
    "country": "SE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047355
+   "last_fail": 1789054440
   },
   "03446511-2806-0021-b02f-f10d2d3a33c6|5.61.91.221|443": {
    "link": "vless://03446511-2806-0021-b02f-f10d2d3a33c6@5.61.91.221:443?security=reality&type=tcp&sni=cdn-up.perecbass.ru&fp=firefox&flow=xtls-rprx-vision&sid=4a7b1c8d&pbk=b4n1pcO8ST3JkGtj8YymXVrW17LEe2EHec5wY7hMMR4#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-5177",
@@ -5156,11 +5716,11 @@
    "link": "vless://f0fd40df-8103-4c95-a03e-351f5f212fce@155.103.70.197:777?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=-Fabk_ZjEdrtOJZVTVRe4UJDik05fhzJ2SRDBoV45C8&sid=76&sni=www.cloudflare.com#%5BOpenRay%5D%20%F0%9F%87%B9%F0%9F%87%B7%20TR-1462",
    "country": "TR",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789047355
+   "last_fail": 1789054440
   },
   "1c82f022-513e-4f30-8cd8-eb548611752a|ita.montago-shop.ir|443": {
    "link": "vless://1c82f022-513e-4f30-8cd8-eb548611752a@ita.montago-shop.ir:443?encryption=none&type=tcp&security=reality&sni=amp-api-edge.apps.apple.com&fp=firefox&pbk=PjR-SM4fOm2fY4mTqWoqZDRyxontvpailM0gBqUxlUQ&sid=f88610dd#%5BOpenRay%5D%20%F0%9F%87%AE%F0%9F%87%B9%20IT-855",
@@ -5316,20 +5876,20 @@
    "link": "vless://1e49ee8c-33be-4db8-8445-7203f18aecfa@8.35.211.115:2087?encryption=none&type=ws&path=/&host=mysheep.dpdns.org&security=tls&sni=mysheep.dpdns.org&fp=chrome#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26242",
    "country": "US",
    "passes": 2,
-   "fails": 0,
-   "streak": 2,
+   "fails": 1,
+   "streak": 0,
    "best_kbps": 2345.1,
    "last_ok": 1789051171,
-   "last_fail": 0
+   "last_fail": 1789054385
   },
   "42c62a5a-cd31-4551-80ef-908732370287|104.19.146.98|2083": {
    "link": "vless://42c62a5a-cd31-4551-80ef-908732370287@104.19.146.98:2083?&security=tls&fp=chrome&sni=fq.jp188.dpdns.org&type=ws&headerType=none&host=fq.jp188.dpdns.org&path=%2Fproxyip%3D154.17.22.207%2C69.63.210.157%2C134.195.211.13%2C172.236.245.153%2C209.146.115.209%2C64.186.224.194%2C149.28.94.52%2C107.151.188.57#%F0%9F%87%BA%F0%9F%87%B8%20%E7%BE%8E%E5%9B%BD%20%7C%20USA%20t.me%2Frjsxrd",
    "country": "US",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 2275.1,
-   "last_ok": 1789051171,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "18cf8db1-9f86-43f7-baa0-382efb7f2dfa|38.107.232.36|80": {
@@ -5456,11 +6016,11 @@
    "link": "vless://3cc05123-0e5c-4ceb-9872-fcbf491446c8@146.75.119.82:80?type=ws&encryption=none&path=ws/?ed=2048/@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz@AzadMarz/?2048&host=rb24.ir&security=none#%5BOpenRay%5D%20%F0%9F%87%A9%F0%9F%87%AA%20DE-23878",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049449
+   "last_fail": 1789054440
   },
   "11af1c47-865a-47c6-92ff-118013655d78|51.15.57.139|8080": {
    "link": "vless://11af1c47-865a-47c6-92ff-118013655d78@51.15.57.139:8080?encryption=none&security=&sni=&type=ws&alpn=&host=&path=/?ed=2048#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-11654",
@@ -5486,11 +6046,11 @@
    "link": "vless://e8073dec-42b9-4c00-9348-5ff33a2249a5@155.117.234.131:42638?encryption=none&amp;security=none&amp;type=tcp#%5BOpenRay%5D%20%F0%9F%87%A9%F0%9F%87%AA%20DE-23934",
    "country": "DE",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789049449
+   "last_fail": 1789054440
   },
   "12aa4a28-ef6a-49f2-9e16-4ad8fc34a6af|5.75.207.73|29524": {
    "link": "vless://12aa4a28-ef6a-49f2-9e16-4ad8fc34a6af@5.75.207.73:29524?path=%2F&security=none&encryption=mlkem768x25519plus.native.0rtt.mAwHzKOkD-IZDsIGPPQCfctKpUgPcx2K_zEIzGEkxlE&type=ws#🇩🇪 💥Config_jo-163",
@@ -5605,11 +6165,11 @@
   "218fd696-e3a2-4c33-b397-a5f13a82969e|216.227.161.95|7443": {
    "link": "vless://218fd696-e3a2-4c33-b397-a5f13a82969e@216.227.161.95:7443?encryption=none&fp=&pbk=uNqGvaJEIFTFQvAxsTDhetPxkIWzJuBtxXsK0yFMYzM&security=reality&serviceName=grpc&sid=48d5cf47&sni=media3.abvphelp.cc&type=grpc#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26582",
    "country": "US",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 15569.3,
-   "last_ok": 1789051171,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "c9fd0fb1-8251-4106-b09a-f4b426736f67|ww9.levikogjgfdd.ir|36925": {
@@ -5655,21 +6215,21 @@
   "a4846a6c-163f-4b12-a99f-378d814e5e09|172.239.239.53|22746": {
    "link": "vless://a4846a6c-163f-4b12-a99f-378d814e5e09@172.239.239.53:22746?security=reality&encryption=none&pbk=B6bPTxNaLqqoUTuNggzTBP0pPxJEqE_Bd_Ob27MPvgU&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.intel.com&sid=d9fd4fa80238cd05#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-11604",
    "country": "NL",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 4948.4,
-   "last_ok": 1789051171,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "48ff2b70-e180-582f-8866-d9a2edeed5f5|51.158.206.98|23576": {
    "link": "vless://48ff2b70-e180-582f-8866-d9a2edeed5f5@51.158.206.98:23576?security=reality&encryption=none&pbk=1y5h2FGWKXTJ9xLPCqPo6Mw7RxoZzh6fGkEQKNxpZ3s&host=Join---i10VPN---Join---i10VPN---Join---i10VPN---Join---i10VPN&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=fuck.rkn&sid=01#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-9896",
    "country": "NL",
-   "passes": 2,
+   "passes": 3,
    "fails": 0,
-   "streak": 2,
+   "streak": 3,
    "best_kbps": 4955.3,
-   "last_ok": 1789051171,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "b8201bab-fa6c-4f6e-b289-b5da660c6f69|150.241.68.208|443": {
@@ -5906,11 +6466,11 @@
    "link": "vless://2d212f81-7ea2-4d0b-884c-a6497ab41143@hidden-union-a4b2.436.workers.dev:8880?path=%2Fpyip%3DProxyIP.US.CMLiussss.net&security=&encryption=none&type=ws#%5BOpenRay%5D%20Dynamic-28289",
    "country": "OTHER",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789051245
+   "last_fail": 1789054440
   },
   "77777777-8a3e-6666-b6d1-a9c5f0e8b3a2|www.shopify.com|2087": {
    "link": "vless://77777777-8a3e-6666-b6d1-a9c5f0e8b3a2@www.shopify.com:2087?&security=tls&fp=chrome&sni=fx3h2kf8xn.fx6hsv0.ccwu.cc&type=ws&headerType=none&host=fx3h2kf8xn.fx6hsv0.ccwu.cc&path=%2F%3Fed%3D2560#%5BOpenRay%5D%20Dynamic-24623",
@@ -5945,11 +6505,11 @@
   "d65cc14c-f53f-4fe2-b262-97856601319c|169.40.42.89|443": {
    "link": "vless://d65cc14c-f53f-4fe2-b262-97856601319c@169.40.42.89:443?security=reality&encryption=none&pbk=e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg&headerType=none&type=tcp&flow=xtls-rprx-vision&sni=yahoo.com&sid=c39cc7310a#@Vip_Security",
    "country": "OTHER",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
+   "streak": 2,
    "best_kbps": 2830.6,
-   "last_ok": 1789051245,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "cd3bb7d9-7df3-4644-ac05-c260990ac277|50.7.226.172|443": {
@@ -6146,11 +6706,11 @@
    "link": "vless://c7e9c591-2764-423a-afca-efbd010fd396@31.133.0.133:2053?host=forfreeuse.rtqa.ru&path=%2F&security=tls&sni=forfreeuse.rtqa.ru&type=ws#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2071",
    "country": "PL",
    "passes": 0,
-   "fails": 1,
+   "fails": 2,
    "streak": 0,
    "best_kbps": 0.0,
    "last_ok": 0,
-   "last_fail": 1789051245
+   "last_fail": 1789054440
   },
   "8fdf6dde-a1ca-456d-9b18-86b74d5768e6|141.227.160.236|8443": {
    "link": "vless://8fdf6dde-a1ca-456d-9b18-86b74d5768e6@141.227.160.236:8443?flow=xtls-rprx-vision&fp=firefox&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&security=reality&sni=sellflow.org#%5BOpenRay%5D%20%F0%9F%87%B8%F0%9F%87%AA%20SE-2150",
@@ -6435,11 +6995,11 @@
   "0370b162-baff-4757-86cc-cce4bf07f6f1|78.111.89.171|443": {
    "link": "vless://0370b162-baff-4757-86cc-cce4bf07f6f1@78.111.89.171:443?Telegram=@GozargahAzad,@GozargahAzad,@GozargahAzad,@GozargahAzad,@GozargahAzad,@GozargahAzad,@GozargahAzad&security=reality&encryption=none&pbk=lYcMPEgf6ePmF_d8RXR5fsVorycW37v_ECl-fz_H6w4&headerType=none&fp=chrome&spx=/fdded5f9698d939&type=tcp&sni=www.cloudflare.com&sid=cfe08c23a85f24#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26212",
    "country": "US",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
+   "streak": 2,
    "best_kbps": 2458.9,
-   "last_ok": 1789051245,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "2cb6b4d9-0c74-45e2-a4fb-645bb8ac532a|swed4.o4ka-internet.com|443": {
@@ -6455,11 +7015,11 @@
   "ee39fb11-56a3-4ee7-9e7c-35a4235bd30e|staging.lastilhame.monster|443": {
    "link": "vless://ee39fb11-56a3-4ee7-9e7c-35a4235bd30e@staging.lastilhame.monster:443?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=FjcEZNQ8t5E4R04_11T6ghsOutdqwKKrelkuadakoQg&sid=b27ba098687b&sni=www.tradingview.com#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-301",
    "country": "FI",
-   "passes": 1,
+   "passes": 2,
    "fails": 0,
-   "streak": 1,
+   "streak": 2,
    "best_kbps": 372.9,
-   "last_ok": 1789051245,
+   "last_ok": 1789054385,
    "last_fail": 0
   },
   "5e3f974b-06fc-4555-907a-6681391b7c17|186.246.19.79|40443": {
@@ -6470,6 +7030,496 @@
    "streak": 1,
    "best_kbps": 743.5,
    "last_ok": 1789051245,
+   "last_fail": 0
+  },
+  "5990e0a5-fc5f-43c6-8fdc-39612c60a9cd|172.66.132.196|8880": {
+   "link": "vless://5990e0a5-fc5f-43c6-8fdc-39612c60a9cd@172.66.132.196:8880?host=jolly-butterfly-24e0.212-cb3.workers.dev&path=%2Fpyip&security=none&type=ws#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-27672",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "c3f4ee0c-3c64-466d-ae14-9bcf685e1efd|104.20.28.74|8880": {
+   "link": "vless://c3f4ee0c-3c64-466d-ae14-9bcf685e1efd@104.20.28.74:8880?encryption=none&type=ws&host=shiny-waterfall-fa51.300-c6f.workers.dev&path=/pyip=ProxyIP.KR.CMLiussss.net&security=none#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29374",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "878dd962-027b-4bd3-a1f8-66be68a03c4d|172.64.151.134|8880": {
+   "link": "vless://878dd962-027b-4bd3-a1f8-66be68a03c4d@172.64.151.134:8880?host=young-wind-3c58.240-2ce.workers.dev&security=none&type=ws#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-27701",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "86c50e3a-5b87-49dd-bd20-03c7f2735e40|104.17.134.117|2095": {
+   "link": "vless://86c50e3a-5b87-49dd-bd20-03c7f2735e40@104.17.134.117:2095?security=none&type=ws&path=/&host=fangbinxingnmsl.fuckingnigga.eu.cc#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29312",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "73796e63-0000-4000-8000-000000000008|104.21.64.198|2095": {
+   "link": "vless://73796e63-0000-4000-8000-000000000008@104.21.64.198:2095?sni=vqrlof-pwa5a7-onfjlv.zedbazi061.workers.dev&type=ws&host=vqrlof-pwa5a7-onfjlv.zedbazi061.workers.dev&path=/sync&fp=chrome#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28941",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "d33cc776-9c57-4ea3-8c5a-6d85043029d7|104.26.13.23|8880": {
+   "link": "vless://d33cc776-9c57-4ea3-8c5a-6d85043029d7@104.26.13.23:8880?host=shiny-flower-c72d.105-161.workers.dev&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net&security=none&type=ws#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-22475",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "47fcef29-ab4e-4aa6-932b-d95a18f28a4e|104.18.34.14|2086": {
+   "link": "vless://47fcef29-ab4e-4aa6-932b-d95a18f28a4e@104.18.34.14:2086?security=none&type=ws&path=%2F%3Fed%3D2560security%3Dtls&host=8nj2r.2k8t.f88.hh.vavava.kdns.fr&packetEncoding=none#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28493",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "47fcef29-ab4e-4aa6-932b-d95a18f28a4e|104.18.46.46|8080": {
+   "link": "vless://47fcef29-ab4e-4aa6-932b-d95a18f28a4e@104.18.46.46:8080?security=none&type=ws&path=%2F%3Fed%3D2560security%3Dtls&host=8nj2r.2k8t.f88.hh.vavava.kdns.fr#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28987",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "4bf6fee9-d3c4-4a98-b83b-170bf37c669c|172.67.68.240|8880": {
+   "link": "vless://4bf6fee9-d3c4-4a98-b83b-170bf37c669c@172.67.68.240:8880?security=none&type=ws&host=cold-water-945c.43-bc5.workers.dev#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-24899",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "580af126-448f-407b-a4c2-785e702cd8ea|104.17.21.137|8880": {
+   "link": "vless://580af126-448f-407b-a4c2-785e702cd8ea@104.17.21.137:8880?encryption=none&type=ws&host=misty-wood-62b4.263-93e.workers.dev&path=%2Fpyip%3DProxyIP.JP.CMLiussss.net&security=none#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-24836",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "86c50e3a-5b87-49dd-bd20-03c7f2735e40|104.18.22.4|2095": {
+   "link": "vless://86c50e3a-5b87-49dd-bd20-03c7f2735e40@104.18.22.4:2095?security=none&type=ws&path=/&host=fangbinxingnmsl.fuckingnigga.eu.cc#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29300",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "47fcef29-ab4e-4aa6-932b-d95a18f28a4e|172.64.229.2|2082": {
+   "link": "vless://47fcef29-ab4e-4aa6-932b-d95a18f28a4e@172.64.229.2:2082?security=none&type=ws&path=%2F%3Fed%3D2560security%3Dtls&host=8nj2r.2k8t.f88.hh.vavava.kdns.fr&packetEncoding=xudp&sni=8nj2r.2k8t.f88.hh.vavava.kdns.fr#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28515",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "392ed37c-c0cd-472e-8765-a94677005b0b|172.67.179.98|8880": {
+   "link": "vless://392ed37c-c0cd-472e-8765-a94677005b0b@172.67.179.98:8880?security=none&type=ws&host=frosty-bread-788f.398.workers.dev&path=%2Fpyip%3DProxyIP.SG.CMLiussss.net#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-22742",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "7ed93ccf-6a54-4b19-a9b4-aedfc79bab7d|104.27.82.154|8880": {
+   "link": "vless://7ed93ccf-6a54-4b19-a9b4-aedfc79bab7d@104.27.82.154:8880?encryption=none&security=none&type=ws&host=muddy-sky-4767.344-7a7.workers.dev&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-21372",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "06bfb14e-66cc-48ca-a429-b9301dba2f81|104.17.123.204|8880": {
+   "link": "vless://06bfb14e-66cc-48ca-a429-b9301dba2f81@104.17.123.204:8880?security=none&type=ws&host=long-firefly-a226.216-ce0.workers.dev#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-24895",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "be98d656-6186-43cd-97ca-ed37a9375f16|66.33.22.222|57341": {
+   "link": "vless://be98d656-6186-43cd-97ca-ed37a9375f16@66.33.22.222:57341?encryption=none&security=reality&sni=www.strato.nl&fp=chrome&pbk=_gR9rieh7BV0_BhmDsSJwA0RJiNsjmy-ZTqfkfDVMUs&sid=a175d042e2de&spx=%2Fffdc395d4322974&type=xhttp&path=%2F&mode=auto&extra=%7B%22mode%22%3A%22auto%22%2C%22xPaddingBytes%22%3A%22100-1000%22%7D#🇺🇸 💥Config_jo-246",
+   "country": "US",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "903bb12e-ac86-414c-adf1-b9c41e213da8|104.17.108.59|443": {
+   "link": "vless://903bb12e-ac86-414c-adf1-b9c41e213da8@104.17.108.59:443?mode=0&security=tls&encryption=none&insecure=0&fp=chrome&type=grpc&serviceName=grpc&allowInsecure=0&sni=sire.allomroll.org#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-29144",
+   "country": "CA",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "11e9eea1-b1a9-4f02-a1a1-b24f7664b1cf|8.6.112.9|443": {
+   "link": "vless://11e9eea1-b1a9-4f02-a1a1-b24f7664b1cf@8.6.112.9:443?security=tls&type=ws&path=%2FeyJqdW5rIjoiYW1sczlYWkFHOCIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0&host=ancient-heart-60c5.dpccgizieb.workers.dev&sni=ancIEnt-HeaRt-60c5.dPccgIzieB.WoRKers.dEV&fp=chrome&encryption=none#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-25014",
+   "country": "US",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "2ff7eec6-da48-46ab-b770-5c83400a528c|icy-glade-ad0f.412.workers.dev|8880": {
+   "link": "vless://2ff7eec6-da48-46ab-b770-5c83400a528c@icy-glade-ad0f.412.workers.dev:8880?type=ws&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net&fp=qq#%5BOpenRay%5D%20Dynamic-25578",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "a3dc82ea-67df-423d-b322-8bc0b0790f41|cctvhikvision.center|2053": {
+   "link": "vless://a3dc82ea-67df-423d-b322-8bc0b0790f41@cctvhikvision.center:2053?alpn=h2&encryption=none&fp=chrome&host=uwu.blueknightnet.qzz.io&path=/@BlueKnight_net--@BlueKnight_net--@BlueKnight_net--@BlueKnight_net--@BlueKnight_net--@BlueKnight_net&security=tls&sni=uwu.blueknightnet.qzz.io&type=ws#%5BOpenRay%5D%20Dynamic-29134",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "8995976a-1c81-4b44-a414-d3bc71058a21|muddy-queen-cdda.181-cf9.workers.dev|8880": {
+   "link": "vless://8995976a-1c81-4b44-a414-d3bc71058a21@muddy-queen-cdda.181-cf9.workers.dev:8880?security=none&sni=muddy-queen-cdda.181-cf9.workers.dev&type=ws#%5BOpenRay%5D%20Dynamic-27798",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "9b7d9618-29a6-45e9-9eca-dcc7ad42f974|shrill-frost-6da5.155-dec.workers.dev|8880": {
+   "link": "vless://9b7d9618-29a6-45e9-9eca-dcc7ad42f974@shrill-frost-6da5.155-dec.workers.dev:8880?type=ws#%5BOpenRay%5D%20Dynamic-27635",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "248b7825-58e7-41cc-899f-95e573e0127b|dry-violet-d6e0.38-431.workers.dev|8880": {
+   "link": "vless://248b7825-58e7-41cc-899f-95e573e0127b@dry-violet-d6e0.38-431.workers.dev:8880?path=/pyip&encryption=none&fp=qq&type=ws#%5BOpenRay%5D%20Dynamic-29166",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "00144519-7e0d-476b-8d28-435576af9262|167.17.69.171|443": {
+   "link": "vless://00144519-7e0d-476b-8d28-435576af9262@167.17.69.171:443/?type=tcp&encryption=none&flow=xtls-rprx-vision&sni=www.cloudflare.com&alpn=channel@networld_vpn-channel@networld_vpn-channel@networld_vpn-channel@networld_vpn-channel@networld_vpn-channel@networld_vpn-channel@networld_vpn-channel@networld_vpn&security=reality&pbk=ALT8hIGeZEhi0sQFbXP_ntBg8Xo-v7i0YCLrqTnBxRk&sid=0990d22f#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-23880",
+   "country": "US",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 3191.9,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "9e20b04d-5a81-4e16-b421-01e502f0aac6|57.129.132.223|80": {
+   "link": "vless://9e20b04d-5a81-4e16-b421-01e502f0aac6@57.129.132.223:80?path=%2Fvless%2F&security=none&encryption=none&host=google.com&type=ws#@Vip_Security",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "86c50e3a-5b87-49dd-bd20-03c7f2735e40|www.udemy.com|2095": {
+   "link": "vless://86c50e3a-5b87-49dd-bd20-03c7f2735e40@www.udemy.com:2095?fp=randomized&host=fangbinxingnmsl.fuckingnigga.eu.cc&path=%2F&type=ws#%5BOpenRay%5D%20Dynamic-29278",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "a71c8954-66a8-4321-bedb-2336230d81ce|130.107.73.148|41373": {
+   "link": "vless://a71c8954-66a8-4321-bedb-2336230d81ce@130.107.73.148:41373?security=reality&encryption=none&pbk=m0GsZOAwvAJEaqh9aH6qfOmBKo0KW0jY_tJEC6KaDEU&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=google.com&sid=0e#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-19168",
+   "country": "CA",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 23623.2,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "40cc9b52-25b8-4cd5-8b45-715ae26e6baf|sc-thenetherlands1.09vpn.com|80": {
+   "link": "vless://40cc9b52-25b8-4cd5-8b45-715ae26e6baf@SC-TheNetherlands1.09vpn.com:80?type=ws&security=none&encryption=none&path=%2Fvless%2F&host=SC-TheNetherlands1.09vpn.com&headerType=none#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-9401",
+   "country": "NL",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 703.6,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "9f0285ee-20ca-4953-bcdb-86a920652923|204.216.216.23|10086": {
+   "link": "vless://9f0285ee-20ca-4953-bcdb-86a920652923@204.216.216.23:10086?path=%2F+&security=none&type=tcp#%5BOpenRay%5D%20%F0%9F%87%AE%F0%9F%87%B9%20IT-845",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 76.0,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "3b940e86-7b0d-40da-acf1-12d334e41023|199.232.16.11|80": {
+   "link": "vless://3b940e86-7b0d-40da-acf1-12d334e41023@199.232.16.11:80/?type=ws&encryption=none&flow=&host=Fastapi.Org&path=%2F&ed=2560&eh=Sec-WebSocket-Protocol#%5BOpenRay%5D%20%F0%9F%87%A6%F0%9F%87%B9%20AT-291",
+   "country": "AT",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "3b940e86-7b0d-40da-acf1-12d334e41023|151.101.184.11|80": {
+   "link": "vless://3b940e86-7b0d-40da-acf1-12d334e41023@151.101.184.11:80/?type=ws&encryption=none&flow=&host=Fastapi.Org&path=%2F&ed=2560&eh=Sec-WebSocket-Protocol#%5BOpenRay%5D%20%F0%9F%87%A7%F0%9F%87%B7%20BR-153",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "cd3bb7d9-7df3-4644-ac05-c260990ac277|50.7.5.164|443": {
+   "link": "vless://cd3bb7d9-7df3-4644-ac05-c260990ac277@50.7.5.164:443?alpn=h2&encryption=none&flow=xtls-rprx-vision&fp=firefox&security=tls&sni=ir.failspace.top&type=tcp#Бесплатный",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 7049.8,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "3b940e86-7b0d-40da-acf1-12d334e41023|151.101.140.11|80": {
+   "link": "vless://3b940e86-7b0d-40da-acf1-12d334e41023@151.101.140.11:80?type=ws&host=Fastapi.Org&path=%2F#%5BOpenRay%5D%20%F0%9F%87%A6%F0%9F%87%AA%20AE-97",
+   "country": "AE",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "9ce4c9e2-1dcc-abe8-9abf-9bf8bc1269f6|43.169.19.179|443": {
+   "link": "vless://9ce4c9e2-1dcc-abe8-9abf-9bf8bc1269f6@43.169.19.179:443?&security=tls&fp=chrome&sni=8.o.8.e.t.g.7.w.8.n.e.1.l.e.us.art-us.kdns.fr&type=ws&headerType=none&host=8.o.8.e.t.g.7.w.8.n.e.1.l.e.us.art-us.kdns.fr&path=%2Fpg%2F10086-dfc816f117c49173#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%B3%20CN-106",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "252f7811-d86f-4dc2-97e0-83d3172ef4b8|50.7.248.82|443": {
+   "link": "vless://252f7811-d86f-4dc2-97e0-83d3172ef4b8@50.7.248.82:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=n4fBPJmg0A5jzAPG6QyAV61gxCuYqw5sStpAZixgxkA&sid=bc2f177e31b60023&sni=edge-astde.mystatic-cdn.ru#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2370",
+   "country": "PL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "b585dc5e-55bf-4a8b-913a-27c9ccac05c3|35.157.240.237|443": {
+   "link": "vless://b585dc5e-55bf-4a8b-913a-27c9ccac05c3@35.157.240.237:443?fp=chrome&host=bab-6.site&path=/vws/&security=tls&sni=bab-6.site&type=ws#%F0%9F%87%A8%F0%9F%87%B1%20%5BVL%5D%20%D0%A7%D0%B8%D0%BB%D0%B8%20%2313503%20%7C%20%D0%A0%D0%BE%D1%81%D0%A2%D1%83%D0%BD%D0%BD%D0%B5%D0%BB%D1%8C%20t.me%2Frjsxrd",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 1567.0,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "c7e9c591-2764-423a-afca-efbd010fd396|57.128.246.84|443": {
+   "link": "vless://c7e9c591-2764-423a-afca-efbd010fd396@57.128.246.84:443?fp=chrome&host=forfreeuse.rtqa.ru&path=%2F&security=tls&sni=forfreeuse.rtqa.ru&type=ws#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2165",
+   "country": "PL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "f0dc4d4f-c956-0002-bc3a-021424b8e879|192.142.23.99|443": {
+   "link": "vless://f0dc4d4f-c956-0002-bc3a-021424b8e879@192.142.23.99:443?security=reality&encryption=none&pbk=6VMgXXhZdJCiOG05EyK_zTHh00kpFGrZJeZIEPgqhjY&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=jwtdecoder.xyz&sid=1c3e8241a8743df9#%5BOpenRay%5D%20%F0%9F%87%B8%F0%9F%87%AA%20SE-2104",
+   "country": "SE",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "cd3bb7d9-7df3-4644-ac05-c260990ac277|pl-new-ded.moritech.net|443": {
+   "link": "vless://cd3bb7d9-7df3-4644-ac05-c260990ac277@pl-new-ded.moritech.net:443?type=tcp&headerType=none&security=tls&encryption=none&sni=pl-new-ded.moritech.net&fp=firefox&alpn=h2&flow=xtls-rprx-vision#%F0%9F%87%B5%F0%9F%87%B1%20%5BVL%5D%20%D0%9F%D0%BE%D0%BB%D1%8C%D1%88%D0%B0%20%235230%20%7C%20%D0%A0%D0%BE%D1%81%D0%A2%D1%83%D0%BD%D0%BD%D0%B5%D0%BB%D1%8C%20t.me%2Frjsxrd",
+   "country": "PL",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 872.0,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "5d8cf280-e0f4-4539-b35c-7ff90659c0d0|84.32.154.51|443": {
+   "link": "vless://5d8cf280-e0f4-4539-b35c-7ff90659c0d0@84.32.154.51:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=tTXroX_MhV9m5MsLiAEncsC4u9VoV4fiHC01reGCv0k&sid=7c9d968a&sni=apiv11.jarvesitw.ru#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2404",
+   "country": "PL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "dbc43f55-79cd-4331-84ff-d891356d387a|45.195.2.246|8443": {
+   "link": "vless://dbc43f55-79cd-4331-84ff-d891356d387a@45.195.2.246:8443?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&fp=firefox&pbk=8qHRGcCezzSu4S-Cz9l19BNRLWm4MkaSwZV3dNrLEwc&sid=d515d6cfdfe60b02&sni=storage.yandex.net#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%AD%20CH-1003",
+   "country": "CH",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "cd1673b3-7cec-4fe6-bedf-b534eb54e647|46.166.167.222|443": {
+   "link": "vless://cd1673b3-7cec-4fe6-bedf-b534eb54e647@46.166.167.222:443?type=tcp&security=tls&encryption=none&fp=firefox&sni=ddc-chr-lt2.astralweb.tech#%5BOpenRay%5D%20%F0%9F%87%B1%F0%9F%87%B9%20LT-587",
+   "country": "LT",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "758f49d3-5f5f-47e7-bfa4-4ce96faf800d|2.26.224.233|8443": {
+   "link": "vless://758f49d3-5f5f-47e7-bfa4-4ce96faf800d@2.26.224.233:8443?encryption=none&fp=firefox&pbk=NI5Rkfn6zO_gF-UC1nuvJwu4SDakCXh3ygJOKU1EITU&security=reality&sid=f747a7a5793b5714&sni=cdn.shopify.com&type=grpc#%F0%9F%87%A9%F0%9F%87%B0%20%5BVL%5D%20%D0%94%D0%B0%D0%BD%D0%B8%D1%8F%20%2313381%20%7C%20%D0%A0%D0%BE%D1%81%D0%A2%D1%83%D0%BD%D0%BD%D0%B5%D0%BB%D1%8C%20t.me%2Frjsxrd",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 7663.5,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "9b18ccef-b9e0-41d1-8990-9d970569e142|172.67.217.240|443": {
+   "link": "vless://9b18ccef-b9e0-41d1-8990-9d970569e142@172.67.217.240:443?path=%2Fproxyip%3Dbpb.yousef.isegaro.com&security=tls&encryption=none&fm=%7B%22tcp%22%3A%20%5B%7B%22type%22%3A%20%22fragment%22%2C%20%22settings%22%3A%20%7B%22packets%22%3A%20%22tlshello%22%2C%20%22lengths%22%3A%20%5B%225%22%2C%20%2294%22%2C%20%221%22%5D%2C%20%22delays%22%3A%20%5B%220%22%5D%2C%20%22maxSplit%22%3A%20%220%22%7D%7D%2C%7B%22type%22%3A%20%22fragment%22%2C%20%22settings%22%3A%20%7B%22packets%22%3A%20%221-1%22%2C%20%22lengths%22%3A%20%5B%22109%22%2C%20%221%22%5D%2C%20%22delays%22%3A%20%5B%221%22%5D%2C%20%22maxSplit%22%3A%20%22355%22%7D%7D%5D%7D&insecure=0&host=web-socket.tgdaosheng.ggff.net&fp=unsafe&type=ws&allowInsecure=0&sni=web-socket.tgdaosheng.ggff.net#🇪🇸",
+   "country": "OTHER",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 3588.0,
+   "last_ok": 1789054440,
+   "last_fail": 0
+  },
+  "0dc1fc26-b8e9-4296-9870-0996de3c2333|pl-2.kihsuyhf8jkiugsxb.cfd|443": {
+   "link": "vless://0dc1fc26-b8e9-4296-9870-0996de3c2333@pl-2.kihsuyhf8jkiugsxb.cfd:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=5y7pN96xWP6tThOgJOSav6sQyOPVZ95OE2a4P_YYDkY&sni=pl-2.kihsuyhf8jkiugsxb.cfd#%5BOpenRay%5D%20%F0%9F%87%B5%F0%9F%87%B1%20PL-2401",
+   "country": "PL",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "553de958-b515-4e0d-b39c-943b5f8d86c2|138.124.4.128|443": {
+   "link": "vless://553de958-b515-4e0d-b39c-943b5f8d86c2@138.124.4.128:443?encryption=none&type=tcp&security=reality&pbk=q6kGq9xjd1-dpAYhM3UNUQ_H424z2ZFLF-3txqvpaQ4&sid=5edc2176&sni=www.apple.com&fp=chrome&flow=xtls-rprx-vision#%5BOpenRay%5D%20%F0%9F%87%AA%F0%9F%87%AA%20EE-732",
+   "country": "EE",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "06d44c57-8e1a-41f4-b9c4-65d35869e078|dev.cloud-compute.rest|443": {
+   "link": "vless://06d44c57-8e1a-41f4-b9c4-65d35869e078@dev.cloud-compute.rest:443?encryption=none&flow=xtls-rprx-vision&fp=qq&pbk=Fd7epdoLVi5UHgGe_2pHYzh3efwKFKPwBC0UhuB5JWM&security=reality&sid=8cce20a6ad40c0a2&sni=dev.cloud-compute.rest&type=tcp#%5BOpenRay%5D%20%F0%9F%87%B9%F0%9F%87%B7%20TR-1347",
+   "country": "TR",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "70e46815-9cae-46e5-8224-d35f6bd7897d|31.76.66.173|8443": {
+   "link": "vless://70e46815-9cae-46e5-8224-d35f6bd7897d@31.76.66.173:8443?security=reality&encryption=none&pbk=cNWgfJHerzIEb0RXxncP8R9Ex8-FkALOtbhneEIHpR0&headerType=none&fp=qq&type=tcp&flow=xtls-rprx-vision&sni=www.sciencedirect.com&sid=a1b2c4d4a1b2c5d5#@Vip_Security",
+   "country": "OTHER",
+   "passes": 0,
+   "fails": 1,
+   "streak": 0,
+   "best_kbps": 0.0,
+   "last_ok": 0,
+   "last_fail": 1789054440
+  },
+  "b969ef8f-7bdb-474f-9481-d8f3c5686fb8|13.231.7.104|24620": {
+   "link": "vless://b969ef8f-7bdb-474f-9481-d8f3c5686fb8@13.231.7.104:24620?security=reality&encryption=none&pbk=eZthMfn0kQJFNr_srk502fr8yUHMoHQ7Oh3v4_HfTBI&headerType=&fp=firefox&type=tcp&flow=xtls-rprx-vision&sni=www.amd.com&sid=db2cb3b3c2dbb711#%5BOpenRay%5D%20%F0%9F%87%AF%F0%9F%87%B5%20JP-4497",
+   "country": "JP",
+   "passes": 1,
+   "fails": 0,
+   "streak": 1,
+   "best_kbps": 3364.3,
+   "last_ok": 1789054440,
    "last_fail": 0
   }
  }
