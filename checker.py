@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v16 — «железобетонная» проверка VLESS-серверов для 2 подписок.
+ПАРСЕР v17 — «железобетонная» проверка VLESS-серверов для 2 подписок.
+КЛЮЧЕВОЕ в v17: сервер попадает в подписку ТОЛЬКО если через него реально
+открывается Telegram (web.telegram.org грузится через туннель), плюс приоритет
+профилям, выживающим после ТСПУ (Reality+443+крупный SNI, Cloudflare-фронты).
 
 Что исправлено по сравнению с v15 (причины мёртвых серверов в подписке):
   1. РАНЬШЕ: старые серверы возвращались в файл после одного TCP/TLS хендшейка
@@ -136,7 +139,9 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
 ]
 
-XRAY_PATH = os.environ.get("XRAY_PATH", "./xray" if os.path.exists("./xray") else "xray")
+XRAY_PATH = os.environ.get("XRAY_PATH") or (
+    "./xray" if os.path.exists("./xray") else
+    "./xray.exe" if os.path.exists("./xray.exe") else "xray")
 
 _dns_cache = {}
 def resolve(host):
@@ -385,14 +390,27 @@ def wait_for_port(port, proc, timeout):
             time.sleep(0.15)
     return False
 
-# Цели загрузки контента: (url, обязательный маркер, минимальный размер)
+# Цели загрузки контента: (url, маркер, минимальный размер).
+# ПЕРВАЯ цель — ОБЯЗАТЕЛЬНАЯ: сервер попадает в подписку только если через
+# него РЕАЛЬНО открывается Telegram (web-версия). Остальные — хотя бы одна.
 BLACK_TARGETS = [
-    ("https://www.youtube.com/", b"<title>YouTube</title>", 15000),
+    ("https://web.telegram.org/k/", b"telegram", 3000),        # ОБЯЗАТЕЛЬНО
+    ("https://www.youtube.com/", b"<title>youtube", 15000),
     ("https://www.wikipedia.org/", b"wikimedia", 5000),
 ]
 WHITE_TARGETS = [
+    ("https://web.telegram.org/k/", b"telegram", 3000),        # ОБЯЗАТЕЛЬНО
     ("https://www.instagram.com/", b"instagram", 8000),
     ("https://github.com/", b"GitHub", 5000),
+]
+
+# SNI, под которыми Reality-серверы чаще всего выживают после ТСПУ
+REALITY_GOOD_SNIS = [
+    "www.google.com", "google.com", "www.youtube.com", "youtube.com",
+    "www.cloudflare.com", "cloudflare.com", "www.apple.com", "apple.com",
+    "www.microsoft.com", "microsoft.com", "www.samsung.com", "samsung.com",
+    "www.tesla.com", "tesla.com", "www.amazon.com", "www.yahoo.com",
+    "duckduckgo.com", "cdn.jsdelivr.net", "telegram.org", "www.bing.com",
 ]
 BLOCK_MARKERS = [b"access denied", b"forbidden", b"unavailable for legal reasons",
                  "заблокирован".encode(), "доступ ограничен".encode()]
@@ -444,11 +462,25 @@ def real_check(cand, local_port, is_white, light=False):
         latency = time.monotonic() - t0
 
         # --- Проверка 3: загрузка РЕАЛЬНОГО контента ---
+        # Цель №1 (Telegram) обязательна: без неё сервер НЕ попадает в подписку.
         targets = WHITE_TARGETS if is_white else BLACK_TARGETS
+        tg_url, tg_marker, tg_min = targets[0]
+        try:
+            r = requests.get(tg_url, proxies=_proxies(local_port),
+                             timeout=STAGE_TIMEOUT + 3, headers=UA)
+            if r.status_code != 200:
+                return False, None, 0, f"telegram -> {r.status_code}"
+            content = r.content
+            low = content[:200000].lower()
+            if len(content) < tg_min or tg_marker not in low:
+                return False, None, 0, "telegram: не настоящая страница"
+        except Exception as e:
+            return False, None, 0, f"telegram fail ({type(e).__name__})"
+
         kbps = 0.0
         content_ok = False
         last_reason = "content fail"
-        for url, marker, min_size in targets:
+        for url, marker, min_size in targets[1:]:
             try:
                 t1 = time.monotonic()
                 r = requests.get(url, proxies=_proxies(local_port), timeout=STAGE_TIMEOUT + 3, headers=UA)
@@ -556,11 +588,29 @@ def bump_entry(state_list, cand, ok, kbps=None):
     return e
 
 # ================== ВЫБОР ПО КВОТАМ ==================
+def tspu_bonus(info):
+    """Наценка профилю, который чаще выживает после ТСПУ.
+    Проверка идёт не из РФ, поэтому «русская живучесть» оценивается эвристикой:
+    Reality с крупным SNI, порт 443, Cloudflare-фронт."""
+    b = 0.0
+    if info["security"] == "reality":
+        b += 3.0
+        if any(s in (info["sni"] or "") for s in REALITY_GOOD_SNIS):
+            b += 1.5
+        if info.get("flow") == "xtls-rprx-vision":
+            b += 0.5
+    if info["port"] == 443:
+        b += 1.0
+    ip = resolve(info["host"])
+    if ip and is_cf_ip(ip):
+        b += 1.0
+    return b
+
 def score_of(v, streak):
     base = 100.0 / (0.4 + v["latency"])          # быстрее = выше
     if v.get("kbps"): base += min(v["kbps"] / 50.0, 6.0)
     if v.get("has_trusted"): base += 2.0          # белый список: доверенный SNI
-    if v["info"]["port"] == 443: base += 1.0
+    base += tspu_bonus(v["info"])                 # выживаемость после ТСПУ
     base *= (0.92 ** min(streak, 5))              # проверенный временем чуть выше
     return base
 
@@ -604,7 +654,7 @@ def read_old_servers(filename):
 def write_subscription(filename, title, servers):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"#profile-title: {title}\n#updated: {time.strftime('%Y-%m-%d %H:%M')} UTC\n"
-                "#verified: xray+http204+https204+real-content\n\n" + "\n".join(servers) + "\n")
+                "#verified: xray+204+telegram-web+content\n\n" + "\n".join(servers) + "\n")
 
 # ================== ОСНОВНОЙ ЦИКЛ ПО СПИСКУ ==================
 def process_list(is_white, state, t_start):
@@ -718,7 +768,7 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v16: полная перепроверка старых + тройная проверка новых + история в state.json")
+    print("[*] Парсер v17: Telegram обязателен + тройная проверка + приоритет ТСПУ-устойчивых")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход.")
         return
