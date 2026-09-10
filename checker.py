@@ -6,16 +6,32 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 TARGET_COUNT    = 10
 CHECK_TIMEOUT   = 3
 FETCH_WORKERS   = 10
-HANDSHAKE_POOL  = 50
-REAL_CHECK_POOL = 30        # увеличено: Actions бесплатные
-XRAY_TIMEOUT    = 6
-XRAY_WORKERS    = 10        # больше потоков
-MIN_SPEED_KBPS  = 50        # минимум 50 КБ/с для белого списка
-PRIORITY_QUOTAS = {         # квоты по регионам (сумма = TARGET_COUNT)
-    "DE": 3,                 # Германия — 3 места
+HANDSHAKE_POOL  = 60
+REAL_CHECK_POOL = 40        # больше кандидатов
+XRAY_TIMEOUT    = 8         # больше таймаут для загрузки реального контента
+XRAY_WORKERS    = 12        # больше потоков (Actions бесплатный)
+
+# Квоты по регионам (сумма = TARGET_COUNT)
+# ВАЖНО: США ограничены, чтобы не заполонить подписку
+PRIORITY_QUOTAS = {
+    "DE": 4,                 # Германия — 4 места
     "FI": 3,                 # Финляндия — 3 места
-    "US": 2,                 # США — 2 места
-    "OTHER": 2,              # Остальные — 2 места
+    "US": 1,                 # США — только 1 место!
+    "OTHER": 2,              # Остальные страны — 2 места
+}
+
+# Карты эмодзи флагов и ключевых слов для определения страны
+COUNTRY_PATTERNS = {
+    "DE": ["🇩🇪", "germany", "deutschland", "frankfurt", "munich", "berlin", "hessen", "bayern", ".de"],
+    "FI": ["🇫🇮", "finland", "suomi", "helsinki", "tampere", ".fi"],
+    "US": ["🇺🇸", "usa", "united states", "new york", "california", "texas", "los angeles", "chicago", "miami", "seattle", "san jose", "dallas", ".us"],
+    "NL": ["🇳🇱", "netherlands", "holland", "amsterdam", ".nl"],
+    "SE": ["🇸🇪", "sweden", "stockholm", ".se"],
+    "NO": ["🇳🇴", "norway", "oslo", ".no"],
+    "GB": ["🇬🇧", "uk", "britain", "london", ".uk", ".co.uk"],
+    "FR": ["🇫🇷", "france", "paris", ".fr"],
+    "CA": ["🇨🇦", "canada", "toronto", "vancouver", ".ca"],
+    "PL": ["🇵🇱", "poland", "warsaw", ".pl"],
 }
 
 URLS_WHITE = [
@@ -91,6 +107,23 @@ def is_russian_ip(ip_or_domain):
         pass
     return target_ip.endswith((".ru", ".su", ".by"))
 
+def detect_country(link, sni=""):
+    """Определяет страну по имени ссылки (#комментарий) и SNI домену. Без сторонних сервисов."""
+    # Смотрим часть после #
+    fragment = ""
+    if "#" in link:
+        fragment = link.split("#", 1)[1].lower()
+    
+    # Смотрим SNI
+    check_texts = [fragment, sni.lower() if sni else ""]
+    
+    for country, patterns in COUNTRY_PATTERNS.items():
+        for pattern in patterns:
+            for text in check_texts:
+                if pattern in text:
+                    return country
+    return "OTHER"
+
 def smart_decode(text):
     result_lines = []
     for line in text.splitlines():
@@ -150,7 +183,6 @@ def extract_info(line):
         return None
 
 def parse_source_text(text, used_keys, is_white_list=False):
-    """Парсит текст. Для белого ОБЯЗАТЕЛЬНО требует trusted SNI. Для чёрного — отсекает trusted SNI."""
     candidates, seen = [], set()
     for line in text.splitlines():
         line = line.strip().lstrip('\ufeff')
@@ -170,27 +202,23 @@ def parse_source_text(text, used_keys, is_white_list=False):
             continue
         has_trusted = any(t in sni for t in TRUSTED_SNIS) if sni else False
         
-        # ЖЁСТКОЕ РАЗДЕЛЕНИЕ
         if is_white_list:
-            # Белый список: ДОЛЖЕН быть trusted SNI (банки/крипта)
             if not has_trusted:
                 continue
         else:
-            # Чёрный список: НЕ должен иметь trusted SNI
-            # (иначе он по сути белый и уже отсеян на этапе used_keys)
             if is_russian_ip(host):
                 continue
         
+        # Определяем страну сразу при парсинге
+        country = detect_country(line, sni)
+        
         seen.add(key)
         used_keys.add(key)
-        candidates.append((line, has_trusted))
+        candidates.append((line, has_trusted, country))
     return candidates
 
 def handshake_check(item):
-    if isinstance(item, tuple):
-        line, has_trusted = item
-    else:
-        line, has_trusted = item, False
+    line, has_trusted, country = item
     try:
         info = extract_info(line)
         if not info:
@@ -225,7 +253,7 @@ def handshake_check(item):
         score = time.monotonic() - t0
         if score > CHECK_TIMEOUT:
             return None
-        return (line, score, has_trusted)
+        return (line, score, has_trusted, country)
     except Exception:
         return None
 
@@ -286,8 +314,12 @@ def wait_for_port(port, timeout=4):
             time.sleep(0.2)
     return False
 
-def real_check_xray_strict(line, local_port, timeout=XRAY_TIMEOUT):
-    """ЖЕЛЕЗОБЕТОННАЯ проверка: 2 разных endpoint'а + замер скорости скачивания."""
+def real_check_strict(line, local_port, is_white_list, timeout=XRAY_TIMEOUT):
+    """
+    ЖЕЛЕЗОБЕТОННАЯ проверка через загрузку реального контента.
+    - Для белых списков: грузим instagram.com (разрешён в РФ)
+    - Для чёрных: грузим youtube.com (разблокирован через прокси)
+    """
     config = vless_to_xray_config(line, local_port)
     config_path = f"/tmp/xray_cfg_{local_port}.json"
     proc = None
@@ -300,56 +332,54 @@ def real_check_xray_strict(line, local_port, timeout=XRAY_TIMEOUT):
             preexec_fn=os.setsid
         )
         if not wait_for_port(local_port, timeout=4):
-            return None, None, 0
+            return None, 0
+        
         proxies = {
             "http": f"http://127.0.0.1:{local_port}",
             "https": f"http://127.0.0.1:{local_port}"
         }
         
-        # === ПРОВЕРКА 1: определение страны через ip-api ===
-        country = None
-        try:
-            r1 = requests.get("http://ip-api.com/json/?fields=status,countryCode",
-                              proxies=proxies, timeout=timeout)
-            if r1.status_code != 200:
-                return None, None, 0
-            data1 = r1.json()
-            if data1.get("status") != "success":
-                return None, None, 0
-            country = data1.get("countryCode")
-        except Exception:
-            return None, None, 0
+        # Выбираем целевой сайт для проверки
+        if is_white_list:
+            # Instagram работает через белые списки в РФ
+            # Если через прокси грузится — сервер рабочий
+            target_url = "https://www.instagram.com/"
+            min_size = 10000  # минимум 10KB настоящей HTML
+            forbidden_markers = [b"<title>Instagram</title>"]  # должно быть в ответе
+        else:
+            # YouTube проверяет черный список
+            target_url = "https://www.youtube.com/"
+            min_size = 15000
+            forbidden_markers = [b"<title>YouTube</title>"]
         
-        # === ПРОВЕРКА 2: реальная скорость через скачивание файла ===
+        # === ОСНОВНАЯ ПРОВЕРКА: загрузка реального сайта ===
         try:
             t0 = time.monotonic()
-            # Скачиваем 100KB с cloudflare — стабильный endpoint
-            r2 = requests.get("https://speed.cloudflare.com/__down?bytes=100000",
-                              proxies=proxies, timeout=timeout)
+            r = requests.get(target_url, proxies=proxies, timeout=timeout,
+                             headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120"})
             elapsed = time.monotonic() - t0
-            if r2.status_code != 200:
-                return None, None, 0
-            if len(r2.content) < 50000:  # ответ слишком короткий — заглушка
-                return None, None, 0
-            # Запрещаем откровенные заглушки (меньше 10KB содержательного текста)
-            if b"blocked" in r2.content.lower() or b"forbidden" in r2.content.lower():
-                return None, None, 0
-            speed = len(r2.content) / elapsed / 1024  # КБ/с
+            if r.status_code != 200:
+                return None, 0
+            content = r.content
+            # Заглушки обычно очень маленькие (<5KB)
+            if len(content) < min_size:
+                return None, 0
+            # Проверяем что это настоящий сайт, а не страница блокировки
+            if not any(marker in content for marker in forbidden_markers):
+                return None, 0
+            # Исключаем страницы с "доступ запрещён", "заблокировано"
+            block_markers = [b"forbidden", b"access denied", b"blocked", 
+                             b"403", b"451", b"unavailable for legal reasons",
+                             b"\xd0\xb7\xd0\xb0\xd0\xb1\xd0\xbb\xd0\xbe\xd0\xba"]  # "заблок" в UTF-8
+            for marker in block_markers:
+                if marker in content.lower():
+                    return None, 0
+            return elapsed, len(content) / elapsed / 1024  # КБ/с
         except Exception:
-            return None, None, 0
-        
-        # === ПРОВЕРКА 3: подтверждение через второй endpoint ===
-        try:
-            r3 = requests.get("https://ifconfig.me/ip",
-                              proxies=proxies, timeout=timeout)
-            if r3.status_code != 200:
-                return None, None, 0
-        except Exception:
-            return None, None, 0
-        
-        return elapsed, country, speed
+            return None, 0
+            
     except Exception:
-        return None, None, 0
+        return None, 0
     finally:
         if proc:
             try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -359,34 +389,33 @@ def real_check_xray_strict(line, local_port, timeout=XRAY_TIMEOUT):
         try: os.remove(config_path)
         except: pass
 
-def verify_real_strict(candidates, need):
-    """Строгая проверка с квотами по регионам."""
+def verify_real_strict(candidates, need, is_white_list):
     random.shuffle(candidates)
     to_check = candidates[:REAL_CHECK_POOL]
     results = []
     
     def check_one(item, idx):
         line = item[0]
-        has_trusted = item[1] if len(item) > 1 else False
+        has_trusted = item[1]
+        country = item[2]
         port = 15000 + idx
-        elapsed, country, speed_kbps = real_check_xray_strict(line, port)
+        elapsed, speed_kbps = real_check_strict(line, port, is_white_list)
         return (line, elapsed, has_trusted, country, speed_kbps)
     
     with ThreadPoolExecutor(max_workers=XRAY_WORKERS) as ex:
         futures = [ex.submit(check_one, item, i) for i, item in enumerate(to_check)]
         for f in as_completed(futures):
             line, elapsed, has_trusted, country, speed_kbps = f.result()
-            if country is not None:
+            if country is not None and elapsed is not None:
                 results.append((line, elapsed, has_trusted, country, speed_kbps))
-                print(f"    [+] {country:3s} | {speed_kbps:7.1f} KB/s | {elapsed:.2f}s | {line[:45]}...")
+                print(f"    [+] {country:3s} | {speed_kbps:7.1f} KB/s | {elapsed:.2f}s | {line[:40]}...")
             else:
                 print(f"    [-] МЁРТВ | {line[:55]}...")
     
     return results
 
 def select_balanced(results, need):
-    """Выбирает сервера по квотам регионов. Приоритет — Германия/Финляндия/США, но с лимитом."""
-    # Группируем по странам
+    """Умные квоты: если страны нет, её квота идёт в OTHER (НЕ в США)."""
     by_country = {}
     for r in results:
         c = r[3]
@@ -394,62 +423,67 @@ def select_balanced(results, need):
             by_country[c] = []
         by_country[c].append(r)
     
-    # Внутри каждой страны сортируем по скорости (быстрее первые)
+    # Сортируем внутри страны по скорости
     for c in by_country:
         by_country[c].sort(key=lambda x: x[1])
     
     selected = []
     used = set()
     
-    # === КВОТЫ ===
     quotas = PRIORITY_QUOTAS.copy()
     
-    # 1. Забираем по квотам из приоритетных стран
-    for country, quota in quotas.items():
-        if country == "OTHER":
-            continue
+    # 1. Забираем по квотам из приоритетных стран (DE, FI, US)
+    for country in ["DE", "FI", "US"]:
+        quota = quotas.get(country, 0)
         if country in by_country:
             taken = 0
             for r in by_country[country]:
-                key = (r[0])
-                if key not in used and taken < quota:
+                if r[0] not in used and taken < quota:
                     selected.append(r)
-                    used.add(key)
+                    used.add(r[0])
                     taken += 1
     
-    # 2. Добиваем из OTHER (остальные страны)
+    # 2. OTHER — все остальные страны (включая NL, SE, GB и т.д.)
+    # ВАЖНО: США сюда НЕ попадает, только остальные
     other_quota = quotas.get("OTHER", 0)
     other_taken = 0
+    all_other = []
     for country, servers in by_country.items():
-        if country in {"DE", "FI", "US"}:
+        if country in {"DE", "FI", "US", "OTHER"}:
             continue
-        for r in servers:
-            key = r[0]
-            if key not in used and other_taken < other_quota:
-                selected.append(r)
-                used.add(key)
-                other_taken += 1
-                if other_taken >= other_quota:
-                    break
-        if other_taken >= other_quota:
-            break
+        all_other.extend(servers)
+    # OTHER из самой категории OTHER
+    if "OTHER" in by_country:
+        all_other.extend(by_country["OTHER"])
+    all_other.sort(key=lambda x: x[1])
+    for r in all_other:
+        if r[0] not in used and other_taken < other_quota:
+            selected.append(r)
+            used.add(r[0])
+            other_taken += 1
     
-    # 3. Если не набрали need — добиваем любыми оставшимися (по скорости)
+    # 3. Если не набрали need — добиваем ЛЮБЫМИ оставшимися (по скорости)
+    # Но СНАЧАЛА добиваем из DE/FI/NL (хорошие страны), потом из остальных
     if len(selected) < need:
-        all_remaining = []
+        priority_fill = []
+        other_fill = []
         for country, servers in by_country.items():
             for r in servers:
                 if r[0] not in used:
-                    all_remaining.append(r)
-        all_remaining.sort(key=lambda x: x[1])
-        for r in all_remaining:
+                    if country in {"DE", "FI", "NL", "SE", "NO", "GB"}:
+                        priority_fill.append(r)
+                    else:
+                        other_fill.append(r)
+        priority_fill.sort(key=lambda x: x[1])
+        other_fill.sort(key=lambda x: x[1])
+        for r in priority_fill + other_fill:
             if len(selected) >= need:
                 break
             if r[0] not in used:
                 selected.append(r)
                 used.add(r[0])
     
-    # Сортируем финальный список по скорости (самые быстрые сверху)
+    # Сортируем финальный список по скорости
     selected.sort(key=lambda x: x[1])
     return selected[:need]
 
@@ -468,7 +502,6 @@ def write_subscription(filename, title, servers):
         f.write(f"#profile-title: {title}\n" + "\n".join(servers))
 
 def merge_new_and_old(new_results, old_servers, is_white_list):
-    """Объединяет новые (из xray) + старые живые (хендшейк)."""
     if not new_results and not old_servers:
         return []
     
@@ -488,9 +521,11 @@ def merge_new_and_old(new_results, old_servers, is_white_list):
         if key in new_keys:
             continue
         has_trusted = any(t in info[3] for t in TRUSTED_SNIS) if info[3] else False
-        old_to_check.append((link, has_trusted))
+        sni = info[3] if info else ""
+        country = detect_country(link, sni)
+        old_to_check.append((link, has_trusted, country))
     
-    print(f"[*] Проверяю {len(old_to_check)} старых серверов из файла (хендшейк)...")
+    print(f"[*] Проверяю {len(old_to_check)} старых серверов (хендшейк)...")
     old_alive = []
     if old_to_check:
         with ThreadPoolExecutor(max_workers=20) as ex:
@@ -501,7 +536,7 @@ def merge_new_and_old(new_results, old_servers, is_white_list):
                     old_alive.append(r)
     
     old_alive.sort(key=lambda x: x[1])
-    old_links = [l for l, s, t in old_alive]
+    old_links = [l for l, s, t, c in old_alive]
     print(f"[+] Живых старых: {len(old_links)}")
     
     combined = new_links + old_links
@@ -516,18 +551,17 @@ def merge_new_and_old(new_results, old_servers, is_white_list):
     return deduped[:TARGET_COUNT]
 
 def print_distribution(results):
-    """Показывает распределение по странам."""
     counts = {}
     for r in results:
-        c = r[3] if len(r) > 3 else "?"
+        c = r[3]
         counts[c] = counts.get(c, 0) + 1
     parts = [f"{c}:{n}" for c, n in sorted(counts.items())]
-    print(f"    Распределение: {', '.join(parts)}")
+    print(f"    Распределение по странам: {', '.join(parts) if parts else 'нет данных'}")
 
 def main():
     t_start = time.monotonic()
-    print("[*] Парсер v14: железобетонная проверка + квоты по регионам")
-    print(f"[*] Квоты: {PRIORITY_QUOTAS}")
+    print("[*] Парсер v15: определение страны по имени + загрузка реального контента")
+    print(f"[*] Квоты: {PRIORITY_QUOTAS} (США ограничено!)")
     
     xray_found = os.path.exists(XRAY_PATH) or shutil.which("xray")
     if not xray_found:
@@ -539,14 +573,25 @@ def main():
         white_text = "\n".join(r for r in ex.map(fetch_one, URLS_WHITE) if r)
         black_text = "\n".join(r for r in ex.map(fetch_one, URLS_BLACK) if r)
     
-    print("[*] Парсинг (РАЗДЕЛЬНЫЕ пулы ключей)...")
+    print("[*] Парсинг (РАЗДЕЛЬНЫЕ пулы, с определением страны)...")
     white_keys = set()
     black_keys = set()
     white_c = parse_source_text(white_text, white_keys, is_white_list=True)
     black_c = parse_source_text(black_text, black_keys, is_white_list=False)
-    print(f"[*] Кандидатов: белых {len(white_c)} (с trusted SNI), чёрных {len(black_c)}")
+    print(f"[*] Кандидатов: белых {len(white_c)}, чёрных {len(black_c)}")
     
-    print("[*] ЭТАП 1: хендшейк...")
+    # Показываем распределение по странам ДО проверки
+    print("\n[*] Распределение кандидатов по странам:")
+    white_countries = {}
+    for _, _, c in white_c:
+        white_countries[c] = white_countries.get(c, 0) + 1
+    print(f"    Белые: {', '.join(f'{c}:{n}' for c, n in sorted(white_countries.items()))}")
+    black_countries = {}
+    for _, _, c in black_c:
+        black_countries[c] = black_countries.get(c, 0) + 1
+    print(f"    Чёрные: {', '.join(f'{c}:{n}' for c, n in sorted(black_countries.items()))}")
+    
+    print("\n[*] ЭТАП 1: хендшейк...")
     white_hs, black_hs = [], []
     with ThreadPoolExecutor(max_workers=30) as ex:
         fw = [ex.submit(handshake_check, c) for c in white_c[:HANDSHAKE_POOL]]
@@ -559,22 +604,22 @@ def main():
             if r: black_hs.append(r)
     print(f"[+] Прошли хендшейк: белых {len(white_hs)}, чёрных {len(black_hs)}")
     
-    print("[*] ЭТАП 2: ЖЕЛЕЗОБЕТОННАЯ проверка (2 endpoint'а + замер скорости)...")
-    print("--- Белые ---")
-    white_real = verify_real_strict(white_hs, TARGET_COUNT)
+    print("\n[*] ЭТАП 2: ЖЕЛЕЗОБЕТОННАЯ проверка (загрузка instagram.com / youtube.com)...")
+    print("--- Белые (грузим instagram.com) ---")
+    white_real = verify_real_strict(white_hs, TARGET_COUNT, is_white_list=True)
     print_distribution(white_real)
-    print("--- Чёрные ---")
-    black_real = verify_real_strict(black_hs, TARGET_COUNT)
+    print("--- Чёрные (грузим youtube.com) ---")
+    black_real = verify_real_strict(black_hs, TARGET_COUNT, is_white_list=False)
     print_distribution(black_real)
     
-    print("\n[*] ЭТАП 3: выбор по квотам регионов...")
+    print("\n[*] ЭТАП 3: выбор по квотам...")
     white_selected = select_balanced(white_real, TARGET_COUNT)
     black_selected = select_balanced(black_real, TARGET_COUNT)
-    print(f"[+] Отобрано: белых {len(white_selected)}, чёрных {len(black_selected)}")
+    print(f"[+] Отобрано по квотам: белых {len(white_selected)}, чёрных {len(black_selected)}")
+    print_distribution(white_selected)
     
     old_white = read_old_servers("white_subscription.txt")
     old_black = read_old_servers("black_subscription.txt")
-    print(f"[*] В файле сейчас: белых {len(old_white)}, чёрных {len(old_black)}")
     
     print("\n[*] Мердж: новые + живые старые...")
     final_white = merge_new_and_old(white_selected, old_white, is_white_list=True)
