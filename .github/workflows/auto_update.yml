@@ -3,8 +3,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '7 * * * *'   # каждый час в :07 минут
-  workflow_dispatch:
+    - cron: '7 * * * *'   # каждый час в :07 (разгруженная минута)
+  workflow_dispatch:       # кнопка ручного запуска
 
 concurrency:
   group: parser            # не даём двум запускам пересекаться
@@ -14,7 +14,7 @@ jobs:
   run-parser:
     name: Run VLESS Parser
     runs-on: ubuntu-latest
-    timeout-minutes: 25    # зависший прогон убьётся сам, минуты не утекут
+    timeout-minutes: 25
     permissions:
       contents: write
     steps:
