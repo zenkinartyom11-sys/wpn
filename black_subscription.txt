@@ -1,14 +1,14 @@
 #profile-title: Чёрный список (РКН)
-#updated: 2026-09-10 13:35 UTC
+#updated: 2026-09-10 14:10 UTC
 #verified: xray+204+telegram-web+content+speed
 
 vless://5fcdc9b7-e70f-4a5c-85c3-e018ad818326@82.24.203.20:2087?encryption=none&path=%2Ffd5ba98a3970&security=none&type=ws#🇩🇪[openproxylist.com] vless-DE
+vless://6fb79584-30b8-4888-b358-98f7ef6b8697@89.58.13.33:443?pbk=RR_T91yZY_QUPN53wQNakGmCN3mq0i_Ozom7etyh4RI&headerType=none&encryption=none&sni=www.adac.de&type=tcp&fp=firefox&flow=xtls-rprx-vision&security=reality#%5BOpenRay%5D%20%F0%9F%87%A9%F0%9F%87%AA%20DE-23971
+vless://18535741-e8b3-4b43-9348-785b55936751@OV-Germany1.09vpn.com:80?path=%2Fvless%2F&security=none&encryption=none&type=ws#%5BOpenRay%5D%20%F0%9F%87%A9%F0%9F%87%AA%20DE-5929
 vless://cec9a167-6381-4752-9828-a92ab6e6ebdd@2.26.0.5:443?mode=multi&security=reality&encryption=none&authority=deliberi.fi&pbk=_syAndJM1Guu8-CkJ48iBXUTe0GxHg3YEN3vz9iPkjo&fp=chrome&type=grpc&serviceName=6b1d23e872422afdd141eba7c94c05e4&sni=deliberi.fi&sid=f44dbbc3#%5BOpenRay%5D%20%F0%9F%87%AB%F0%9F%87%AE%20FI-5403
-vless://cb2dbb6a-a1ea-4023-9ace-6466cee57241@51.81.203.63:443?security=reality&encryption=none&pbk=nqwCf6oW49tEtmQ0EzxigZ0uu1pg0E30CS54G40Iti0&headerType=none&fp=chrome&spx=%2F&type=tcp&flow=xtls-rprx-vision&sni=www.icloud.com&sid=4477382ff6d3d41c#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-25605
-vless://4f74ff26-25af-41d6-9d39-be46fe8ff1a8@steep-resonance-1ffb.274.workers.dev:8880?type=ws&path=%2Fpyip%3DProxyIP.US.CMLiussss.net&fp=qq#%5BOpenRay%5D%20Dynamic-25588
-vless://1399f473-ffb5-4942-b05c-7dd3fc0007fb@round-truth-dcf1.34-719.workers.dev:8880?security=none&sni=round-truth-dcf1.34-719.workers.dev&type=ws#%5BOpenRay%5D%20Dynamic-27739
-vless://c80a96e8-d4a6-4785-b53b-a475b252c4ed@5.129.210.63:8443?type=grpc&encryption=none&security=reality&pbk=Z5WItgtmxxL_umUUIPO72kSTBGjlGg3sUPigtTG6wlI&sni=sun6-21.userapi.com&sid=ac&spx=/&fp=edge#%21
-vless://d65cc14c-f53f-4fe2-b262-97856601319c@169.40.42.212:443?security=reality&encryption=none&pbk=e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg&headerType=none&type=tcp&flow=xtls-rprx-vision&sni=yahoo.com&sid=c39cc7310a#@Vip_Security
-vless://ca52e2b6-fb9f-4dac-b6dc-49da9923f251@209.200.246.148:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=uTmb-ytXsx8p0fkBz7A76SHpWk7_oVutIA4LGTE8BQk&sid=f98843107912e782&sni=www.cloudflare.com#%5BOpenRay%5D%20%F0%9F%87%A8%F0%9F%87%A6%20CA-28364
-vless://7111212b-6bc3-459a-85b4-3b13038a19f8@cf4.466688.xyz:8880?&fp=chrome&type=ws&headerType=none&host=shrill-fog-67af.235-e6a.workers.dev&path=%2Fpyip%3DProxyIP.KR.CMLiussss.net#%5BOpenRay%5D%20Dynamic-22816
-vless://d9d0f208-d582-41d5-bb7b-742671402810@us-main-2.hanvpn.biz:443?security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=PBdrT4IGQ9dXoz3Sb52kGRUb22OoHF4jTtTq_5K3AWc&sid=95f904b1e977e5cb#Бесплатный
+vless://a4846a6c-163f-4b12-a99f-378d814e5e09@172.239.239.53:22746?security=reality&encryption=none&pbk=B6bPTxNaLqqoUTuNggzTBP0pPxJEqE_Bd_Ob27MPvgU&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=www.intel.com&sid=d9fd4fa80238cd05#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-11604
+vless://48ff2b70-e180-582f-8866-d9a2edeed5f5@51.158.206.98:23576?security=reality&encryption=none&pbk=1y5h2FGWKXTJ9xLPCqPo6Mw7RxoZzh6fGkEQKNxpZ3s&host=Join---i10VPN---Join---i10VPN---Join---i10VPN---Join---i10VPN&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=fuck.rkn&sid=01#%5BOpenRay%5D%20%F0%9F%87%B3%F0%9F%87%B1%20NL-9896
+vless://18cf8db1-9f86-43f7-baa0-382efb7f2dfa@38.107.232.36:80?security=none&type=ws&host=3h-unitedstates1.09vpn.com&path=/vless/#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26455
+vless://218fd696-e3a2-4c33-b397-a5f13a82969e@216.227.161.95:7443?encryption=none&fp=&pbk=uNqGvaJEIFTFQvAxsTDhetPxkIWzJuBtxXsK0yFMYzM&security=reality&serviceName=grpc&sid=48d5cf47&sni=media3.abvphelp.cc&type=grpc#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26582
+vless://1e49ee8c-33be-4db8-8445-7203f18aecfa@8.35.211.115:2087?encryption=none&type=ws&path=/&host=mysheep.dpdns.org&security=tls&sni=mysheep.dpdns.org&fp=chrome#%5BOpenRay%5D%20%F0%9F%87%BA%F0%9F%87%B8%20US-26242
+vless://42c62a5a-cd31-4551-80ef-908732370287@104.19.146.98:2083?&security=tls&fp=chrome&sni=fq.jp188.dpdns.org&type=ws&headerType=none&host=fq.jp188.dpdns.org&path=%2Fproxyip%3D154.17.22.207%2C69.63.210.157%2C134.195.211.13%2C172.236.245.153%2C209.146.115.209%2C64.186.224.194%2C149.28.94.52%2C107.151.188.57#%F0%9F%87%BA%F0%9F%87%B8%20%E7%BE%8E%E5%9B%BD%20%7C%20USA%20t.me%2Frjsxrd
