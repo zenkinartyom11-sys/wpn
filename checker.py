@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v17 — «железобетонная» проверка VLESS-серверов для 2 подписок.
-КЛЮЧЕВОЕ в v17: сервер попадает в подписку ТОЛЬКО если через него реально
-открывается Telegram (web.telegram.org грузится через туннель), плюс приоритет
-профилям, выживающим после ТСПУ (Reality+443+крупный SNI, Cloudflare-фронты).
+ПАРСЕР v19 — «железобетонная» проверка для 2 подписок.
+БЕЛЫЙ (полностью новая логика): источники — специализированные белые списки
+(Subzio, zieng2/wl, igareck). Классы: hysteria2 с белым SNI (проверка через
+sing-box), vless Reality с белым SNI (.ru и крупные мировые) на 443, запас —
+vless TLS за Cloudflare 443 (в ссылку добавляется fm= фрагментация).
+Все кандидаты: 4 проверки + замер РЕАЛЬНОЙ скорости; в файл — топ-10 быстрых,
+приоритет «родным» для белых списков классам.
+ЧЁРНЫЙ: как в v17 — xray, Telegram обязателен, квоты DE/FI/US, Reality/443.
 
 Что исправлено по сравнению с v15 (причины мёртвых серверов в подписке):
   1. РАНЬШЕ: старые серверы возвращались в файл после одного TCP/TLS хендшейка
@@ -28,7 +32,7 @@
 """
 
 import ssl, socket, requests, time, base64, re, random, json, subprocess, os, signal, shutil, ipaddress
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, unquote, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ================== НАСТРОЙКИ ==================
@@ -50,6 +54,7 @@ BLACK_FILE      = "black_subscription.txt"
 PRIORITY_QUOTAS = {"DE": 4, "FI": 3, "US": 1, "OTHER": 2}
 
 VALID_PROTOCOLS = ("vless://",)
+HY2_PREFIXES = ("hysteria2://", "hy2://")   # только для БЕЛОГО списка (проверка через sing-box)
 
 # Доверенные SNI для БЕЛОГО списка: крупные РФ-домены + платёжные/мировые
 TRUSTED_SNIS = [
@@ -68,6 +73,15 @@ TRUSTED_SNIS = [
     "coinbase.com", "kraken.com", "tesla.com", "apple.com", "icloud.com",
     "microsoft.com", "samsung.com", "nike.com", "ikea.com",
 ]
+
+def is_white_sni(sni):
+    """SNI, который ТСПУ пропускает в режиме белых списков: RU-зоны + крупные известные."""
+    sni = (sni or "").lower()
+    if not sni:
+        return False
+    if sni.endswith((".ru", ".su", ".xn--p1ai", ".xn--p1acf", ".moscow", ".москва")):
+        return True
+    return any(t in sni for t in TRUSTED_SNIS)
 
 COUNTRY_PATTERNS = {
     "DE": ["🇩🇪", "germany", "deutschland", "frankfurt", "munich", "münchen", "berlin", "hessen", "bayern", "nürnberg", "dusseldorf", "düsseldorf", "falkenstein", "nuremberg"],
@@ -101,10 +115,7 @@ CF_RANGES = [ipaddress.ip_network(n) for n in [
     "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
 ]]
 
-# Подписка для БЕЛОГО списка: в режиме белых списков реально живут только
-# 443/80; TLS-порты Cloudflare (2053/2083/2087/2096/8443) — только для CF-фронтов
-WHITE_BASE_PORTS   = {443, 80}
-WHITE_CF_PORTS     = {2053, 2083, 2087, 2096, 8443}
+# БЕЛЫЙ v18: только 443 (см. white_ok)
 
 # RU-префиксы (для ЧЁРНОГО списка: РФ-выходы не нужны)
 RUSSIAN_PREFIXES = [
@@ -123,10 +134,17 @@ RUSSIAN_PREFIXES = [
 
 # ============ ИСТОЧНИКИ ============
 URLS_WHITE = [
+    # --- специализированные белые списки (RU mobile) ---
+    "https://raw.githubusercontent.com/Subzio/subzio/main/WHITE_LIST_PROXY_COLLECTION.txt",
+    "https://raw.githubusercontent.com/Subzio/subzio/main/HYSTERIA2.txt",
+    "https://raw.githubusercontent.com/zieng2/wl/main/vless_lite.txt",
+    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
+    # --- общие агрегаторы (CF+443 как запасной класс) ---
     "https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
     "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt",
-    "https://raw.githubusercontent.com/FLEXIY0/matryoshka-vpn/main/configs/russia_whitelist.txt",
 ]
 URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -142,6 +160,9 @@ URLS_BLACK = [
 XRAY_PATH = os.environ.get("XRAY_PATH") or (
     "./xray" if os.path.exists("./xray") else
     "./xray.exe" if os.path.exists("./xray.exe") else "xray")
+SINGBOX_PATH = os.environ.get("SINGBOX_PATH") or (
+    "./sing-box" if os.path.exists("./sing-box") else
+    "./sing-box.exe" if os.path.exists("./sing-box.exe") else "sing-box")
 
 _dns_cache = {}
 def resolve(host):
@@ -212,7 +233,7 @@ def smart_decode(text):
                 break
             if not dec:
                 break
-            found = re.findall(r"(?:vless)://[^\s<>\"'`,]+", dec)
+            found = re.findall(r"(?:vless|hysteria2|hy2)://[^\s<>\"'`,]+", dec)
             if found:
                 out.extend(x.strip() for x in found)
                 decoded = True
@@ -221,12 +242,12 @@ def smart_decode(text):
             if not t:
                 break
         if not decoded and "://" in line:
-            out.extend(re.findall(r"vless://[^\s<>\"'`,]+", line))
+            out.extend(re.findall(r"(?:vless|hysteria2|hy2)://[^\s<>\"'`,]+", line))
     return "\n".join(out)
 
 def fetch_one(url):
     try:
-        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             return smart_decode(r.text[:3_000_000].lstrip("\ufeff"))
     except Exception:
@@ -254,6 +275,8 @@ def extract_info(line):
             "host_header": g("host", ""), "pbk": g("pbk"), "sid": g("sid"),
             "fp": g("fp", "chrome"), "flow": g("flow"),
             "serviceName": g("serviceName"), "alpn": g("alpn"),
+            "obfs": g("obfs"), "obfs_password": g("obfs-password"),
+            "proto": "vless",
         }
     except Exception:
         return None
@@ -261,20 +284,17 @@ def extract_info(line):
 def server_key(info):
     return f"{info['uuid']}|{info['host']}|{info['port']}"
 
-def white_ok(info):
-    """Белый список: доверенный SNI ИЛИ Cloudflare-фронт.
-    Порты: 443/80 — всегда; 2053/2083/2087/2096/8443 — только Cloudflare."""
-    if info["port"] in WHITE_BASE_PORTS:
-        pass
-    elif info["port"] in WHITE_CF_PORTS:
-        ip = resolve(info["host"])
-        if not (ip and is_cf_ip(ip)):
-            return False
-    else:
+def white_ok(info, line=""):
+    """БЕЛЫЙ v19 — три класса, которые реально живут в режиме белых списков:
+    1) hysteria2 с белым SNI (vk.com и т.п.) — QUIC/UDP, ТСПУ так просто не режет;
+    2) vless REALITY с белым SNI (.ru / крупный мировой) на 443;
+    3) vless TLS за Cloudflare на 443 (запасной класс, в ссылку добавится fm=)."""
+    if info["proto"] == "hy2":
+        return bool(is_white_sni(info["sni"]))
+    if info["port"] != 443:
         return False
-    sni = info["sni"] or info["host_header"] or ""
-    if any(t in sni for t in TRUSTED_SNIS):
-        return True
+    if info["security"] == "reality":
+        return is_white_sni(info["sni"])
     ip = resolve(info["host"])
     return bool(ip and is_cf_ip(ip))
 
@@ -282,19 +302,31 @@ def parse_sources(texts, used_keys, ip_count, subnet_count, is_white):
     candidates, seen = [], set()
     for line in text_join(texts).splitlines():
         line = line.strip()
-        if not line.startswith(VALID_PROTOCOLS):
+        is_hy2 = is_white and line.startswith(HY2_PREFIXES)
+        if not (line.startswith(VALID_PROTOCOLS) or is_hy2):
             continue
         info = extract_info(line)
         if not info:
             continue
-        if not UUID_RE.fullmatch(info["uuid"]):
-            continue
+        if is_hy2:
+            info["proto"] = "hy2"
+            info["security"] = "hy2"
+            try:                                  # пароль hysteria2 = userinfo до @
+                pwd = unquote(line.split("://", 1)[1].split("@", 1)[0])
+            except Exception:
+                continue
+            if not pwd:
+                continue
+            info["uuid"] = pwd
+        else:
+            if not UUID_RE.fullmatch(info["uuid"]):
+                continue
         if not info["host"] or not (0 < info["port"] < 65536):
             continue
-        if info["security"] == "reality" and (not info["pbk"] or len(info["pbk"]) < 40):
+        if info["proto"] == "vless" and info["security"] == "reality" and (not info["pbk"] or len(info["pbk"]) < 40):
             continue
         if is_white:
-            if not white_ok(info):
+            if not white_ok(info, line):
                 continue
         else:
             if is_russian_ip(info["host"]):
@@ -345,15 +377,35 @@ def handshake_check(cand):
     except Exception:
         return None
 
-# ================== ЭТАП 2: xray-КОНФИГ И РЕАЛЬНАЯ ПРОВЕРКА ==================
+# ============ ЭТАП 2: КОНФИГИ (xray для vless, sing-box для hysteria2) ============
+def hy2_to_singbox_config(info, local_port):
+    out = {
+        "type": "hysteria2", "tag": "out",
+        "server": info["host"], "server_port": info["port"],
+        "password": info["uuid"],
+        "tls": {"enabled": True, "server_name": info["sni"] or info["host"],
+                "insecure": True},
+    }
+    if info.get("obfs"):
+        out["obfs"] = {"type": info["obfs"], "password": info.get("obfs_password", "")}
+    return {
+        "log": {"level": "error"},
+        "inbounds": [{"type": "mixed", "tag": "in", "listen": "127.0.0.1",
+                      "listen_port": local_port}],
+        "outbounds": [out, {"type": "direct", "tag": "direct"}],
+    }
+
 def vless_to_xray_config(info, local_port):
     user_obj = {"id": info["uuid"], "encryption": "none"}
     if info["flow"]:
         user_obj["flow"] = info["flow"]
+    net = info["net"] or "tcp"
+    if net == "raw":          # новое имя tcp (sing-box-стиль) — xray ждёт "tcp"
+        net = "tcp"
     outbound = {
         "protocol": "vless",
         "settings": {"vnext": [{"address": info["host"], "port": info["port"], "users": [user_obj]}]},
-        "streamSettings": {"network": info["net"] or "tcp", "security": info["security"] or "none"},
+        "streamSettings": {"network": net, "security": info["security"] or "none"},
     }
     ss = outbound["streamSettings"]
     if info["security"] == "reality":
@@ -419,6 +471,25 @@ def _proxies(port):
     p = f"http://127.0.0.1:{port}"
     return {"http": p, "https": p}
 
+SPEED_URL = "https://speed.cloudflare.com/__down?bytes=10000000"  # 10 МБ
+
+def measure_speed(local_port, max_bytes=10_000_000, max_time=12.0):
+    """Скачивает файл через туннель, возвращает реальную скорость в KB/s (0 = не вышло)."""
+    total, t0 = 0, time.monotonic()
+    try:
+        with requests.get(SPEED_URL, proxies=_proxies(local_port),
+                          timeout=(5, 15), headers=UA, stream=True) as r:
+            if r.status_code != 200:
+                return 0.0
+            for chunk in r.iter_content(chunk_size=16384):
+                total += len(chunk)
+                if total >= max_bytes or time.monotonic() - t0 > max_time:
+                    break
+    except Exception:
+        pass
+    dt = time.monotonic() - t0
+    return total / 1024 / dt if dt > 0.05 and total > 50_000 else 0.0
+
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
 
 def real_check(cand, local_port, is_white, light=False):
@@ -427,17 +498,24 @@ def real_check(cand, local_port, is_white, light=False):
     light=False — для новых: +HTTP-204 (3 независимые проверки подряд).
     Возвращает (ok, latency, kbps, причина_отказа)."""
     info = cand["info"]
-    cfg = vless_to_xray_config(info, local_port)
-    cfg_path = f"/tmp/xray_cfg_{local_port}.json"
+    if info["proto"] == "hy2":
+        cfg = hy2_to_singbox_config(info, local_port)
+        engine = [SINGBOX_PATH, "run", "-c"]
+        eng_name = "sing-box"
+    else:
+        cfg = vless_to_xray_config(info, local_port)
+        engine = [XRAY_PATH, "run", "-c"]
+        eng_name = "xray"
+    cfg_path = f"/tmp/check_cfg_{local_port}.json"
     proc = None
     try:
         with open(cfg_path, "w") as f:
             json.dump(cfg, f)
-        proc = subprocess.Popen([XRAY_PATH, "run", "-c", cfg_path],
+        proc = subprocess.Popen(engine + [cfg_path],
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 preexec_fn=os.setsid)
         if not wait_for_port(local_port, proc, XRAY_START_WAIT):
-            reason = "xray_error (битый конфиг)" if proc.poll() is not None else "xray не поднял порт"
+            reason = f"{eng_name}_error (битый конфиг)" if proc.poll() is not None else f"{eng_name} не поднял порт"
             return False, None, 0, reason
 
         # --- Проверка 1: HTTP через туннель (generate_204) — только для новых ---
@@ -506,6 +584,11 @@ def real_check(cand, local_port, is_white, light=False):
                 last_reason = f"{url.split('/')[2]} fail ({type(e).__name__})"
         if not content_ok:
             return False, None, 0, last_reason
+
+        # --- Замер РЕАЛЬНОЙ скорости (точный, вместо грубой оценки со страницы) ---
+        sp = measure_speed(local_port)
+        if sp > 0:
+            kbps = sp
 
         return True, latency, kbps, ""
     except Exception as e:
@@ -651,10 +734,33 @@ def read_old_servers(filename):
     except Exception:
         return []
 
-def write_subscription(filename, title, servers):
+FM_FRAGMENT = {"tcp": [{"type": "fragment", "settings": {
+    "packets": "tlshello", "lengths": ["5", "94", "1"], "delays": ["0"], "maxSplit": "0"}}]}
+
+def ensure_fragment(link):
+    """Для БЕЛОГО списка: добавляет в ссылку fm= (TLS-фрагментация), если её нет.
+    Клиент (Happ) фрагментирует ClientHello — ТСПУ не видит SNI и не режет соединение.
+    Проверка сервера при этом шла без фрагментации: это независимые уровни."""
+    if "fm=" in link:
+        return link
+    payload = "fm=" + quote(json.dumps(FM_FRAGMENT, separators=(",", ":")))
+    head, frag = (link.split("#", 1) + [""])[:2]
+    head = head + ("&" if "?" in head else "?") + payload
+    return head + (("#" + frag) if frag else "")
+
+def write_subscription(filename, title, servers, is_white=False):
+    if is_white:
+        out = []
+        for l in servers:
+            is_hy2 = l.startswith(HY2_PREFIXES)          # hy2 — UDP, фрагментация не нужна
+            i = extract_info(l)
+            if (not is_hy2) and i and i["security"] != "reality":
+                l = ensure_fragment(l)      # фрагментация только обычному TLS за CF
+            out.append(l)
+        servers = out
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"#profile-title: {title}\n#updated: {time.strftime('%Y-%m-%d %H:%M')} UTC\n"
-                "#verified: xray+204+telegram-web+content\n\n" + "\n".join(servers) + "\n")
+                "#verified: xray+204+telegram-web+content+speed\n\n" + "\n".join(servers) + "\n")
 
 # ================== ОСНОВНОЙ ЦИКЛ ПО СПИСКУ ==================
 def process_list(is_white, state, t_start):
@@ -684,8 +790,17 @@ def process_list(is_white, state, t_start):
     seen_old = set()
     for line in old_lines:
         info = extract_info(line)
-        if not info or not UUID_RE.fullmatch(info["uuid"] or ""):
+        if not info:
             continue
+        if info["proto"] == "vless" and not UUID_RE.fullmatch(info["uuid"] or ""):
+            continue
+        if line.startswith(HY2_PREFIXES):
+            try:
+                info["proto"] = "hy2"
+                info["security"] = "hy2"
+                info["uuid"] = unquote(line.split("://", 1)[1].split("@", 1)[0])
+            except Exception:
+                continue
         k = server_key(info)
         if k in seen_old: continue
         seen_old.add(k)
@@ -694,7 +809,7 @@ def process_list(is_white, state, t_start):
             old_cands.append(match)
         else:
             ip = resolve(info["host"]) or info["host"]
-            if ip_count.get(ip, 0) < 2 and (not is_white or white_ok(info)) and (is_white or not is_russian_ip(info["host"])):
+            if ip_count.get(ip, 0) < 2 and (not is_white or white_ok(info, line)) and (is_white or not is_russian_ip(info["host"])):
                 old_cands.append({"line": line, "info": info, "key": k,
                                   "has_trusted": any(t in (info["sni"] or "") for t in TRUSTED_SNIS),
                                   "country": detect_country(line, info["sni"])})
@@ -722,6 +837,10 @@ def process_list(is_white, state, t_start):
 
     need_new = max(0, TARGET_COUNT + RESERVE_EXTRA - len(old_verified))
 
+    # hysteria2 (QUIC/UDP) в TCP-хендшейке не нуждается — проверяем их первыми
+    hy2_pool = [c for c in rest if c["info"]["proto"] == "hy2"] if is_white else []
+    rest = [c for c in rest if c["info"]["proto"] != "hy2"] if is_white else rest
+
     # КУЛДАУН: кто умер 2+ раза подряд в прошлых запусках — пропускаем (если есть кем заменить)
     def on_cooldown(c):
         e = state_list.get(c["key"])
@@ -731,6 +850,15 @@ def process_list(is_white, state, t_start):
     if cooled:
         print(f"[*] Кулдаун: пропускаю {cooled} давно умерших (economia бюджета)")
     hs_passed = hot if len(hot) >= need_new * 2 else hs_passed
+    if is_white and hy2_pool:
+        print(f"[*] hysteria2-кандидатов (без хендшейка, QUIC): {len(hy2_pool)}")
+        # чередуем классы 1:1 — ни hy2, ни vless не съедают весь бюджет проверок
+        mixed = []
+        a, b = list(hy2_pool), list(hs_passed)
+        while a or b:
+            if a: mixed.append(a.pop(0))
+            if b: mixed.append(b.pop(0))
+        hs_passed = mixed
 
     # --- 5. Волны полной (тройной) проверки новых, пока не наберём ---
     new_verified = []
@@ -751,7 +879,23 @@ def process_list(is_white, state, t_start):
 
     # --- 6. Выбор по квотам: живые старые + проверенные новые ---
     all_verified = old_verified + [v for v in new_verified if v["key"] not in {o["key"] for o in old_verified}]
-    selected = select_balanced(all_verified, state_list, TARGET_COUNT)
+    if is_white:
+        # БЕЛЫЙ v19: сначала «родные» классы (hysteria2, Reality+белый SNI),
+        # самые быстрые по замеру; свободные места — быстрые CF+443
+        def white_tier(v):
+            i = v["info"]
+            if i["proto"] == "hy2":
+                return 1
+            if i["security"] == "reality" and is_white_sni(i["sni"]):
+                return 1
+            return 2
+        t1 = sorted((v for v in all_verified if white_tier(v) == 1),
+                    key=lambda v: -(v.get("kbps") or 0))
+        t2 = sorted((v for v in all_verified if white_tier(v) == 2),
+                    key=lambda v: -(v.get("kbps") or 0))
+        selected = (t1 + t2)[:TARGET_COUNT]
+    else:
+        selected = select_balanced(all_verified, state_list, TARGET_COUNT)
     print(f"\n[+] Итог {name}: {len(selected)} серверов")
     dist = {}
     for v in selected: dist[v["country"]] = dist.get(v["country"], 0) + 1
@@ -760,7 +904,7 @@ def process_list(is_white, state, t_start):
     if selected:
         write_subscription(sub_file,
                            "Белый список (РКН)" if is_white else "Чёрный список (РКН)",
-                           [v["line"] for v in selected])
+                           [v["line"] for v in selected], is_white)
         print(f"[+] {sub_file} ЗАПИСАН ({len(selected)} проверенных серверов)")
     else:
         print(f"[!] Ни одного живого — {sub_file} НЕ трогаю (старый файл сохранён).")
@@ -768,7 +912,7 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v17: Telegram обязателен + тройная проверка + приоритет ТСПУ-устойчивых")
+    print("[*] Парсер v19: белый = hysteria2/Reality(белый SNI)/CF-443 + скорость + fm=; чёрный = v17")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход.")
         return
