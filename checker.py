@@ -47,7 +47,7 @@ HS_WORKERS      = 40          # потоков на хендшейки
 REAL_WORKERS    = 10          # xray-инстансов одновременно (Actions: 2 ядра)
 XRAY_START_WAIT = 3           # ждём поднятия inbound (с ранним выходом при ошибке)
 STAGE_TIMEOUT   = 6           # таймаут ОДНОГО запроса через туннель
-MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "100"))  # бюджет: сколько НОВЫХ кандидатов максимум реально проверять на список
+MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "140"))  # бюджет: сколько НОВЫХ кандидатов максимум реально проверять на список
 RESERVE_EXTRA   = 4           # проверяем на 4 больше, чем нужно (резерв на выбор по странам)
 
 STATE_FILE      = "state.json"          # история проверок (коммитится в репо)
@@ -158,6 +158,8 @@ URLS_WHITE = [
     "https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt",
     "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
     "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt",
+    # --- крупные ежедневные агрегаторы (расширенный охват, v21.1) ---
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
 ]
 URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -165,10 +167,25 @@ URLS_BLACK = [
     "https://raw.githubusercontent.com/r3zarahimi/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt",
     "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/refs/heads/main/deploy/subscriptions/11.txt",
     "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/refs/heads/main/deploy/subscriptions/1.txt",
-    # резервные крупные агрегаторы (если основных мало живых)
+    # крупные ежедневные агрегаторы (расширенный охват, v21.1)
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    # резервные крупные агрегаторы
     "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
     "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
 ]
+
+# --- ИНДЕКС ИСТОЧНИКОВ (список списков, v21.2) ---
+# Парсер сам читает индекс и добавляет к своим источникам URL из него.
+# Из индекса выкидываются нерелевантные (socks5/mtproto/yaml/clash).
+INDEX_SOURCES = [
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/source/config/URLS.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt",
+]
+INDEX_EXCLUDE = ("socks", "mtproto", "wireguard", "clash", ".yaml", ".yml", "trojan-go")
+INDEX_MAX_URLS = int(os.environ.get("INDEX_MAX_URLS", "120"))   # URL из индексов за прогон
+INDEX_FILE_MAX = int(os.environ.get("INDEX_FILE_MAX", "3"))     # мегабайт на источник максимум
+FETCH_TIMEOUT_S = int(os.environ.get("FETCH_TIMEOUT_S", "25"))
 
 XRAY_PATH = os.environ.get("XRAY_PATH") or (
     "./xray" if os.path.exists("./xray") else
@@ -262,11 +279,24 @@ def smart_decode(text):
             out.extend(re.findall(r"(?:vless|hysteria2|hy2)://[^\s<>\"'`,]+", line))
     return "\n".join(out)
 
+def fetch_index_urls(index_url, exclude):
+    """Читает индекс (список URL) и возвращает отфильтрованный список источников."""
+    try:
+        r = requests.get(index_url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code != 200:
+            return []
+        urls = [l.strip() for l in r.text.splitlines() if l.strip().startswith("http")]
+        urls = [u for u in urls if not any(k in u.lower() for k in INDEX_EXCLUDE)]
+        urls = [u for u in urls if u not in exclude]
+        return urls
+    except Exception:
+        return []
+
 def fetch_one(url):
     try:
-        r = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(url, timeout=FETCH_TIMEOUT_S, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
-            return smart_decode(r.text[:3_000_000].lstrip("\ufeff"))
+            return smart_decode(r.text[:INDEX_FILE_MAX * 1_000_000].lstrip("\ufeff"))
     except Exception:
         pass
     return ""
@@ -317,7 +347,8 @@ def white_ok(info, line=""):
 
 def parse_sources(texts, used_keys, ip_count, subnet_count, is_white):
     candidates, seen = [], set()
-    for line in text_join(texts).splitlines():
+    for text in texts:
+      for line in text.splitlines():
         line = line.strip()
         is_hy2 = is_white and line.startswith(HY2_PREFIXES)
         if not (line.startswith(VALID_PROTOCOLS) or is_hy2):
@@ -711,7 +742,7 @@ def score_of(v, streak):
     if v.get("kbps"): base += min(v["kbps"] / 50.0, 6.0)
     if v.get("has_trusted"): base += 2.0          # белый список: доверенный SNI
     base += tspu_bonus(v["info"])                 # выживаемость после ТСПУ
-    base *= (0.92 ** min(streak, 5))              # проверенный временем чуть выше
+    base *= (1 + 0.05 * min(streak, 5))           # проверенный временем — ПРИОРИТЕТ
     return base
 
 def select_balanced(verified, state_list, need):
@@ -789,12 +820,24 @@ def process_list(is_white, state, t_start):
     sub_file = WHITE_FILE if is_white else BLACK_FILE
     print(f"\n{'='*60}\n[*] {name} СПИСОК\n{'='*60}")
 
-    # --- 1. Качаем источники ---
+    # --- 1. Качаем источники + индекс ---
     print("[*] Скачиваю источники...")
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
         texts = list(ex.map(fetch_one, urls))
     good = sum(1 for t in texts if t)
     print(f"[+] Источников ответило: {good}/{len(urls)}")
+
+    idx_urls = []
+    for iu in INDEX_SOURCES:
+        idx_urls.extend(fetch_index_urls(iu, set(urls) | set(idx_urls)))
+    if idx_urls:
+        random.shuffle(idx_urls)
+        idx_urls = idx_urls[:INDEX_MAX_URLS]
+        print(f"[*] Индекс: докачиваю {len(idx_urls)} доп. источников (ротация каждый прогон)...")
+        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
+            idx_texts = [t for t in ex.map(fetch_one, idx_urls) if t]
+        texts.extend(idx_texts)
+        print(f"[+] Из индекса ответило: {len(idx_texts)}/{len(idx_urls)}")
 
     # --- 2. Парсим кандидатов ---
     used_keys, ip_count, subnet_count = set(), {}, {}
@@ -853,7 +896,7 @@ def process_list(is_white, state, t_start):
     rest = [c for c in candidates if c["key"] not in old_keys]
     random.shuffle(rest)                          # случайно, а не «первые 40 из файла»
     print(f"\n[*] ЭТАП 2: хендшейк {min(len(rest), 150)} новых кандидатов...")
-    hs_pool = rest[:150]
+    hs_pool = rest[:300]
     hs_passed = []
     with ThreadPoolExecutor(max_workers=HS_WORKERS) as ex:
         for r in ex.map(handshake_check, hs_pool):
@@ -986,10 +1029,14 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v21: proven.txt (твои рабочие) в приоритете + фильтр стран выкл (квоты как приоритет)")
+    print("[*] Парсер v21.3: ТОТАЛЬНЫЙ поиск — индекс+ротация, широкий хендшейк, бюджет 140")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
-        print("[!] xray не найден — выход.")
+        print("[!] xray не найден — выход. Скачай Xray-windows-64.zip / Xray-linux-64.zip,")
+        print("    положи бинарник (xray.exe / xray) рядом с checker.py или укажи XRAY_PATH.")
         return
+    if not (os.path.exists(SINGBOX_PATH) or shutil.which(SINGBOX_PATH)):
+        print("[!] sing-box не найден: hysteria2 из белого списка проверяться НЕ будут.")
+        print("    Скачай sing-box-*-windows-amd64.zip, положи sing-box.exe рядом с checker.py.")
     state = load_state()
     try:
         process_list(True, state, t0)     # белый
