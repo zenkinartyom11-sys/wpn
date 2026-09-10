@@ -1,43 +1,52 @@
 name: Auto Update VLESS Config
-on:  
-  push: 
+on:
+  push:
     branches: [main]
-  schedule: 
+  schedule:
     - cron: '7 * * * *'   # каждый час в :07 минут
   workflow_dispatch:
 
-jobs: 
-  run-parser: 
-    name: Run VLESS Parser 
+concurrency:
+  group: parser            # не даём двум запускам пересекаться
+  cancel-in-progress: true
+
+jobs:
+  run-parser:
+    name: Run VLESS Parser
     runs-on: ubuntu-latest
+    timeout-minutes: 25    # зависший прогон убьётся сам, минуты не утекут
     permissions:
       contents: write
-    steps: 
-      - name: 1. Клонируем репозиторий 
-        uses: actions/checkout@v4 
-        
-      - name: 2. Python 
+    steps:
+      - name: 1. Клонируем репозиторий
+        uses: actions/checkout@v4
+
+      - name: 2. Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' 
-          
+          python-version: '3.11'
+
       - name: 3. Зависимости
         run: pip install requests
-        
-      - name: 4. Устанавливаем xray
+
+      - name: 4. Устанавливаем xray (с retry)
         run: |
-          curl -sL https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
-          unzip -o xray.zip
+          for i in 1 2 3; do
+            curl -sfL https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip && break
+            echo "retry $i..."; sleep 3
+          done
+          unzip -o xray.zip xray
           chmod +x xray
           ./xray version
-          
+
       - name: 5. Запуск парсера
         run: python checker.py
 
-      - name: 6. Коммит и пуш
+      - name: 6. Коммит и пуш (подписки + история проверок)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add "*.txt"
-          git commit -m "🤖 Авто-обновление: рабочие серверы (Германия/Финляндия)" || echo "Изменений нет"
+          git add white_subscription.txt black_subscription.txt state.json
+          git commit -m "🤖 Только проверенные серверы (xray+204+контент)" || echo "Изменений нет"
+          git pull --rebase origin main || true
           git push origin main
