@@ -38,6 +38,8 @@ FALLBACK_BLACK = [
 ]
 
 MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "250"))  # бюджет полных проверок НА СПИСОК
+CHECK_ALL = os.environ.get("CHECK_ALL", "0") == "1"  # 1 = проверять ВСЕХ кандидатов без бюджета
+HS_POOL = int(os.environ.get("HS_POOL", "400"))      # сколько кандидатов проходит хендшейк
 CHECK_TIMEOUT   = 4
 FETCH_WORKERS   = 10
 HS_WORKERS      = 40
@@ -673,7 +675,7 @@ def process_list(is_white):
     print(f"\n[*] Хендшейк {min(len(rest), 400)} кандидатов...")
     hs_passed = []
     with ThreadPoolExecutor(max_workers=HS_WORKERS) as ex:
-        for r in ex.map(handshake_check, rest[:400]):
+        for r in ex.map(handshake_check, rest if CHECK_ALL else rest[:HS_POOL]):
             if r:
                 hs_passed.append(r)
     hs_passed.sort(key=lambda c: c.get("hs_score", 9))
@@ -687,8 +689,12 @@ def process_list(is_white):
     print(f"[+] Прошли хендшейк: {len(hs_passed)} (+hy2 без хендшейка: {len(hy2_pool)})")
 
     # --- 6. Полная проверка: ВСЕ, кого влезло в бюджет ---
-    print(f"\n[*] Полная проверка (бюджет {MAX_REAL_CHECKS})...")
-    new_verified = verify_candidates(hs_passed, is_white, light=False, limit=MAX_REAL_CHECKS)
+    if CHECK_ALL:
+        print(f"\n[*] Полная проверка ВСЕХ {len(hs_passed)} кандидатов (CHECK_ALL=1)...")
+        new_verified = verify_candidates(hs_passed, is_white, light=False, limit=None)
+    else:
+        print(f"\n[*] Полная проверка (бюджет {MAX_REAL_CHECKS})...")
+        new_verified = verify_candidates(hs_passed, is_white, light=False, limit=MAX_REAL_CHECKS)
 
     # --- 7. Итог: proven первыми, затем ВСЕ живые по скорости ---
     all_verified = proven_verified + [v for v in new_verified if v["key"] not in pv_keys]
@@ -706,7 +712,9 @@ def process_list(is_white):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v23: сайт-зеркала whitelist/blacklist -> ВСЕ живые зарубежные в подписки")
+    print("[*] Парсер v23.1: сайт-зеркала whitelist/blacklist -> ВСЕ живые зарубежные в подписки")
+    if os.environ.get("CHECK_ALL") == "1":
+        print("[*] РЕЖИМ CHECK_ALL=1: глубокая проверка ВСЕХ кандидатов (без бюджета)")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход. Положи xray (xray.exe) рядом с checker.py.")
         return
