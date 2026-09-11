@@ -25,16 +25,20 @@ from concurrent.futures import ThreadPoolExecutor
 SITE_PAGE   = "https://xn--e1apcp8cq.xn--p1ai/"   # страница с зеркалами списков
 # запасные зеркала, если страница не отдаст ссылки
 FALLBACK_WHITE = [
-    "https://xn--e1apcp8cq.xn--p1ai/whitelist",
+    "https://gitverse.ru/api/repos/etoneya/sub/raw/branch/master/whitelist",
+    "https://internet-tenshi.kangel.tech/whitelist",
     "https://whitelist.etoneya.baby",
     "https://etoneya.su/whitelist",
     "https://etoneya.best/whitelist",
+    "https://etoneya.vercel.app/whitelist",
+    "https://ety.twinkvibe.gay/whitelist",
     "https://alley.serv00.net/whitelist",
-    "https://internet-tenshi.kangel.tech/whitelist",
     "https://etoskam.ru/whitelist",
+    "https://xn--e1apcp8cq.xn--p1ai/whitelist",
 ]
 FALLBACK_BLACK = [
     "https://blacklist.etoneya.baby",
+    "https://etoneya.vercel.app/blacklist",
 ]
 
 MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "250"))  # бюджет полных проверок НА СПИСОК
@@ -221,14 +225,17 @@ def server_key(info):
 
 def white_ok(info):
     """БЕЛЫЙ: классы, живущие в режиме белых списков.
-    1) hysteria2 с белым SNI; 2) vless Reality с белым SNI на 443;
+    1) hysteria2 с белым SNI (любой порт — QUIC, сам проверится);
+    2) vless Reality с белым SNI (443 + нестандартные порты: источники
+       ЭтоНеЯ активно используют порты 4100/2053/8443 и т.п. — проверка
+       сама отбракует неживые, а нефильтрованные кандидаты ценнее);
     3) vless TLS за Cloudflare на 443 (запасной класс)."""
     if info["proto"] == "hy2":
         return bool(is_white_sni(info["sni"]))
-    if info["port"] != 443:
-        return False
     if info["security"] == "reality":
         return is_white_sni(info["sni"])
+    if info["port"] != 443:
+        return False
     ip = resolve(info["host"])
     return bool(ip and is_cf_ip(ip))
 
@@ -622,9 +629,9 @@ def process_list(is_white):
     # --- 1. Зеркала с сайта ---
     site_white, site_black = get_site_mirrors()
     if is_white:
-        mirrors = site_white or list(FALLBACK_WHITE)
+        mirrors = list(dict.fromkeys((site_white or []) + FALLBACK_WHITE))
     else:
-        mirrors = site_black or list(FALLBACK_BLACK)
+        mirrors = list(dict.fromkeys((site_black or []) + FALLBACK_BLACK))
     print(f"[*] Зеркал из раздела сайта: {len(mirrors)}")
     for m in mirrors:
         print(f"    {m}")
