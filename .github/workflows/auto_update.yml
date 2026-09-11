@@ -52,7 +52,9 @@ jobs:
           chmod +x sing-box
           ./sing-box version
 
-      - name: 5. Запуск парсера
+      - name: 5. Запуск парсера (CHECK_ALL=1 — проверка ВСЕХ кандидатов)
+        env:
+          CHECK_ALL: "1"
         run: python checker.py
 
       - name: 6. Коммит и пуш (подписки + история проверок)
