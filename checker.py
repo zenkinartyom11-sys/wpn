@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v23 — источники: только сайт этоней (зеркала whitelist/blacklist).
+ПАРСЕР v23.1 — источники: сайт ЭтоНеЯ + все зеркала (вкл. gitverse), Reality на любых портах.
 
 ЛОГИКА (полностью переделана по ТЗ):
  1. Со страницы сайта собирает ВСЕ ссылки-зеркала разделов
@@ -38,7 +38,8 @@ FALLBACK_WHITE = [
 ]
 FALLBACK_BLACK = [
     "https://blacklist.etoneya.baby",
-    "https://etoneya.vercel.app/blacklist",
+    "https://etoneya.best/other",
+    "https://etoneya.su/other",
 ]
 
 MAX_REAL_CHECKS = int(os.environ.get("MAX_REAL_CHECKS", "250"))  # бюджет полных проверок НА СПИСОК
@@ -719,7 +720,7 @@ def process_list(is_white):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v23.1: сайт-зеркала whitelist/blacklist -> ВСЕ живые зарубежные в подписки")
+    print("[*] Парсер v23.1: ЭтоНеЯ-зеркала (10 шт., вкл. gitverse) + Reality любых портов + CHECK_ALL")
     if os.environ.get("CHECK_ALL") == "1":
         print("[*] РЕЖИМ CHECK_ALL=1: глубокая проверка ВСЕХ кандидатов (без бюджета)")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
