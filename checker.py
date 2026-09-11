@@ -225,20 +225,10 @@ def server_key(info):
     return f"{info['uuid']}|{info['host']}|{info['port']}"
 
 def white_ok(info):
-    """БЕЛЫЙ: классы, живущие в режиме белых списков.
-    1) hysteria2 с белым SNI (любой порт — QUIC, сам проверится);
-    2) vless Reality с белым SNI (443 + нестандартные порты: источники
-       ЭтоНеЯ активно используют порты 4100/2053/8443 и т.п. — проверка
-       сама отбракует неживые, а нефильтрованные кандидаты ценнее);
-    3) vless TLS за Cloudflare на 443 (запасной класс)."""
-    if info["proto"] == "hy2":
-        return bool(is_white_sni(info["sni"]))
-    if info["security"] == "reality":
-        return is_white_sni(info["sni"])
-    if info["port"] != 443:
-        return False
-    ip = resolve(info["host"])
-    return bool(ip and is_cf_ip(ip))
+    """БЕЛЫЙ, режим CHECK_ALL: пропускаем ВСЁ (кроме заведомых помоек).
+    Фильтры SNI/портов убраны — правильность решает полная проверка
+    (Telegram + контент), а не догадки о режиме оператора."""
+    return True
 
 # ================== СКАЧИВАНИЕ ==================
 def smart_decode(text):
