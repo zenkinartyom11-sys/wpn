@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '7,22,37,52 * * * *'   # каждый час в :07 (разгруженная минута)
+    - cron: '7 * * * *'   # каждый час в :07 (разгруженная минута)
   workflow_dispatch:       # кнопка ручного запуска
 
 concurrency:
@@ -14,7 +14,7 @@ jobs:
   run-parser:
     name: Run VLESS Parser
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     permissions:
       contents: write
     steps:
@@ -39,6 +39,19 @@ jobs:
           chmod +x xray
           ./xray version
 
+      - name: 4b. Устанавливаем sing-box (для hysteria2 в белом списке)
+        run: |
+          for i in 1 2 3; do
+            URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep 'linux-amd64.tar.gz' | grep -v android | head -1)
+            [ -n "$URL" ] && curl -sfL "$URL" -o sb.tar.gz && break
+            echo "retry $i..."; sleep 3
+          done
+          mkdir -p sbx && tar -xzf sb.tar.gz -C sbx
+          find sbx -name sing-box -type f -exec mv {} sing-box \;
+          rm -rf sbx sb.tar.gz
+          chmod +x sing-box
+          ./sing-box version
+
       - name: 5. Запуск парсера
         run: python checker.py
 
@@ -46,7 +59,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add white_subscription.txt black_subscription.txt state.json
-          git commit -m "🤖 Только проверенные серверы (xray+204+контент)" || echo "Изменений нет"
+          git add white_subscription.txt black_subscription.txt proven.txt
+          git commit -m "🤖 ЭтоНеЯ-списки: только живые (xray+tg+контент+скорость)" || echo "Изменений нет"
           git pull --rebase origin main || true
           git push origin main
