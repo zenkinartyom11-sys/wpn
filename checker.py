@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-ПАРСЕР v21 — «железобетонная» проверка для 2 подписок.
+ПАРСЕР v22 — «железобетонная» проверка для 2 подписок.
+БЕЛЫЙ: внешние источники отключены — только локальные файлы whitelist*.txt
+(лежат рядом с checker.py; в репо — тоже работают, если закоммитить).
+ЧЁРНЫЙ: внешние списки + автоиндекс агрегаторов, как в v21.3.
 PROVEN: файл proven.txt (корень репо) — серверы, проверенные вручную на телефоне.
 Они всегда проходят полную проверку и идут в подписку ПЕРВЫМИ; ссылки из proven.txt
 не модифицируются. Фильтр стран: выключен по умолчанию (на МТС жёсткий FI/NL/US/DE
@@ -54,6 +57,11 @@ STATE_FILE      = "state.json"          # история проверок (ко�
 WHITE_FILE      = "white_subscription.txt"
 BLACK_FILE      = "black_subscription.txt"
 PROVEN_FILE     = "proven.txt"     # серверы, проверенные ВРУЧНУЮ на телефоне — приоритет №1
+# Локальные файлы с ссылками (лежат рядом с checker.py, парсятся в БЕЛЫЙ список).
+# Маска: всё, что начинается с "whitelist" и кончается .txt — whitelist (2).txt тоже сойдёт.
+# Для ЧЁРНОГО списка — файлы black*.txt (тоже любые).
+LOCAL_WHITE_MASK = "whitelist*.txt"
+LOCAL_BLACK_MASK = "black*.txt"
 
 # ========== СТРАНЫ ==========
 # ЖЁСТКИЙ фильтр: впиши страны, и все остальные будут отбрасываться до проверок.
@@ -147,19 +155,9 @@ RUSSIAN_PREFIXES = [
 
 # ============ ИСТОЧНИКИ ============
 URLS_WHITE = [
-    # --- специализированные белые списки (RU mobile) ---
-    "https://raw.githubusercontent.com/Subzio/subzio/main/WHITE_LIST_PROXY_COLLECTION.txt",
-    "https://raw.githubusercontent.com/Subzio/subzio/main/HYSTERIA2.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless_lite.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt",
-    # --- общие агрегаторы (CF+443 как запасной класс) ---
-    "https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt",
-    "https://raw.githubusercontent.com/Ai123999/WhiteKeys/refs/heads/main/WhiteKeys",
-    "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt",
-    # --- крупные ежедневные агрегаторы (расширенный охват, v21.1) ---
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    # БЕЛЫЙ СПИСОК: внешние ссылки УБРАНЫ (на МТС не работают ни одна).
+    # Источник белого — ТОЛЬКО локальные файлы рядом с checker.py:
+    # whitelist.txt, whitelist1.txt ... whitelist5.txt
 ]
 URLS_BLACK = [
     "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
@@ -827,10 +825,27 @@ def process_list(is_white, state, t_start):
     good = sum(1 for t in texts if t)
     print(f"[+] Источников ответило: {good}/{len(urls)}")
 
+    # --- Локальные файлы (whitelist*.txt / black*.txt рядом с checker.py) ---
+    import glob as _glob
+    base_dir = os.path.dirname(os.path.abspath(__file__)) or "."
+    mask = LOCAL_WHITE_MASK if is_white else LOCAL_BLACK_MASK
+    local_files = sorted(_glob.glob(os.path.join(base_dir, mask)))
+    for p in local_files:
+        try:
+            t = smart_decode(open(p, encoding="utf-8", errors="ignore").read())
+            if t.strip():
+                texts.append(t)
+                print(f"[+] Локальный источник: {os.path.basename(p)} ({len(t.splitlines())} строк)")
+        except Exception:
+            pass
+    if is_white and local_files:
+        print(f"[*] Белый список: внешние источники отключены, только локальные ({len(local_files)} шт.)")
+
     idx_urls = []
-    for iu in INDEX_SOURCES:
-        idx_urls.extend(fetch_index_urls(iu, set(urls) | set(idx_urls)))
-    if idx_urls:
+    if not is_white:                      # индекс агрегаторов — только для чёрного
+        for iu in INDEX_SOURCES:
+            idx_urls.extend(fetch_index_urls(iu, set(urls) | set(idx_urls)))
+    if idx_urls and not is_white:
         random.shuffle(idx_urls)
         idx_urls = idx_urls[:INDEX_MAX_URLS]
         print(f"[*] Индекс: докачиваю {len(idx_urls)} доп. источников (ротация каждый прогон)...")
@@ -1029,7 +1044,7 @@ def process_list(is_white, state, t_start):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v21.3: ТОТАЛЬНЫЙ поиск — индекс+ротация, широкий хендшейк, бюджет 140")
+    print("[*] Парсер v22.1: белый = whitelist*.txt; чёрный = black*.txt + внешние + индекс")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
         print("[!] xray не найден — выход. Скачай Xray-windows-64.zip / Xray-linux-64.zip,")
         print("    положи бинарник (xray.exe / xray) рядом с checker.py или укажи XRAY_PATH.")
