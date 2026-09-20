@@ -439,6 +439,27 @@ def measure_speed(local_port, max_bytes=10_000_000, max_time=12.0):
     dt = time.monotonic() - t0
     return total / 1024 / dt if dt > 0.05 and total > 50_000 else 0.0
 
+GOOGLE_CDN_URL = "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
+
+def google_cdn_speed_check(local_port, max_bytes=2_000_000, max_time=8.0):
+    """Скорость через Google-CDN (dl.google.com — та же инфраструктура, что YouTube), МБ/с.
+    Отдельная метрика: бывают серверы, быстрые для Telegram, но затычные для Google/YouTube.
+    Ранжирование идёт по ХУДШЕМУ из двух — наверх списка попадают хорошие и там, и там."""
+    total, t0 = 0, time.monotonic()
+    try:
+        with requests.get(GOOGLE_CDN_URL, proxies=_proxies(local_port),
+                          timeout=(5, 10), headers={**UA, "Range": "bytes=0-2097151"}, stream=True) as r:
+            if r.status_code not in (200, 206):
+                return 0.0
+            for chunk in r.iter_content(chunk_size=16384):
+                total += len(chunk)
+                if total >= max_bytes or time.monotonic() - t0 > max_time:
+                    break
+    except Exception:
+        pass
+    dt = time.monotonic() - t0
+    return total / 1_048_576 / dt if dt > 0.05 and total > 100_000 else 0.0
+
 BLACK_TARGETS = [
     ("https://web.telegram.org/k/", b"telegram", 3000),
     ("https://www.youtube.com/", b"<title>youtube", 15000),
@@ -469,23 +490,23 @@ def real_check(cand, local_port, is_white, light=False):
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 preexec_fn=os.setsid)
         if not wait_for_port(local_port, proc, XRAY_START_WAIT):
-            return False, None, 0, (f"{eng} не поднял порт (битая ссылка)" if proc.poll() is not None else f"{eng} не поднял порт")
+            return False, None, 0, None, (f"{eng} не поднял порт (битая ссылка)" if proc.poll() is not None else f"{eng} не поднял порт")
         if not light:
             try:
                 r = requests.get("http://www.gstatic.com/generate_204", proxies=_proxies(local_port),
                                  timeout=STAGE_TIMEOUT, headers=UA)
                 if r.status_code != 204:
-                    return False, None, 0, f"http204 -> {r.status_code}"
+                    return False, None, 0, None, f"http204 -> {r.status_code}"
             except Exception as e:
-                return False, None, 0, f"http204 fail ({type(e).__name__})"
+                return False, None, 0, None, f"http204 fail ({type(e).__name__})"
         t0 = time.monotonic()
         try:
             r = requests.get("https://www.gstatic.com/generate_204", proxies=_proxies(local_port),
                              timeout=STAGE_TIMEOUT, headers=UA)
         except Exception as e:
-            return False, None, 0, f"https204 fail ({type(e).__name__})"
+            return False, None, 0, None, f"https204 fail ({type(e).__name__})"
         if r.status_code != 204:
-            return False, None, 0, f"https204 -> {r.status_code}"
+            return False, None, 0, None, f"https204 -> {r.status_code}"
         latency = time.monotonic() - t0
 
         targets = WHITE_TARGETS if is_white else BLACK_TARGETS
@@ -494,12 +515,12 @@ def real_check(cand, local_port, is_white, light=False):
             r = requests.get(tg_url, proxies=_proxies(local_port),
                              timeout=STAGE_TIMEOUT + 3, headers=UA)
             if r.status_code != 200:
-                return False, None, 0, f"telegram -> {r.status_code}"
+                return False, None, 0, None, f"telegram -> {r.status_code}"
             low = r.content[:200000].lower()
             if len(r.content) < tg_min or tg_marker not in low:
-                return False, None, 0, "telegram: не настоящая страница"
+                return False, None, 0, None, "telegram: не настоящая страница"
         except Exception as e:
-            return False, None, 0, f"telegram fail ({type(e).__name__})"
+            return False, None, 0, None, f"telegram fail ({type(e).__name__})"
 
         kbps, content_ok, last_reason = 0.0, False, "content fail"
         for url, marker, min_size in targets[1:]:
@@ -527,14 +548,15 @@ def real_check(cand, local_port, is_white, light=False):
             except Exception as e:
                 last_reason = f"{url.split('/')[2]} fail ({type(e).__name__})"
         if not content_ok:
-            return False, None, 0, last_reason
+            return False, None, 0, None, last_reason
 
         sp = measure_speed(local_port)
         if sp > 0:
             kbps = sp
-        return True, latency, kbps, ""
+        yt = google_cdn_speed_check(local_port)
+        return True, latency, kbps, yt, ""
     except Exception as e:
-        return False, None, 0, f"exc ({type(e).__name__})"
+        return False, None, 0, None, f"exc ({type(e).__name__})"
     finally:
         if proc:
             try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -562,13 +584,13 @@ def verify_candidates(cands, is_white, light=False, limit=None):
         checks += len(wave)
         def one(idx_item):
             idx, cand = idx_item
-            ok, latency, kbps, reason = real_check(cand, 15000 + idx, is_white, light=light)
-            return cand, ok, latency, kbps, reason
+            ok, latency, kbps, yt, reason = real_check(cand, 15000 + idx, is_white, light=light)
+            return cand, ok, latency, kbps, yt, reason
         with ThreadPoolExecutor(max_workers=REAL_WORKERS) as ex:
-            for cand, ok, latency, kbps, reason in ex.map(one, enumerate(wave)):
+            for cand, ok, latency, kbps, yt, reason in ex.map(one, enumerate(wave)):
                 if ok:
-                    verified.append({**cand, "latency": latency, "kbps": kbps})
-                    print(f"    [+] {cand['country']:3s} | {kbps:8.1f} KB/s | {cand['info']['host']}:{cand['info']['port']}")
+                    verified.append({**cand, "latency": latency, "kbps": kbps, "yt": yt})
+                    print(f"    [+] {cand['country']:3s} | {kbps:8.1f} KB/s | ютуб {yt:4.1f} MB/s | {cand['info']['host']}:{cand['info']['port']}")
                 else:
                     print(f"    [-] {cand['country']:3s} | {reason:34s} | {cand['info']['host']}:{cand['info']['port']}")
     return verified
@@ -610,7 +632,7 @@ def write_subscription(filename, title, servers, is_white=False, protected=None)
         servers = out
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"#profile-title: {title}\n#updated: {time.strftime('%Y-%m-%d %H:%M')} UTC\n"
-                "#verified: xray+204+telegram-web+content+speed\n\n" + "\n".join(servers) + "\n")
+                "#verified: xray+204+telegram-web+content+speed+google-cdn\n\n" + "\n".join(servers) + "\n")
 
 # ================== СПИСОК ==================
 def process_list(is_white):
@@ -696,12 +718,19 @@ def process_list(is_white):
 
     # --- 7. Итог: proven первыми, затем ВСЕ живые по скорости ---
     all_verified = proven_verified + [v for v in new_verified if v["key"] not in pv_keys]
-    all_verified.sort(key=lambda v: -(v.get("kbps") or 0))
+    # наверху — серверы, хорошие И для обычной скорости, И для Google/YouTube (худшая из двух)
+    all_verified.sort(key=lambda v: -min((v.get("kbps") or 0), (v.get("yt") or 0) * 1024))
     print(f"\n[+] Итог {name}: живых {len(all_verified)} (proven: {len(proven_verified)})")
     if all_verified:
+        out_lines = []
+        for v in all_verified:
+            line = v["line"]
+            base, _, orig = line.partition("#")
+            tag = f"{(v.get('kbps') or 0):.0f}KB/s | YT {(v.get('yt') or 0):.1f}MB/s"
+            out_lines.append(f"{base}#{(orig + ' | ' + tag) if orig else tag}")
         write_subscription(WHITE_FILE if is_white else BLACK_FILE,
                            "Белый список (РКН)" if is_white else "Чёрный список (РКН)",
-                           [v["line"] for v in all_verified], is_white,
+                           out_lines, is_white,
                            protected=proven_lines)
         print(f"[+] {WHITE_FILE if is_white else BLACK_FILE} ЗАПИСАН: {len(all_verified)} серверов")
     else:
@@ -710,7 +739,7 @@ def process_list(is_white):
 # ================== MAIN ==================
 def main():
     t0 = time.monotonic()
-    print("[*] Парсер v23.1: ЭтоНеЯ-зеркала (10 шт., вкл. gitverse) + Reality любых портов + CHECK_ALL")
+    print("[*] Парсер v23.2: ЭтоНеЯ-зеркала + Reality любых портов + CHECK_ALL + ютуб-метрика (ранжирование по худшей скорости)")
     if os.environ.get("CHECK_ALL") == "1":
         print("[*] РЕЖИМ CHECK_ALL=1: глубокая проверка ВСЕХ кандидатов (без бюджета)")
     if not (os.path.exists(XRAY_PATH) or shutil.which(XRAY_PATH)):
