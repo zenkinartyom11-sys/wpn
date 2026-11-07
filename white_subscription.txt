@@ -1,11 +1,6 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-07 09:57 UTC
+#updated: 2026-11-07 16:21 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://90157e25-cee1-4217-921e-91f300bc1a24@novonl.subv.ru:443?type=raw&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=1vSZjvhZO01oAEH3b7eebR1qF5dLU1Dq2E7xu8pwGSs&sid=428ef87fd47a3a32&sni=golos.mail.ru#0313 | 🌐 Unknown | 🏳️ SNI-MAILRU | VLESS | TG: @YoutubeUnBlockRu | 6182KB/s | YT 1.9MB/s
-vless://6d987d5d-90d4-4bea-97fe-6b0610e40ff4@93.152.211.119:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=-oJS0Rw7oLz0audAETu1-RuJSZCBMcAjFMVDmD40YSU&sid=9cb329df19cc45e8&sni=ads.x5.ru#0577 | 🇳🇱 Netherlands | 🏳️ SNI-X5 | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 4843KB/s | YT 1.6MB/s
-vless://af185070-7170-46a8-b1e9-d61a035f4691@147.45.104.86:7443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=qq&pbk=KbjX7IJnVtwq2USeRmLgXzACOtFCiA5lnsXhIFOX3ho&sid=a7eb8a4e&sni=max.ru#0740 | 🇷🇺 Russia | 🏳️ SNI-MAX | VLESS | TG: @YoutubeUnBlockRu | 5395KB/s | YT 1.4MB/s
-vless://f4ef1d6a-8f01-4ccd-8547-5b5a2a572d00@83.141.67.164:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=qUq7a-iukyszVvH-5C74VBujzYAMC_shfv8O-1crZlY&sid=09fd8f6666eec544&sni=360.yandex.ru#1000 | 🇮🇪 Ireland | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 1911KB/s | YT 1.3MB/s
-vless://92b79c22-f68b-4713-8b21-52f264cb92f5@downloadchache1.song69.fun:28150?type=tcp&security=reality&flow=xtls-rprx-vision&fp=safari&pbk=HRmmr0Ii4Tr9jPLwratvLhee3_VWFNK47T8AAo7kzww&sid=dcb858da&sni=metrika.yandex.ru#0642 | 🌐 Unknown | 🏳️ SNI-Yandex | VLESS | TG: @YoutubeUnBlockRu | 5052KB/s | YT 1.1MB/s
-vless://e8f7bbc6-3f5b-42b1-9903-45d3ba608e30@192.109.200.108:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=8Y0fk2zTfaBY3VEJF6ySLe6ZrK4liXxQdxKxAunwTlg&sid=3e129765d7ce5606&sni=ads.x5.ru#0830 | 🇳🇱 Netherlands | 🏳️ SNI-X5 | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 2267KB/s | YT 0.8MB/s
-vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0787 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 617KB/s | YT 1.7MB/s
+vless://90157e25-cee1-4217-921e-91f300bc1a24@novonl.subv.ru:443?type=raw&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=1vSZjvhZO01oAEH3b7eebR1qF5dLU1Dq2E7xu8pwGSs&sid=428ef87fd47a3a32&sni=golos.mail.ru#0345 | 🌐 Unknown | 🏳️ SNI-MAILRU | VLESS | TG: @YoutubeUnBlockRu | 6055KB/s | YT 1.5MB/s
+vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0866 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 560KB/s | YT 1.6MB/s
