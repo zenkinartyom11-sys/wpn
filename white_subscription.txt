@@ -1,6 +1,7 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-07 16:21 UTC
+#updated: 2026-11-07 20:50 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://90157e25-cee1-4217-921e-91f300bc1a24@novonl.subv.ru:443?type=raw&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=1vSZjvhZO01oAEH3b7eebR1qF5dLU1Dq2E7xu8pwGSs&sid=428ef87fd47a3a32&sni=golos.mail.ru#0345 | 🌐 Unknown | 🏳️ SNI-MAILRU | VLESS | TG: @YoutubeUnBlockRu | 6055KB/s | YT 1.5MB/s
-vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0866 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 560KB/s | YT 1.6MB/s
+vless://90157e25-cee1-4217-921e-91f300bc1a24@novonl.subv.ru:443?type=raw&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=1vSZjvhZO01oAEH3b7eebR1qF5dLU1Dq2E7xu8pwGSs&sid=428ef87fd47a3a32&sni=golos.mail.ru#0365 | 🌐 Unknown | 🏳️ SNI-MAILRU | VLESS | TG: @YoutubeUnBlockRu | 4640KB/s | YT 1.9MB/s
+vless://af185070-7170-46a8-b1e9-d61a035f4691@147.45.104.86:7443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=qq&pbk=KbjX7IJnVtwq2USeRmLgXzACOtFCiA5lnsXhIFOX3ho&sid=a7eb8a4e&sni=max.ru#0846 | 🇷🇺 Russia | 🏳️ SNI-MAX | VLESS | TG: @YoutubeUnBlockRu | 5508KB/s | YT 1.4MB/s
+vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0903 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 238KB/s | YT 0.4MB/s
