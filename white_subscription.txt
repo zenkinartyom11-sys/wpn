@@ -1,7 +1,5 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-08 00:28 UTC
+#updated: 2026-11-08 07:13 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0781 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 4774KB/s | YT 1.1MB/s
-vless://917a186b-ffa1-4af4-a473-1a8d95f2e37c@195.209.211.63:1443?security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=_yfkAlX_g-2LBB3CpNqI9sDKz-1OyqwyvbDwD7F8gRo&sni=sun6-21.userapi.com#0673 | 🇷🇺 Russia | 🏳️ SNI-VK | VLESS | TG: @YoutubeUnBlockRu | 2840KB/s | YT 0.8MB/s
-vless://917a186b-ffa1-4af4-a473-1a8d95f2e37c@195.209.211.63:2087?security=reality&flow=xtls-rprx-vision&fp=qq&pbk=_yfkAlX_g-2LBB3CpNqI9sDKz-1OyqwyvbDwD7F8gRo&sni=m.vk.ru#0201 | 🇷🇺 Russia | 🏳️ SNI-VK | VLESS | TG: @YoutubeUnBlockRu | 2479KB/s | YT 0.8MB/s
+vless://49fdd350-6ffb-4343-b467-14e269bb95de@82.148.255.201:8443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=DvNpCmas0_0MO91s70vlkAxZxnnIt1NE0zqCC4trURQ&sid=2bf10fc0a85601e5&sni=360.yandex.ru#0597 | 🇬🇧 United Kingdom | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 655KB/s | YT 0.5MB/s
