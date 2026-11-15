@@ -1,5 +1,5 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-15 09:14 UTC
+#updated: 2026-11-15 21:43 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://555b35c4-30f9-40c6-a61a-7f53ab1bea45@103.111.114.136:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=kBTMVLCNE0jjwuJF6H5-65l5Pe0QToS0Hg-9Tmaa7Sk&sid=1a2b3c4d&sni=videos.porsche.com#0389 | 🇮🇳 India | 🏳️ CIDR-Melbicom | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 217KB/s | YT 0.8MB/s
+vless://c0c949fc-2ed6-4597-b680-a1a3276ebf87@188.225.24.62:443?type=raw&security=tls&flow=xtls-rprx-vision&fp=firefox&sni=img.bokovskay.app&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%2C%22settings%22%3A%7B%22packets%22%3A%22tlshello%22%2C%22lengths%22%3A%5B%225%22%2C%2294%22%2C%221%22%5D%2C%22delays%22%3A%5B%220%22%5D%2C%22maxSplit%22%3A%220%22%7D%7D%5D%7D#0263 | 🇷🇺 Russia | 🏳️ CIDR-TimeWeb | VLESS | TG: @YoutubeUnBlockRu | 334KB/s | YT 0.9MB/s
