@@ -1,5 +1,7 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-15 21:43 UTC
+#updated: 2026-11-16 09:31 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://c0c949fc-2ed6-4597-b680-a1a3276ebf87@188.225.24.62:443?type=raw&security=tls&flow=xtls-rprx-vision&fp=firefox&sni=img.bokovskay.app&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%2C%22settings%22%3A%7B%22packets%22%3A%22tlshello%22%2C%22lengths%22%3A%5B%225%22%2C%2294%22%2C%221%22%5D%2C%22delays%22%3A%5B%220%22%5D%2C%22maxSplit%22%3A%220%22%7D%7D%5D%7D#0263 | 🇷🇺 Russia | 🏳️ CIDR-TimeWeb | VLESS | TG: @YoutubeUnBlockRu | 334KB/s | YT 0.9MB/s
+vless://dcf2b1c4-f99f-4319-b917-37af1e7233c8@188.124.54.30:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=NaKc4dzGFuXMEyK2EpqbS7EosjGDR4wNQS7fH2EnSzk&sid=43699ddc62b52c4b&sni=12.img.avito.st#1663 | 🇷🇺 Russia | 🏳️ SNI-Avito | VLESS | TG: @YoutubeUnBlockRu | 3448KB/s | YT 0.9MB/s
+vless://0ed9418b-e687-4c2d-8869-7e368c44887e@5.178.85.81:8443?type=grpc&security=reality&fp=firefox&pbk=DaIRouGSxxQDEv9WKRxD79b2Vt0fsw4yQOTeAmXUYCM&sid=08&sni=gazeta-business.ru&serviceName=grpc#0716 | 🇷🇺 Russia | 🏳️ CIDR-Selectel | VLESS | TG: @YoutubeUnBlockRu | 53KB/s | YT 0.1MB/s
+vless://0ed9418b-e687-4c2d-8869-7e368c44887e@5.178.85.81:443?type=raw&security=tls&flow=xtls-rprx-vision&fp=firefox&sni=selec.homelab-cdn.cloud&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%2C%22settings%22%3A%7B%22packets%22%3A%22tlshello%22%2C%22lengths%22%3A%5B%225%22%2C%2294%22%2C%221%22%5D%2C%22delays%22%3A%5B%220%22%5D%2C%22maxSplit%22%3A%220%22%7D%7D%5D%7D#0605 | 🇷🇺 Russia | 🏳️ CIDR-Selectel | VLESS | TG: @YoutubeUnBlockRu | 52KB/s | YT 0.0MB/s
