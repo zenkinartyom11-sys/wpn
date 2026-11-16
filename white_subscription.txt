@@ -1,7 +1,17 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-16 09:31 UTC
+#updated: 2026-11-16 20:21 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://dcf2b1c4-f99f-4319-b917-37af1e7233c8@188.124.54.30:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=NaKc4dzGFuXMEyK2EpqbS7EosjGDR4wNQS7fH2EnSzk&sid=43699ddc62b52c4b&sni=12.img.avito.st#1663 | 🇷🇺 Russia | 🏳️ SNI-Avito | VLESS | TG: @YoutubeUnBlockRu | 3448KB/s | YT 0.9MB/s
-vless://0ed9418b-e687-4c2d-8869-7e368c44887e@5.178.85.81:8443?type=grpc&security=reality&fp=firefox&pbk=DaIRouGSxxQDEv9WKRxD79b2Vt0fsw4yQOTeAmXUYCM&sid=08&sni=gazeta-business.ru&serviceName=grpc#0716 | 🇷🇺 Russia | 🏳️ CIDR-Selectel | VLESS | TG: @YoutubeUnBlockRu | 53KB/s | YT 0.1MB/s
-vless://0ed9418b-e687-4c2d-8869-7e368c44887e@5.178.85.81:443?type=raw&security=tls&flow=xtls-rprx-vision&fp=firefox&sni=selec.homelab-cdn.cloud&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%2C%22settings%22%3A%7B%22packets%22%3A%22tlshello%22%2C%22lengths%22%3A%5B%225%22%2C%2294%22%2C%221%22%5D%2C%22delays%22%3A%5B%220%22%5D%2C%22maxSplit%22%3A%220%22%7D%7D%5D%7D#0605 | 🇷🇺 Russia | 🏳️ CIDR-Selectel | VLESS | TG: @YoutubeUnBlockRu | 52KB/s | YT 0.0MB/s
+hysteria2://gf1:gfhysteria2024@66.94.121.46:443?sni=vk.com#1372 | 🇺🇸 USA | 🏳️ SNI-VK | HYSTERIA2 | 📺 YT | TG: @YoutubeUnBlockRu | 5083KB/s | YT 5.7MB/s
+hysteria2://gf1:gfhysteria2024@5.129.235.85:443?sni=vk.com#0367 | 🇳🇱 Netherlands | 🏳️ SNI-VK | HYSTERIA2 | 📺 YT | TG: @YoutubeUnBlockRu | 4958KB/s | YT 4.6MB/s
+hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@202.146.222.89:443?sni=vk.com#2092 | 🇨🇳 HongKong | 🏳️ SNI-VK | HYSTERIA2 | TG: @YoutubeUnBlockRu | 3526KB/s | YT 1.7MB/s
+vless://75c5f51b-d548-4eab-a26e-aa10fc3dbc7b@147.93.173.45:10444?type=tcp&security=reality&flow=xtls-rprx-vision&fp=safari&pbk=0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo&sid=8debcf36f1cc69ff&sni=video.yandex.ru&packetEncoding=none#1587 | 🇸🇬 Singapore | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 3715KB/s | YT 0.9MB/s
+vless://6a251a93-8eee-43b5-92ed-ecadedcfd0a8@213.165.39.134:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=Gtz3xOdQdWSocdx4NNie6s-bsa9VDiG6thqanJ4h31s&sid=6f3332a09b0ab6d1&sni=platform-api.max.ru#2492 | 🇳🇱 Netherlands | 🏳️ SNI-MAX | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 2577KB/s | YT 0.9MB/s
+hysteria2://3d7634af8cb2c6cb4bac1c0efad8b43d@152.67.200.82:50160?sni=vk.com#1479 | 🇰🇷 South Korea | 🏳️ SNI-VK | HYSTERIA2 | 📺 YT | TG: @YoutubeUnBlockRu | 579KB/s | YT 1.5MB/s
+vless://e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4@138.124.125.193:10444?type=tcp&security=reality&flow=xtls-rprx-vision&fp=random&pbk=0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo&sid=8debcf36f1cc69ff&sni=ads.x5.ru&host=ads.x5.ru#1546 | 🇬🇧 United Kingdom | 🏳️ SNI-X5 | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 3021KB/s | YT 0.5MB/s
+hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-tw-002.fastervpn.world:443?sni=vk.com#1812 | 🌐 Unknown | 🏳️ SNI-VK | HYSTERIA2 | TG: @YoutubeUnBlockRu | 483KB/s | YT 1.9MB/s
+hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@202.146.222.29:443?sni=vk.com#2515 | 🇨🇳 HongKong | 🏳️ SNI-VK | HYSTERIA2 | TG: @YoutubeUnBlockRu | 448KB/s | YT 1.0MB/s
+vless://57f7772d-f5d6-4d8f-992d-5fa5e0d6da55@193.188.21.253:10444?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo&sid=8debcf36f1cc69ff&sni=video.yandex.ru#1098 | 🇸🇪 Sweden | 🏳️ SNI-Yandex | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 2906KB/s | YT 0.4MB/s
+vless://11aabba0-5fd1-4f15-8068-74c1a466cefc@193.163.203.170:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=chrome&pbk=GCCZ1ZZjB_nj7yxqFi22bIIWWr_G6rnWUzDcssN_40o&sid=b28db60d77c50b4f&sni=yandex.ru&packetEncoding=none#0432 | 🇷🇺 Russia | 🏳️ SNI-Yandex | VLESS | TG: @YoutubeUnBlockRu | 280KB/s | YT 0.8MB/s
+vless://cebc5f19-18d9-48e6-9029-fb4b04caf393@45.38.143.210:30584?type=tcp&security=reality&fp=edge&pbk=2hV4TY2ygvQ7ISa5o4u_FUKXzlIhLgbsScE8M1h0m3Y&sid=67ece882d65d0f1a&sni=m.vk.com#1217 | 🇫🇮 Finland | 🏳️ SNI-VK | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 77KB/s | YT 0.2MB/s
+vless://501a2da5-cb22-4a3f-915e-e3b821d1d62d@87.199.205.28:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=W-9zyiOq287RtXVTZlTFbSDJ0Mx8joyBLJoA7ZE7eBw&sid=ef1d3554c652a436&sni=vkvd754.okcdn.ru#0585 | 🇳🇱 Netherlands | 🏳️ SNI-OK | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 211KB/s | YT 0.1MB/s
