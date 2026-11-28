@@ -1,6 +1,6 @@
 #profile-title: Белый список (РКН)
-#updated: 2026-11-28 01:55 UTC
+#updated: 2026-11-28 10:15 UTC
 #verified: xray+204+telegram-web+content+speed+google-cdn
 
-vless://e307f400-d65e-4afd-bfe2-9a54deca5678@2.27.122.255:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=Uig-31Ux76EreEvx8Ntb0BwS1TkUGbu0LcsQsiAH6wg&sid=d52d3ecf49447c2a&sni=sun9-37.userapi.com#0609 | 🇫🇮 Finland | 🏳️ SNI-VK | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 4649KB/s | YT 1.1MB/s
-vless://faf6b8af-e741-4ef5-b1e2-25a3f413cc8e@188.225.77.71:443?security=tls&flow=xtls-rprx-vision&fp=firefox&sni=spb2.b2ai.top&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%2C%22settings%22%3A%7B%22packets%22%3A%22tlshello%22%2C%22lengths%22%3A%5B%225%22%2C%2294%22%2C%221%22%5D%2C%22delays%22%3A%5B%220%22%5D%2C%22maxSplit%22%3A%220%22%7D%7D%5D%7D#0677 | 🇷🇺 Russia | 🏳️ CIDR-TimeWeb | VLESS | TG: @YoutubeUnBlockRu | 4029KB/s | YT 0.9MB/s
+vless://e307f400-d65e-4afd-bfe2-9a54deca5678@2.27.122.255:443?type=tcp&security=reality&flow=xtls-rprx-vision&fp=firefox&pbk=Uig-31Ux76EreEvx8Ntb0BwS1TkUGbu0LcsQsiAH6wg&sid=d52d3ecf49447c2a&sni=sun9-37.userapi.com#0692 | 🇫🇮 Finland | 🏳️ SNI-VK | VLESS | 📺 YT | TG: @YoutubeUnBlockRu | 4347KB/s | YT 1.1MB/s
+vless://0d4807a7-260b-4d66-a71e-5e793c46c66e@82.202.182.32:5269?type=tcp&security=reality&fp=qq&pbk=meI7RA9FgxL1yjJsbJBehEKoB2Z1ra4hyYJso9qtmFA&sid=4b198dc3bfffb7af&sni=max.ru#1059 | 🇷🇺 Russia | 🏳️ SNI-MAX | VLESS | TG: @YoutubeUnBlockRu | 146KB/s | YT 0.5MB/s
